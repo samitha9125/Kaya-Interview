@@ -71,3 +71,16 @@ export function findCustomerNic(
     .get();
   return row ? decryptField(row.nicEncrypted, key) : undefined;
 }
+
+// SPEC A3: income and existing repayments come from the bank's record,
+// never from chat. Lending receives this through an injected loader.
+export function findBankRecord(executor: DbExecutor, customerId: string) {
+  return executor
+    .select({
+      monthlyIncomeLkr: customers.monthlyIncomeLkr,
+      monthlyRepaymentsLkr: customers.monthlyRepaymentsLkr,
+    })
+    .from(customers)
+    .where(eq(customers.id, customerId))
+    .get();
+}
