@@ -28,3 +28,4 @@ export const resetMyDataRoute = (request: Request) => postResetMyData(request, a
 export const failureModeRoute = (request: Request) => postFailureMode(request, app());
 export const inspectorRoute = (request: Request) => getInspector(request, app());
 export const settingsView = () => readSettingsView(app());
+export const isDemoMode = () => app().config.DEMO_MODE;

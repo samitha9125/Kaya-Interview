@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { OptionPicker } from "./option-picker";
 
 // What each mode does to the mock government service (SPEC §6.9).
-const MODES: Record<string, { name: string; effect: string }> = {
+export const MODES: Record<string, { name: string; effect: string }> = {
   normal: { name: "Normal", effect: "Answers every check." },
   slow: { name: "Slow", effect: "Answers after our 5-second timeout, so checks fail." },
   error: { name: "Error", effect: "Fails with a server error (500)." },

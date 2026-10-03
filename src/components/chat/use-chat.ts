@@ -23,6 +23,8 @@ export function useChat(restored: RestoredConversation | null) {
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  // Counts finished turns, so the demo panel knows when to read again.
+  const [turnsDone, setTurnsDone] = useState(0);
 
   async function runTurn(url: string, body: Record<string, unknown>, onRefused: () => void) {
     setIsBusy(true);
@@ -52,6 +54,7 @@ export function useChat(restored: RestoredConversation | null) {
     });
     setProgress(null);
     setIsBusy(false);
+    setTurnsDone((count) => count + 1);
   }
 
   function sendMessage(text: string, starter?: Starter) {
@@ -75,6 +78,8 @@ export function useChat(restored: RestoredConversation | null) {
 
   const isInputLocked = isBusy || pause !== null;
   return {
+    conversationId,
+    turnsDone,
     messages,
     pause,
     isBusy,
