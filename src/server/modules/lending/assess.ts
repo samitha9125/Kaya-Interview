@@ -80,7 +80,12 @@ function recordDecision(
       correlationId: request.correlationId,
       conversationId: request.conversationId,
       actor: "system",
-      payload: { ...auditFields(row), applicationId },
+      payload: {
+        ...auditFields(row),
+        amountLkr: row.amountLkr,
+        ...decision.factors,
+        applicationId,
+      },
     });
     return { ok: true, assessment: toAssessment(row) };
   });

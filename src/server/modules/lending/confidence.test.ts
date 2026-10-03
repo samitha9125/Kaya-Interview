@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vitest";
-import { confidenceBp, type ConfidenceInput } from "./confidence";
+import { assessConfidence, type ConfidenceInput } from "./confidence";
+
+const confidenceBp = (input: ConfidenceInput) => assessConfidence(input).confidenceBp;
 
 const DAY = 24 * 60 * 60_000;
 const NOW = new Date("2026-10-03T10:00:00.000Z");
@@ -53,5 +55,22 @@ describe("lending/confidence: score age", () => {
     { days: 8, expected: 9_980 },
   ])("BR-LEND-04: a score $days days old → $expected bp", ({ days, expected }) => {
     expect(confidenceBp(clear({ scoreFetchedAt: daysAgo(days) }))).toBe(expected);
+  });
+});
+
+describe("lending/confidence: the reasons behind the number", () => {
+  it("BR-LEND-04: each penalty is named with its size, so the audit trail can explain it", () => {
+    const result = assessConfidence(
+      clear({ score: 735, amountLkr: 2_700_000, scoreFetchedAt: daysAgo(8) }),
+    );
+
+    expect(result).toEqual({
+      confidenceBp: 7_980,
+      reasons: [
+        { code: "score_near_band_edge", penaltyBp: 1_000 },
+        { code: "amount_near_band_max", penaltyBp: 1_000 },
+        { code: "score_age", penaltyBp: 20 },
+      ],
+    });
   });
 });
