@@ -53,7 +53,7 @@ describe("onboarding/drafts: the form is stored encrypted (FR-ONB-02)", () => {
   it("FR-ONB-02: the bank can read the details back for the confirmation summary", () => {
     const draftId = savedDraft();
 
-    const details = readKycDetails(draftId, CONTEXT, deps);
+    const details = readKycDetails(draftId, CONTEXT.conversationId, deps);
 
     expect(details).toMatchObject({ fullName: "Kasun Perera", nic: "199512345678" });
   });
@@ -126,7 +126,7 @@ describe("onboarding/confirm: one draft, one pending application (FR-ONB-02)", (
     const result = confirmKycApplication(draftId, elsewhere, deps);
 
     expect(result).toEqual({ ok: false, reason: "not_found" });
-    expect(readKycDetails(draftId, elsewhere, deps)).toBeUndefined();
+    expect(readKycDetails(draftId, elsewhere.conversationId, deps)).toBeUndefined();
     expect(statusOf(draftId)).toBe("draft");
   });
 });

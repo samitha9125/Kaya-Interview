@@ -21,7 +21,13 @@ import { streamTurn, type TurnRun } from "./turn-stream";
 const quietLogger = createLogger({ write: () => {} });
 
 function aRun(overrides: Partial<TurnRun> & Pick<TurnRun, "graph" | "input">): TurnRun {
-  return { context: testContext("t1"), logger: quietLogger, release: () => {}, ...overrides };
+  return {
+    context: testContext("t1"),
+    logger: quietLogger,
+    viewPause: ({ interruptId, pause }) => ({ interruptId, ...pause }),
+    release: () => {},
+    ...overrides,
+  };
 }
 
 // A conversation paused at consent, with the check set to find a good score.

@@ -1,10 +1,11 @@
 import type { ConversationContextValue } from "@/server/agent/context";
 import { runConfig, type ConversationGraph } from "@/server/agent/graph";
-import type { Pause } from "@/server/agent/nodes/pauses";
 import { ProgressUpdate } from "@/server/agent/progress";
+import type { PendingPause } from "@/server/agent/resume";
 import { readTranscript } from "@/server/agent/transcript";
 import type { Logger } from "@/server/platform/logger";
 import { failureBody } from "./failures";
+import type { PauseView } from "./pause-view";
 
 // FR-WEB-04: what the browser hears during a turn. Replies are sent whole,
 // after the graph has validated them (FR-AGT-10); only typing and progress
@@ -13,7 +14,7 @@ export type TurnEvent =
   | { type: "typing" }
   | { type: "progress"; text: string }
   | { type: "message"; id: string; text: string }
-  | { type: "interrupt"; pause: { interruptId: string } & Pause }
+  | { type: "interrupt"; pause: PauseView }
   | { type: "error"; message: string; reference: string }
   | { type: "done"; conversationId: string };
 
@@ -22,6 +23,7 @@ export type TurnRun = {
   input: Parameters<ConversationGraph["stream"]>[0];
   context: ConversationContextValue;
   logger: Logger;
+  viewPause: (pending: PendingPause) => PauseView;
   // Called once the run has finished, however it finished.
   release: () => void;
   headers?: HeadersInit;
@@ -63,7 +65,7 @@ export function streamTurn(run: TurnRun): Response {
 }
 
 async function runTurn(
-  { graph, input, context, logger, release }: TurnRun,
+  { graph, input, context, logger, viewPause, release }: TurnRun,
   send: (event: TurnEvent) => void,
 ): Promise<void> {
   const { conversationId, correlationId } = context;
@@ -82,8 +84,7 @@ async function runTurn(
     for (const { id, role, text } of messages) {
       if (role === "assistant") send({ type: "message", id, text });
     }
-    if (pause)
-      send({ type: "interrupt", pause: { interruptId: pause.interruptId, ...pause.pause } });
+    if (pause) send({ type: "interrupt", pause: viewPause(pause) });
   } catch (error) {
     logger.error("turn failed", { correlationId, error });
     const { message, reference } = failureBody("internal", correlationId).error;

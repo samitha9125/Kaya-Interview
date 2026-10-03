@@ -7,6 +7,7 @@ export type FailureKind =
   | "sign_in_paused"
   | "session_expired"
   | "invalid_input"
+  | "invalid_form"
   | "too_many_requests"
   | "duplicate_request"
   | "turn_in_progress"
@@ -43,6 +44,8 @@ const FAILURES: Record<FailureKind, { status: number; message: string }> = {
     status: 400,
     message: "Something in that request wasn't right. Please try again.",
   },
+  // FR-ONB-01: each field's own message travels with this one.
+  invalid_form: { status: 400, message: "Please check the details marked on the form." },
   too_many_requests: {
     status: 429,
     message: "You're sending messages quickly. Please slow down and try again in a minute.",
@@ -65,7 +68,14 @@ const FAILURES: Record<FailureKind, { status: number; message: string }> = {
 const internalMessage = (reference: string) =>
   `Something went wrong on our side. Reference: ${reference}. You can give this to our support team if they ask.`;
 
-export type FailureBody = { error: { code: FailureKind; message: string; reference: string } };
+export type FailureBody = {
+  error: {
+    code: FailureKind;
+    message: string;
+    reference: string;
+    fields?: Partial<Record<string, string>>;
+  };
+};
 
 export function failureBody(
   kind: FailureKind,
@@ -87,4 +97,13 @@ export function failureResponse(
   return Response.json(failureBody(kind, correlationId, humanMessage), {
     status: FAILURES[kind].status,
   });
+}
+
+// FR-ONB-01: the form card shows each field's message beside the field.
+export function formFailureResponse(
+  fields: Partial<Record<string, string>>,
+  correlationId: string,
+): Response {
+  const body = failureBody("invalid_form", correlationId);
+  return Response.json({ error: { ...body.error, fields } }, { status: 400 });
 }
