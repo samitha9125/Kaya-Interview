@@ -18,12 +18,13 @@ function deriveKey(password: string, salt: Buffer, options: ScryptOptions): Prom
 }
 
 // Stored as "scrypt$N$r$p$salt$hash", so the cost can be raised later
-// while old hashes still verify.
-export async function hashPassword(password: string): Promise<string> {
+// while old hashes still verify. Only test fixtures pass a lower cost, so
+// tests that make many login attempts don't spend seconds hashing.
+export async function hashPassword(password: string, { cost = COST } = {}): Promise<string> {
   const salt = randomBytes(SALT_BYTES);
-  const options = { N: COST, r: BLOCK_SIZE, p: PARALLELISM };
+  const options = { N: cost, r: BLOCK_SIZE, p: PARALLELISM };
   const key = await deriveKey(password, salt, options);
-  return ["scrypt", COST, BLOCK_SIZE, PARALLELISM, salt.toString("base64"), key.toString("base64")]
+  return ["scrypt", cost, BLOCK_SIZE, PARALLELISM, salt.toString("base64"), key.toString("base64")]
     .map(String)
     .join("$");
 }

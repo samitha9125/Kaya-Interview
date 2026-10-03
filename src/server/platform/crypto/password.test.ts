@@ -26,6 +26,19 @@ describe("platform/crypto: passwords (scrypt)", () => {
     expect(first).toMatch(/^scrypt\$/);
   });
 
+  it("FR-AUTH-01: the default cost is the OWASP minimum, N = 2^17", async () => {
+    const stored = await hashPassword("correct horse");
+
+    expect(stored.split("$")[1]).toBe(String(2 ** 17));
+  });
+
+  it("FR-AUTH-01: a hash carries its own cost, so a lower-cost hash still verifies", async () => {
+    const stored = await hashPassword("correct horse", { cost: 2 ** 10 });
+
+    expect(stored.split("$")[1]).toBe(String(2 ** 10));
+    await expect(verifyPassword("correct horse", stored)).resolves.toBe(true);
+  });
+
   it.each([{ stored: "" }, { stored: "bcrypt$x" }, { stored: "scrypt$1$2$3$salt" }])(
     "FR-AUTH-01: a malformed stored hash '$stored' never verifies",
     async ({ stored }) => {
