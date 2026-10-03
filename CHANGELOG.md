@@ -36,7 +36,7 @@ rather than generated from commits. The format follows
 
 ### Changed
 
-- The test suite is focused on what the bank would be hurt by: 91 unit, module and graph tests (a test for every P0, the business-rule boundaries, and a model trying to skip a gate or invent an outcome) and one browser test per journey plus two security checks. Mutation testing with Stryker (`pnpm test:mutation`) is gone; manual mutants prove the key tests fail when their control breaks.
+- The test suite is focused on what the bank would be hurt by: 119 unit, module and graph tests (a test for every P0, the business-rule boundaries, and a model trying to skip a gate or invent an outcome) and one browser test per journey plus two security checks. Mutation testing with Stryker (`pnpm test:mutation`) is gone; manual mutants prove the key tests fail when their control breaks.
 - A loan amount over the customer's band maximum, with otherwise clear data, is a final "not eligible" instead of a referral to an officer. Demo customer C1009 shows it.
 - The loan and account-opening assistants allow room for the model's reasoning on top of a 400-token reply, so replies are no longer cut short.
 - `.env.example` lists only the five settings an operator sets: the OpenRouter key, the encryption key, the auto-decision threshold, the cache lifetime and demo mode. The admin password is gone, and `AUTO_DECISION_THRESHOLD` is in basis points (`9500` = 95%). The government credit service is always the built-in mock, and the assistant always uses OpenRouter.
@@ -48,3 +48,4 @@ rather than generated from commits. The format follows
 - Settings' Government CRIB Service behaviour picker opens on the behaviour last applied, instead of always on Normal.
 - Asked to check again after a check couldn't run, the loan assistant now asks the bank's system to try again instead of refusing on its own; the system still decides whether a call can be made. A new follow-ups eval case checks it.
 - When a credit check can't run, the customer is told to try again tomorrow only when today's government calls are used up; after a failure, a block or a cool-down, the message says "a little later".
+- The "Reset my data" buttons on Settings use the same outlined red as Sign out, so their text meets WCAG AA contrast.

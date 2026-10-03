@@ -142,6 +142,8 @@ The checklist for [`plan.md`](plan.md). Tick a task when its acceptance and veri
   | Claude Haiku 4.5 in every role | 4/4 | 3/3 | 5/5 | 2/3 (4.3) | 2.2 s / 5.4 s |
   | GPT-5.6 Luna in every role | 4/4 | 3/3 | 5/5 | 3/3 (4.0) | 2.2 s / 3.9 s |
 
+  These numbers are from T20 and pending a re-run: the follow-ups suite and five more red-team cases came later.
+
   Haiku's one miss asked for the amount and the term in one sentence (the rubric's "one question at a time"). Latency is one graph turn, triage included; the defaults' p95 sits at the 5 s target. Judge: GPT-5.6 Terra.
 
 - [x] **T21 · Focus the test suite** (S). Cut Vitest to about 100 cases (a test per P0 at the lowest level, the rule boundary tables, the adversarial graph tests, a few module tests), E2E to one spec per journey plus P0-15 and the copied-cookie check, and remove Stryker (TD28). Replaces the planned security and test audit, at the user's request.

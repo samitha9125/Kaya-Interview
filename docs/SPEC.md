@@ -71,12 +71,13 @@ Two screens, built with shadcn/ui.
 - Messages: a typing indicator and progress updates while the assistant works; **each reply appears whole, after it has been validated**. Input is locked while a turn is running.
 - **Secure inline cards**, shown when the graph pauses: password re-entry, consent, the KYC form, a confirmation summary, the callback form. Their answers go to the server, never to the LLM.
 - Hard failures show the reference code.
+- In demo mode only, a **Behind the scenes** panel shows the bank's side of the visitor's own conversation (DECISIONS B10).
 
 **Settings (`/settings`):**
 - API key status: *configured ✓* or *missing*. Never the key.
 - One model picker per agent (triage, loan, KYC), listing tool-capable OpenRouter models with **price per 1M tokens and context size**.
 - The current approval threshold (read-only).
-- Demo controls: reset today's government limit, clear the credit cache, mock failure mode.
+- Demo controls: reset today's government limit, clear the credit cache, age cached scores by 31 days, mock failure mode, and reset the signed-in customer's own demo data (applications and conversations; the audit log is kept).
 
 ## 6. Requirements by module
 
@@ -120,7 +121,7 @@ Module IDs and build order follow [`ARCHITECTURE.md`](ARCHITECTURE.md) §6. **BR
 | FR-SET-03 | Key status only: *configured* or *missing* | The key value is never in any response | U, E |
 | BR-SET-01 | Writes and demo controls work only with `DEMO_MODE=true` | With `false`: settings are read-only and demo endpoints return 404 | E |
 | FR-SET-04 | Demo control: **reset today's government limit**, which clears the mock's per-IP counter and our budget row, block and cool-down | After a reset, a fresh credit check is allowed | M, E |
-| FR-SET-05 | Demo controls: **clear the credit cache**; **mock failure mode** (`normal`, `slow`, `error`, `rate_limited`, `down`) | Each mode produces the behaviour in §6.4 | M, E |
+| FR-SET-05 | Demo controls: **clear the credit cache**; **age cached scores by 31 days**; **reset my demo data**; **mock failure mode** (`normal`, `slow`, `error`, `rate_limited`, `down`) | Each mode produces the behaviour in §6.4 | M, E |
 
 ### 6.4 `gov-credit`
 

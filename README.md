@@ -2,7 +2,7 @@
 
 An AI chat assistant for a small local bank. It helps customers check loan eligibility, apply for a loan, and start opening an account (KYC), built on **LangGraph.js** with bring-your-own-key model access through **OpenRouter**.
 
-> **Status:** environment ready. Specification in progress.
+> **Status:** built (both journeys, talking to a person, Settings, the audit trail and evals). Documentation in progress.
 
 ## Quick start
 
@@ -54,6 +54,6 @@ Demo customers: `C1001` to `C1010`, all with the password `Demo@1234`.
 
 | Document | Purpose |
 |---|---|
-| `docs/SPEC.md` | What the system does *(next)* |
+| `docs/SPEC.md` | What the system does |
 | `tasks/plan.md` · `tasks/todo.md` | Build plan and task checklist |
-| `docs/ARCHITECTURE.md` · `docs/DECISIONS.md` · `docs/PROCESS.md` | How it works, why, and how we worked *(during the build)* |
+| `docs/ARCHITECTURE.md` · `docs/DECISIONS.md` · `docs/PROCESS.md` | How it works, why, and how we worked (`PROCESS.md` to come) |
