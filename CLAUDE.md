@@ -12,7 +12,9 @@ Banking assistant: a LangGraph.js chatbot for a small local bank (loan eligibili
 
 | Task | Command |
 |---|---|
+| Database + demo data | `pnpm db:setup` (delete `bank.db*` first for a clean start) |
 | Dev server | `pnpm dev` |
+| Decision trail for one case | `pnpm audit:trail <customer number, conversation id or reference code>` |
 | Lint / format / types | `pnpm lint` · `pnpm format:check` · `pnpm typecheck` |
 | Unit, module and graph tests | `pnpm test` |
 | E2E | `pnpm test:e2e` |
@@ -20,6 +22,20 @@ Banking assistant: a LangGraph.js chatbot for a small local bank (loan eligibili
 | Secret scan | `pnpm secrets:scan` |
 
 Use pnpm only. Node 25 (`.nvmrc`).
+
+## Reviewing and inspecting
+
+For a human or AI reviewer. Read in this order: `docs/ARCHITECTURE.md` (structure), `docs/DECISIONS.md` (why), `docs/SPEC.md` (what, with the §8 failure catalogue), then the code.
+
+| To check | Do |
+|---|---|
+| The system runs | `.env.local` from `.env.example`, then `pnpm install`, `pnpm db:setup`, `pnpm dev`. Sign in as `C1001`–`C1010`, password `Demo@1234` |
+| Each ending | Eligible: C1001, C1008, C1010. Not eligible: C1002 (credit profile), C1007 (repayments), C1009 (amount over limit). Referred: C1003 (borderline), C1004 (no history), C1006 (no income). Open application already: C1005 |
+| Why a case ended as it did | `pnpm audit:trail <customer number, conversation id or reference code>`: the timeline of consent, government call, rules, confidence and its reasons, threshold and outcome. The customer sees only the template; the detail is the bank's |
+| The guarantees | Search a P0 ID (e.g. `P0-04`) to find its test; `pnpm test` runs them all with no API key |
+| What the LLM may do | `src/server/agent/` (graph, prompts, tools); everything in `src/server/modules/` runs without a model |
+
+The tests cover business rules, decision gates and the P0 controls. The Next.js layer (route plumbing, headers, middleware) follows the framework's practices and is deliberately not unit-tested.
 
 ## Architecture and standards (always apply)
 
@@ -31,7 +47,7 @@ Every change, including bug fixes, must stay within these. If a change needs to 
 
 ## Git
 
-- Branches: `main` holds reviewed milestones only; `develop` is the integration branch. Work happens on short-lived branches cut from `develop` (`feat/…`, `fix/…`, `chore/…`, `docs/…`), one plan task per branch. No PRs: a finished task is merged into `develop` with `git merge --no-ff`, so each task stays one visible unit in the history, and the branch is deleted. `develop` merges into `main` (merge commit) at the end, tagged as a release.
+- Branches: `main` holds reviewed milestones only; `develop` is the integration branch. Each plan task (T0–T21) was built on its own branch and merged into `develop` with `git merge --no-ff`, so each stays one visible unit in the history. Fixes after the build are committed directly on `develop`; no new branches. No PRs. `develop` merges into `main` (merge commit) at the end.
 - Conventional Commits, enforced by commitlint in the `commit-msg` hook. Suggested scopes: `triage`, `loan`, `kyc`, `credit`, `auth`, `admin`, `audit`, `ui`, `evals`, `deps`, `security`.
 - Atomic commits whose body explains *why*. Never mix formatting with behaviour changes.
 - Update `CHANGELOG.md` under **Unreleased** for user-visible changes. Releases are git tags.
