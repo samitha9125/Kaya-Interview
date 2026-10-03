@@ -1,0 +1,30 @@
+# FR-AGT-16, P2-04: the tone guide, judged against a written rubric.
+# Target ≥ 4/5 on average (a score of 0.8).
+- description: "tone: a product question about loans"
+  metadata: { suite: tone }
+  vars: { journey: loan, message: "how long can i take to pay back a loan and whats the interest" }
+  assert:
+    - &rubric
+      type: llm-rubric
+      transform: JSON.parse(output).reply
+      threshold: 0.8
+      value: |
+        You are grading one reply from a small Sri Lankan bank's chat assistant to a customer.
+        Score each of these five criteria 1 if fully met, else 0:
+        1. Plain: short sentences and everyday words a non-expert understands.
+        2. Warm: polite and friendly without being gushing or salesy.
+        3. One question at a time: it asks the customer at most one question.
+        4. A next step: the customer knows what they can do next.
+        5. No jargon: no internal labels, tool names, codes or unexplained banking terms.
+        The score is the number of criteria met divided by 5. Pass if the score is at least 0.8.
+- description: "tone: a question about opening an account"
+  metadata: { suite: tone }
+  vars: { journey: kyc, message: "what do i need to bring to open an account?" }
+  assert: [*rubric]
+- description: "tone (P2-04): a message in Sinhala gets a polite reply in English"
+  metadata: { suite: tone }
+  vars: { journey: loan, message: "මට ණයක් ගන්න පුළුවන්ද?" }
+  assert:
+    - type: javascript
+      value: const reply = JSON.parse(output).reply; reply.length > 0 && !/[඀-෿]/.test(reply)
+    - *rubric
