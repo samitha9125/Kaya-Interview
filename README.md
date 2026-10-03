@@ -19,25 +19,39 @@ The full failure catalogue (19 P0 cases and their tests) is [`SPEC.md` §8](docs
 
 ## Run it
 
-Needs Node 25 (`.nvmrc`), pnpm 10 and an [OpenRouter](https://openrouter.ai) key for the chat itself.
+You need Node 25 (see `.nvmrc`), pnpm 10 and an [OpenRouter](https://openrouter.ai) API key.
+
+**1. Install**
 
 ```bash
 pnpm install
-cp .env.example .env.local   # set OPENROUTER_API_KEY and APP_ENCRYPTION_KEY, keep DEMO_MODE=true
-pnpm db:setup                # database plus ten demo customers
-pnpm dev                     # http://localhost:3000
+cp .env.example .env.local
 ```
 
-Then open the app and sign in:
+**2. Fill in `.env.local`**
 
-| | |
+| Setting | What to put |
 |---|---|
-| Customer number | `C1001` to `C1010` |
-| Password | `Demo@1234` for all of them |
+| `OPENROUTER_API_KEY` | Your OpenRouter key |
+| `APP_ENCRYPTION_KEY` | A new random key: `node -e "console.log(require('crypto').randomBytes(32).toString('base64'))"` |
+| `DEMO_MODE` | Leave it as `true` |
 
-The government credit API is a built-in mock, so it needs no setup.
+**3. Create the database and start**
 
-**Running the tests.** They need no OpenRouter key; a scripted model stands in for the LLM.
+```bash
+pnpm db:setup   # creates bank.db with ten demo customers
+pnpm dev        # http://localhost:3000
+```
+
+**4. Sign in**
+
+| Customer number | Password |
+|---|---|
+| `C1001` to `C1010` | `Demo@1234` |
+
+The government credit API is a mock built into the app, so there is nothing else to set up.
+
+**Tests.** They don't need an OpenRouter key, because a scripted model stands in for the LLM.
 
 ```bash
 pnpm test                               # unit, module and graph tests
@@ -47,27 +61,33 @@ pnpm test:e2e                           # browser tests
 
 ## Try it
 
-Each demo customer reaches a different ending:
+**Pick a customer.** Each one is set up to reach a particular ending.
 
-| Ending | Customers |
+| Customer | What happens |
 |---|---|
-| Eligible, then an approved application | C1001, C1008, C1010 |
-| Not eligible | C1002 (credit profile), C1007 (repayments too high), C1009 (amount over the band's limit) |
-| Referred to a loan officer | C1003 (borderline), C1004 (no credit history), C1006 (no income on record) |
-| Already has an open application | C1005 |
+| C1001, C1008, C1010 | Eligible, then an approved application after you confirm |
+| C1002 | Not eligible: credit profile |
+| C1007 | Not eligible: repayments too high |
+| C1009 | Not eligible: the amount is over the limit for their band |
+| C1003 | Referred to a loan officer: a borderline case |
+| C1004 | Referred: no credit history |
+| C1006 | Referred: no income on the bank's record |
+| C1005 | Already has an open application, so no new check |
 
-To retry a customer, use **Settings → Reset my demo data**. Open **Behind the scenes** (the icon at the top right of the chat) to watch what the code does on each turn.
+To try a customer again, go to **Settings → Reset my demo data**.
 
-**The cache and the daily limit in three minutes.** With Behind the scenes open:
+**See what the code is doing.** Click the *Behind the scenes* icon at the top right of the chat. It shows how many government calls are left today, whether the next check can call, how old the customer's saved score is, and this conversation's audit trail. To replay any past case in the terminal: `pnpm audit:trail C1001`.
 
-1. C1001 checks a loan: "call 1 of 5 today".
-2. Reset my demo data, check again: served from the cache, no government call.
-3. Settings → government behaviour "Error"; another customer checks: one retry, a 15-minute cool-down, an offer of a call back.
-4. Behaviour "Normal", reset the limit, then check with five different customers: the sixth call is skipped, "daily limit reached".
-5. Age cached scores; C1001 resets their data and checks again: the old score stands in, and the case is referred.
-6. Reset the limit.
+**Demo: the cache and the daily limit (about 3 minutes).** Keep *Behind the scenes* open the whole time.
 
-Any case can be replayed as a timeline: `pnpm audit:trail C1001` (or a conversation ID or reference code).
+| Step | Do this | You should see |
+|---|---|---|
+| 1 | Sign in as C1001 and check a loan | "Call 1 of 5 today" |
+| 2 | Settings → Reset my demo data, then check again | The saved score is reused; no government call |
+| 3 | Settings → government behaviour **Error**, then check as another customer | One retry, a 15-minute cool-down, and an offer of a call back |
+| 4 | Set the behaviour back to **Normal** and press **Reset limit**. Then check as customers who haven't been checked yet (not C1005) until the panel shows 5 of 5 calls used, and check once more | That last check makes no call: "daily limit reached" |
+| 5 | Press **Age cached scores**. As C1001, reset your demo data and check again | The old score is used, so the case goes to a loan officer |
+| 6 | Press **Reset limit** | Back to normal |
 
 ## Read in this order
 
