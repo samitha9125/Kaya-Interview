@@ -28,14 +28,12 @@ import { createIdempotency } from "@/server/platform/idempotency";
 import { randomIds } from "@/server/platform/ids";
 import { logger } from "@/server/platform/logger";
 import { createRateLimiter } from "@/server/platform/rate-limit";
+import { CHAT_RATE_LIMIT } from "@/server/harness/config";
 import { createTurnLock } from "@/server/harness/turn-lock";
 
 // The composition root: the only file that knows which adapters implement
 // which ports (ARCHITECTURE §5). Each port is wired here when it gets its
 // first adapter.
-
-// FR-WEB-02: 20 chat requests per IP per minute.
-const CHAT_RATE_LIMIT = { limit: 20, windowMs: 60_000 } as const;
 
 function createApp(config: AppConfig) {
   const { db, sqlite } = openDatabase(config.DATABASE_PATH);

@@ -9,6 +9,7 @@ import { tokensOf, type RecordAudit } from "../middleware/audit-trail";
 import { TRIAGE_PROMPT, TRIAGE_PROMPT_VERSION } from "../prompts/triage";
 import type { ConversationStateValue } from "../state";
 import { ASSISTANT_UNAVAILABLE, OTHER_TOPIC } from "../templates";
+import { AGENT_POLICY } from "../config";
 import { fromBank } from "./endings";
 
 const TriageRoute = z.object({
@@ -17,11 +18,6 @@ const TriageRoute = z.object({
     .describe("Where the customer's latest message belongs"),
 });
 type Route = z.infer<typeof TriageRoute>["route"];
-
-// Enough of the conversation to read a short answer such as "yes please".
-const RECENT_MESSAGES = 6;
-// FR-AGT-12: two retries.
-const ATTEMPTS = 3;
 
 // Only what the customer and the assistant said; tool traffic is internal.
 const isConversation = (message: BaseMessage) =>
@@ -32,8 +28,8 @@ async function classify(models: ChatModelProvider, modelId: string, messages: Ba
   const classifier = models
     .chatModel(modelRequestFor("triage", modelId))
     .withStructuredOutput(TriageRoute, { includeRaw: true })
-    .withRetry({ stopAfterAttempt: ATTEMPTS });
-  const recent = messages.filter(isConversation).slice(-RECENT_MESSAGES);
+    .withRetry({ stopAfterAttempt: AGENT_POLICY.triageAttempts });
+  const recent = messages.filter(isConversation).slice(-AGENT_POLICY.triageRecentMessages);
   const { raw, parsed } = await classifier.invoke([new SystemMessage(TRIAGE_PROMPT), ...recent]);
   return { route: TriageRoute.parse(parsed).route, tokens: tokensOf(raw) };
 }

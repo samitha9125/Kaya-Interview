@@ -1,7 +1,6 @@
 import { replaceNics } from "@/server/platform/pii";
 import { z } from "zod";
-
-export const MAX_MESSAGE_LENGTH = 1_000;
+import { MAX_MESSAGE_LENGTH } from "./config";
 
 export const ChatMessageBody = z.strictObject({
   conversationId: z.string().min(1).optional(),
@@ -9,7 +8,9 @@ export const ChatMessageBody = z.strictObject({
     .string()
     .trim()
     .min(1, { error: "Please type a message." })
-    .max(MAX_MESSAGE_LENGTH, { error: "Please keep your message under 1,000 characters." }),
+    .max(MAX_MESSAGE_LENGTH, {
+      error: `Please keep your message under ${MAX_MESSAGE_LENGTH.toLocaleString("en-US")} characters.`,
+    }),
   // Set by a starter button, which skips triage (FR-AGT-01).
   starter: z.enum(["loan", "kyc", "human"]).optional(),
   idempotencyKey: z.uuid(),

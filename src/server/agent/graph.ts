@@ -21,6 +21,7 @@ import { confirmNode, consentNode, stepUpNode } from "./nodes/pauses";
 import { createTriageNode } from "./nodes/triage";
 import { validateReplyNode } from "./nodes/validate-reply";
 import type { ChatModelProvider } from "./ports";
+import { AGENT_POLICY } from "./config";
 import { ConversationState, type ConversationStateValue } from "./state";
 
 export type GraphDeps = LoanFlowDeps & {
@@ -31,8 +32,9 @@ export type GraphDeps = LoanFlowDeps & {
   modelRetry?: ModelRetryOptions;
 };
 
-// FR-AGT-12: about 1 s, then 2 s, before giving up.
-const MODEL_RETRY: ModelRetryOptions = { initialDelayMs: 1_000 };
+const MODEL_RETRY: ModelRetryOptions = {
+  initialDelayMs: AGENT_POLICY.modelRetryInitialDelayMs,
+};
 
 // FR-AGT-01: sticky routing. A journey (set by triage or a starter button)
 // goes straight to its specialist; only a conversation without one meets

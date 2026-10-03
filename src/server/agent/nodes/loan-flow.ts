@@ -25,6 +25,7 @@ import {
   SUBMITTING,
 } from "../templates";
 import { assessFailureLabel, submitFailureLabel } from "../labels";
+import { AGENT_POLICY } from "../config";
 import { endWith, fromBank, labelled } from "./endings";
 
 export type LoanFlowDeps = {
@@ -96,9 +97,8 @@ export function creditCheckNode({ lending, isStepUpFresh }: LoanFlowDeps) {
 // consent (FR-PLAT-05). Anything else that escapes ends in the honest
 // "unavailable" template, with the detail in the log only.
 export const CREDIT_CHECK_POLICY = {
-  retryPolicy: { maxAttempts: 3, retryOn: isBusyError },
-  // Two 5-second attempts and the 1-second pause between them fit easily.
-  timeout: { runTimeout: 20_000 },
+  retryPolicy: { maxAttempts: AGENT_POLICY.creditCheckAttempts, retryOn: isBusyError },
+  timeout: { runTimeout: AGENT_POLICY.creditCheckTimeoutMs },
   errorHandler: (
     state: ConversationStateValue,
     error: NodeError,
