@@ -1,0 +1,8 @@
+pnpm-lock.yaml
+.next
+coverage
+playwright-report
+test-results
+.promptfoo
+# Docs are hand-written; table re-alignment makes review diffs noisy.
+*.md
