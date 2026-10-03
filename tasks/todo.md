@@ -21,7 +21,7 @@ The checklist for [`plan.md`](plan.md). Tick a task when its acceptance and veri
   *Accept:* a deliberate forbidden import (module → LangChain) fails lint; `pnpm test:mutation` runs. *Verify:* `pnpm lint` on a temporary violation, then revert. *Deps:* T2.
   *Result:* temporary violations all failed lint (module → LangChain/LangGraph, relative imports from a module and from platform up into the agent, a deep import into a module, app → platform, adapter → agent internals) and were removed. Uses `import/no-restricted-paths` as well as `no-restricted-imports`, because the latter can't see through relative paths. Spike: Stryker 10 with the Vitest runner works on Vitest 5.0.3 (trial run killed 17 mutants; the 80% break threshold failed the run as it should); with the empty scope, `pnpm test:mutation` exits 0.
 
-- [ ] **T4 · Agent walking skeleton** (M, **highest risk**). A minimal parent graph proving the patterns before anything depends on them:
+- [x] **T4 · Agent walking skeleton** (M, **highest risk**). A minimal parent graph proving the patterns before anything depends on them:
   - a `createAgent` specialist in a wrapper node handing off via `Command.PARENT`;
   - `interrupt()` resumed with a **reference** through a single-use ID;
   - a buffered-reply validation hook;
@@ -29,6 +29,7 @@ The checklist for [`plan.md`](plan.md). Tick a task when its acceptance and veri
   - the graph-test harness (`fakeModel` + `MemorySaver`).
 
   *Accept:* graph tests for handoff, single-use resume (P0-09 shape) and reply replacement. *Verify:* `pnpm test`; findings recorded in ARCHITECTURE if anything differs from the docs. *Deps:* T2, T3.
+  *Result:* every pattern worked as documented, so no fallback was needed; ARCHITECTURE §7 records how each is used. Mutants (all reverted): removed `graph: Command.PARENT` → 8 tests failed, including the FR-AGT-05 handoff tests; skipped the pending-ID check → `P0-09: a replayed resume is refused` failed; skipped the reference check → the four P0-19 resume tests failed; skipped the wording check → `P0-05` failed. Finding for T14a/T15: a chat message sent while a pause is pending starts a new run from START and drops the pause (documented LangGraph behaviour), so the harness needs a rule for it.
 
 ### Checkpoint A: foundation
 - [ ] All green; the three spike results are recorded; review with the user before Phase 2.
