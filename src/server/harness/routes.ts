@@ -2,6 +2,7 @@ import "server-only";
 import { app } from "@/server/composition";
 import { postGuest, postLogin, postLogout } from "./auth-routes";
 import { postChatMessage, postResume } from "./chat-routes";
+import { getInspector } from "./inspector";
 import {
   postAgeCache,
   postClearCache,
@@ -25,4 +26,5 @@ export const clearCacheRoute = (request: Request) => postClearCache(request, app
 export const ageCacheRoute = (request: Request) => postAgeCache(request, app());
 export const resetMyDataRoute = (request: Request) => postResetMyData(request, app());
 export const failureModeRoute = (request: Request) => postFailureMode(request, app());
+export const inspectorRoute = (request: Request) => getInspector(request, app());
 export const settingsView = () => readSettingsView(app());
