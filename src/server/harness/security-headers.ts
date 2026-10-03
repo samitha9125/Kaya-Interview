@@ -5,11 +5,14 @@ type HeaderOptions = { nonce: string; isDevelopment: boolean; isProduction: bool
 // 'unsafe-eval' in development only, for its error overlay.
 // upgrade-insecure-requests is left out: HSTS already keeps production on
 // HTTPS, and it would break the plain-HTTP localhost runs used in tests.
+// The dev error overlay injects styles without the nonce, so development
+// allows inline styles; a browser ignores 'unsafe-inline' once a nonce is
+// listed, so the nonce is dropped there too.
 export function securityHeaders({ nonce, isDevelopment, isProduction }: HeaderOptions) {
   const csp = [
     "default-src 'self'",
     `script-src 'self' 'nonce-${nonce}' 'strict-dynamic'${isDevelopment ? " 'unsafe-eval'" : ""}`,
-    `style-src 'self' 'nonce-${nonce}'`,
+    `style-src 'self' ${isDevelopment ? "'unsafe-inline'" : `'nonce-${nonce}'`}`,
     "img-src 'self' blob: data:",
     "font-src 'self'",
     "object-src 'none'",
