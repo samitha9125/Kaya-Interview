@@ -321,7 +321,7 @@ Project structure: ARCHITECTURE §6. Code style: CODING_STANDARDS (§3 shows the
 
 - [x] Every P0 has a passing deterministic test whose name carries its ID (P0-15 is a browser test).
 - [x] A manual mutant on each P0 control and decision boundary makes its test fail (recorded in `tasks/todo.md`).
-- [ ] CI is green on `develop`.
+- [x] CI is green on `develop`.
 - [x] Eval targets met on the default models; results for at least one Claude and one GPT model are in the README (the T20 run).
 - [x] The README demo script walks J1–J4 end to end, including the referral, budget-exhausted and API-down paths.
 - [x] ARCHITECTURE, DECISIONS, SPEC, the plan (`tasks/`), the standards and the diagrams match what was built (checked by a final read-only review).
