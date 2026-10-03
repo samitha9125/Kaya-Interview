@@ -2,6 +2,8 @@
 
 The structure of the bank assistant and the rules that keep it that way. **What** the system does is in [`SPEC.md`](SPEC.md); **why** each choice was made is in [`DECISIONS.md`](DECISIONS.md).
 
+Every diagram here is also a PNG in [`diagrams/`](diagrams/), rendered from the Mermaid source in this file.
+
 **Principle: the LLM talks, code decides.** Identity, money, consent and data access are deterministic code paths. The LLM handles conversation and never holds a lever.
 
 ## 1. Constraints that shape the design
