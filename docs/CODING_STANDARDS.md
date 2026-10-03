@@ -26,7 +26,9 @@ Tooling enforces what it can (TypeScript strict, ESLint, Prettier, hooks). This 
 | File size | Max **300 lines** (ESLint `max-lines`). Split by responsibility before you hit it |
 | Function size | Aim for under ~40 lines; extract when a function does two things |
 
-**Naming:** files `kebab-case.ts`; types `PascalCase`; functions and variables `camelCase`, starting with a verb for functions (`fetchScore`, `assessEligibility`); booleans `is/has/can…`; env-derived constants `UPPER_SNAKE_CASE`. Names say what something *is*; comments say *why*.
+**Naming:** files `kebab-case.ts`; types `PascalCase`; functions and variables `camelCase`, starting with a verb for functions (`fetchScore`, `assessEligibility`); booleans `is/has/can…`; env-derived constants `UPPER_SNAKE_CASE`. Names say what something *is*.
+
+**Comments:** only where a decision or a practice needs explaining (the *why*: a business rule's source, a security reason, a deliberate trade-off). Never narrate what the code does. Never describe a bug fix in a comment; that belongs in the commit message.
 
 ## 3. Expected failures are values, not exceptions
 
