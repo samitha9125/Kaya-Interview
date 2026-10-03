@@ -15,3 +15,8 @@ rather than generated from commits. The format follows
 - Pre-commit secret scan for API keys, private keys and `.env` files.
 - Test tooling: Vitest with an 80% coverage gate, Playwright e2e, promptfoo evals.
 - GitHub Actions CI, a manual eval workflow, and a pull request template.
+- The server refuses to start, with a message naming each problem, when the encryption key, approval threshold, cache lifetime or demo flag is missing or invalid.
+
+### Changed
+
+- `.env.example` documents every setting. The admin password is gone, and `AUTO_DECISION_THRESHOLD` is in basis points (`9500` = 95%).
