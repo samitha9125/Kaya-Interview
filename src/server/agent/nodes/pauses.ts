@@ -87,6 +87,6 @@ export function confirmNode(state: ConversationStateValue) {
     { kind: "confirm", ...termsOf(state) },
     { responseSchema: ConfirmReference },
   );
-  if ("declined" in answer) return endWith(state, "OUTCOME_SHOWN", CONFIRM_DECLINED);
+  if ("declined" in answer) return endWith(state, "APPLICATION_NOT_SENT", CONFIRM_DECLINED);
   return new Command({ goto: "submit" });
 }

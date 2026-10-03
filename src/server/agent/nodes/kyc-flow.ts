@@ -15,7 +15,7 @@ export function kycFormNode(state: ConversationStateValue) {
     { kind: "kyc_form" },
     { responseSchema: KycFormReference },
   );
-  if ("declined" in answer) return endWith(state, "OUTCOME_SHOWN", KYC_FORM_CANCELLED);
+  if ("declined" in answer) return endWith(state, "FORM_NOT_SENT", KYC_FORM_CANCELLED);
   return new Command({ goto: "kyc_confirm", update: { kycDraftId: answer.draftId } });
 }
 
@@ -28,7 +28,7 @@ export function kycConfirmNode(state: ConversationStateValue) {
     { kind: "kyc_confirm", draftId },
     { responseSchema: ConfirmReference },
   );
-  if ("declined" in answer) return endWith(state, "OUTCOME_SHOWN", KYC_NOT_SENT);
+  if ("declined" in answer) return endWith(state, "FORM_NOT_SENT", KYC_NOT_SENT);
   return new Command({ goto: "kyc_submit" });
 }
 

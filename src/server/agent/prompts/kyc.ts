@@ -1,6 +1,6 @@
 import { TONE_GUIDE, TONE_VERSION } from "./tone";
 
-export const KYC_PROMPT_VERSION = `kyc-2+${TONE_VERSION}`;
+export const KYC_PROMPT_VERSION = `kyc-3+${TONE_VERSION}`;
 
 // FR-AGT-03: the applicant's details go through the bank's form, never
 // through chat (BR-ONB-03).
@@ -21,7 +21,7 @@ export const KYC_PROMPT = [
   "",
   "After start_account_opening, its result is one label:",
   "- SUBMITTED: their application is in. They need to visit a branch with their original NIC.",
-  "- OUTCOME_SHOWN: they chose not to send it. They can start again any time.",
+  "- FORM_NOT_SENT: they chose not to send it, so nothing was sent. They can start again any time.",
   "- CHECK_UNAVAILABLE_TODAY: something went wrong on our side. Offer to try again, or a call from the team.",
   "",
   TONE_GUIDE,

@@ -48,6 +48,6 @@ export function callbackFormNode(state: ConversationStateValue) {
     { kind: "callback_form", reason: reasonFor(state) },
     { responseSchema: CallbackFormReference },
   );
-  if ("declined" in answer) return endWith(state, "OUTCOME_SHOWN", CALLBACK_CANCELLED);
+  if ("declined" in answer) return endWith(state, "CALLBACK_NOT_REQUESTED", CALLBACK_CANCELLED);
   return endWith(state, "HANDED_TO_PERSON", CALLBACK_REQUESTED_GUEST);
 }

@@ -40,7 +40,7 @@ export function loanGateNode({ lending, isStepUpFresh }: LoanFlowDeps) {
     const { customerId, sessionId } = contextOf(config);
     if (!customerId) return endWith(state, "NEEDS_SIGN_IN", NEEDS_SIGN_IN);
     const open = findOpenApplication(lending.db, customerId);
-    if (open) return endWith(state, "OUTCOME_SHOWN", openApplication(open.status));
+    if (open) return endWith(state, "APPLICATION_ALREADY_OPEN", openApplication(open.status));
     if (!isStepUpFresh(sessionId)) return new Command({ goto: "step_up_check" });
     return new Command({ goto: state.consentId ? "credit_check" : "consent" });
   };
@@ -77,13 +77,13 @@ export function creditCheckNode({ lending, isStepUpFresh }: LoanFlowDeps) {
       return endWith(state, "REFERRED", REFERRED_TO_OFFICER, update);
     }
     if (assessment.outcome === "not_eligible" && assessment.ineligibleReason) {
-      return endWith(state, "OUTCOME_SHOWN", notEligible(assessment.ineligibleReason), update);
+      return endWith(state, "NOT_ELIGIBLE", notEligible(assessment.ineligibleReason), update);
     }
     return new Command({
       goto: "confirm",
       update: {
         ...update,
-        messages: [...labelled(state, "OUTCOME_SHOWN"), fromBank(eligible(assessment))],
+        messages: [...labelled(state, "ELIGIBLE"), fromBank(eligible(assessment))],
       },
     });
   };
