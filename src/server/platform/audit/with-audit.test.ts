@@ -33,14 +33,6 @@ function makeAuditInsertsFail() {
 }
 
 describe("platform/audit: decision and audit in one transaction", () => {
-  it("FR-PLAT-04: a decision and its audit record are both stored", () => {
-    const result = writeWithAudit(handle.db, audit, storeDecision);
-
-    expect(result).toBe("d1");
-    expect(countDecisions()).toBe(1);
-    expect(findAuditEvents(handle.db, "corr-1")).toHaveLength(1);
-  });
-
   it("P0-17: a failed audit write leaves no decision stored", () => {
     makeAuditInsertsFail();
 

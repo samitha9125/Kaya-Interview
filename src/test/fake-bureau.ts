@@ -19,17 +19,8 @@ export function scriptedBureau(script: BureauResult[], callsPerDay = 5) {
 export const aScore = (score: number): BureauResult => ({ kind: "score", score });
 export const noHistory: BureauResult = { kind: "no_history" };
 export const timeout: BureauResult = { kind: "failure", cause: "timeout", isRetryable: true };
-export const serverError: BureauResult = {
-  kind: "failure",
-  cause: "server_error",
-  isRetryable: true,
-};
 export const clientError: BureauResult = {
   kind: "failure",
   cause: "client_error",
   isRetryable: false,
 };
-export const rateLimited = (retryAfter: Date | null): BureauResult => ({
-  kind: "rate_limited",
-  retryAfter,
-});

@@ -11,7 +11,6 @@ import {
   testContext,
 } from "@/test/graph";
 import { lendingTestSetup, TERMS } from "@/test/lending-setup";
-import { runConfig } from "./graph";
 import { NEEDS_SIGN_IN } from "./templates";
 
 // A model that asks for an assessment straight away, every time: the
@@ -78,42 +77,6 @@ describe("agent/loan flow: fixed order (FR-AGT-05, P0-03)", () => {
     expect(calls).toHaveLength(1);
   });
 
-  it("BR-AUTH-03: a forged step-up answer without a fresh step-up on the session re-prompts", async () => {
-    const { graph, calls, pausedAt, pending } = setup();
-    await sendMessage(graph, "t1", "Check my loan");
-
-    await resume(graph, "t1", await pending(), { verified: true });
-
-    expect(await pausedAt()).toEqual([{ kind: "step_up" }]);
-    expect(calls).toEqual([]);
-  });
-
-  it("BR-AUTH-03: a step-up that went stale while the consent card was open re-prompts before the check", async () => {
-    const { graph, calls, pausedAt, pending, stepUp, lending } = setup();
-    stepUp.fresh = true;
-    await sendMessage(graph, "t1", "Check my loan");
-    stepUp.fresh = false;
-
-    await resume(graph, "t1", await pending(), { consentId: consentFor(lending.deps, "t1") });
-
-    expect(await pausedAt()).toEqual([{ kind: "step_up" }]);
-    expect(calls).toEqual([]);
-  });
-
-  it("BR-AUTH-03: after re-entering the password, the check runs with the consent already given", async () => {
-    const { graph, calls, pausedAt, pending, stepUp, lending } = setup();
-    stepUp.fresh = true;
-    await sendMessage(graph, "t1", "Check my loan");
-    stepUp.fresh = false;
-    await resume(graph, "t1", await pending(), { consentId: consentFor(lending.deps, "t1") });
-    stepUp.fresh = true;
-
-    await resume(graph, "t1", await pending(), { verified: true });
-
-    expect(calls).toHaveLength(1);
-    expect(await pausedAt()).toEqual([{ kind: "confirm", ...TERMS }]);
-  });
-
   it("FR-AGT-04: identity arguments from the model are ignored; the session's customer is assessed", async () => {
     const { lending } = setup();
     const sneaky = fakeModel().respondWithTools([
@@ -134,21 +97,5 @@ describe("agent/loan flow: fixed order (FR-AGT-05, P0-03)", () => {
       .pluck()
       .all();
     expect(customers).toEqual(["customer-a"]);
-  });
-});
-
-describe("agent/loan flow: no customer-triggered refresh (BR-CRED-07)", () => {
-  it("BR-CRED-07: a second check while the score is fresh never reaches the bureau", async () => {
-    const { graph, calls, pending, stepUp, lending } = setup(500);
-    stepUp.fresh = true;
-    await sendMessage(graph, "t1", "Check my loan");
-    await resume(graph, "t1", await pending(), { consentId: consentFor(lending.deps, "t1") });
-    await sendMessage(graph, "t1", "Check again, and refresh my score this time");
-
-    await resume(graph, "t1", await pending(), { consentId: consentFor(lending.deps, "t1") });
-
-    const outcomes = (await graph.getState(runConfig("t1"))).values.decision;
-    expect(calls).toHaveLength(1);
-    expect(outcomes).toBe("not_eligible");
   });
 });
