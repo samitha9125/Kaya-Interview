@@ -58,8 +58,9 @@ The checklist for [`plan.md`](plan.md). Tick a task when its acceptance and veri
 
 ## Phase 3: Credit (scarce, unreliable bureau)
 
-- [ ] **T8 · Mock government API** (M). Separate module and tables, `POST /api/mock-gov/credit-score`, per-IP 429 with `Retry-After`, failure modes, demo-only reset (FR-MOCK-01…04).
+- [x] **T8 · Mock government API** (M). Separate module and tables, `POST /api/mock-gov/credit-score`, per-IP 429 with `Retry-After`, failure modes, demo-only reset (FR-MOCK-01…04).
   *Accept:* each mode's response asserted. *Verify:* `pnpm test`. *Deps:* T2, T3.
+  *Result:* 22 tests, one per mode and rule. Mutant: counted the 5th call as over the limit → `FR-MOCK-02: call 5 … → 200` failed; reverted. Citizens are keyed by a NIC hash, so no NIC is plain text even in the mock's tables. The admin controls are `POST /api/mock-gov/admin/reset` and `/admin/failure-mode`; only `app/api/mock-gov` may import the mock (lint-enforced, ARCHITECTURE §4).
 
 - [ ] **T9 · `CreditBureau` port and HTTP adapter** (S). 5 s timeout, 404 → no history, other 4xx → failure, zod-validated responses (BR-CRED-06, FR-CRED-02).
   *Accept:* P0-11; tested against a local fake HTTP server. *Verify:* `pnpm test`. *Deps:* T8.

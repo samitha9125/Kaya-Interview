@@ -51,7 +51,7 @@ Enforced by ESLint (`eslint.boundaries.mjs`): `import/no-restricted-paths` for l
 | `server/modules/*` | their own ports, platform, other modules' `index.ts` (acyclic) | LangChain/LangGraph, agent, harness, adapters |
 | `server/adapters` | port types, platform, external SDKs | domain logic |
 | `server/platform` | nothing above it | everything above it |
-| `server/mock-gov` | platform | anything else. Nothing imports it; it's reached over HTTP like a real external API |
+| `server/mock-gov` | platform | anything else. Only its own route files (`app/api/mock-gov`) import it; everything else reaches it over HTTP like a real external API |
 
 ## 5. Ports and adapters
 

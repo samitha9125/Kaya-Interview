@@ -256,6 +256,15 @@ Each dependency added during the build gets one line here.
 | Caller IP for rate limits | The socket address · **the first `X-Forwarded-For` entry** | `X-Forwarded-For` | Route handlers don't see the socket, and the reverse proxy (ARCHITECTURE §12) sets the header. Without that proxy the header could be forged, so it's trusted only in that deployment |
 | CSP | Static headers in `next.config` · **a per-request nonce set in Next.js Proxy** | Nonce | The Next.js CSP guide's approach: the framework's inline scripts run without `'unsafe-inline'`. Costs dynamic rendering for pages. `upgrade-insecure-requests` is left out: HSTS covers production and it would break plain-HTTP localhost tests |
 
+### TD23. The mock government API
+
+| Topic | Options | Choice | Trade-off |
+|---|---|---|---|
+| How the app reaches it | Import its functions · **over HTTP, through the `CreditBureau` adapter** | HTTP | Exercises the real adapter, timeouts and status codes. Its route files under `app/api/mock-gov` are the only code that imports it (lint-enforced), and it wires its own database connection instead of using our composition root |
+| NICs in its tables | Plain text, as a real bureau would hold them · **a SHA-256 of the NIC** | Hash | Its tables share our SQLite file, and no NIC is ever plain text in our database (FR-PLAT-02). Lookups normalise spacing and case first |
+| Which calls count toward its per-IP limit | Only successful ones · **every call that reaches it**; "down" counts nothing | Every call reaching it | Matches a real metered API, and keeps our own "every attempt counts" budget honest (BR-CRED-03) |
+| `rate_limited` mode's `Retry-After` | Next midnight · **one hour** | One hour | Different from the daily limit's, so the demo shows our block following `Retry-After` (BR-CRED-04) |
+
 ## 3. Deferred: right idea, wrong time
 
 | ID | Item | Why not now | When / how to add |
