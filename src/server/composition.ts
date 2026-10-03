@@ -1,9 +1,11 @@
 import "server-only";
 import { setTimeout as sleep } from "node:timers/promises";
 import { HttpGovBureau } from "@/server/adapters/http-gov-bureau";
+import { HttpMockBureauAdmin } from "@/server/adapters/http-mock-bureau-admin";
 import { OpenRouterCatalog } from "@/server/adapters/openrouter-catalog";
 import { OpenRouterProvider } from "@/server/adapters/openrouter-provider";
 import { ScriptedChatProvider } from "@/server/adapters/scripted-chat-provider";
+import { StaticModelCatalog } from "@/server/adapters/static-model-catalog";
 import { createCheckpointer } from "@/server/agent/checkpointer";
 import { buildConversationGraph } from "@/server/agent/graph";
 import {
@@ -49,7 +51,13 @@ function createApp(config: AppConfig) {
     sleep: (ms) => sleep(ms),
     random: Math.random,
   };
-  const settings: SettingsDeps = { db, audit, clock, catalog: new OpenRouterCatalog() };
+  const isScripted = config.CHAT_MODEL_PROVIDER === "scripted";
+  const settings: SettingsDeps = {
+    db,
+    audit,
+    clock,
+    catalog: isScripted ? new StaticModelCatalog() : new OpenRouterCatalog(),
+  };
   const lending: LendingDeps = {
     db,
     audit,
@@ -68,11 +76,10 @@ function createApp(config: AppConfig) {
     isExistingCustomerNic: (nic) => hasCustomerWithNic(db, nic, config.APP_ENCRYPTION_KEY),
   };
   const callbacks = { db, audit, clock, ids, encryptionKey: config.APP_ENCRYPTION_KEY };
-  const models =
-    config.CHAT_MODEL_PROVIDER === "scripted"
-      ? new ScriptedChatProvider()
-      : new OpenRouterProvider({ apiKey: config.OPENROUTER_API_KEY });
-  if (config.CHAT_MODEL_PROVIDER === "scripted") {
+  const models = isScripted
+    ? new ScriptedChatProvider()
+    : new OpenRouterProvider({ apiKey: config.OPENROUTER_API_KEY });
+  if (isScripted) {
     logger.warn("the scripted chat model is in use; replies are rule-played (TD25)");
   }
   const graph = buildConversationGraph({
@@ -97,6 +104,7 @@ function createApp(config: AppConfig) {
     callbacks,
     models,
     graph,
+    mockBureauAdmin: new HttpMockBureauAdmin(config.GOV_API_BASE_URL),
     idempotency: createIdempotency({ db, clock }),
     loginLimiter: createRateLimiter({ ...LOGIN_RATE_LIMIT, clock }),
     chatLimiter: createRateLimiter({ ...CHAT_RATE_LIMIT, clock }),

@@ -8,3 +8,7 @@ export const DEFAULT_MODELS: Record<AgentRole, string> = {
   loan: "z-ai/glm-5.3-flash",
   kyc: "openai/gpt-5.6-luna",
 };
+
+// FR-SET-05: the mock government service's failure modes (SPEC §6.9).
+export const MOCK_FAILURE_MODES = ["normal", "slow", "error", "rate_limited", "down"] as const;
+export type MockFailureMode = (typeof MOCK_FAILURE_MODES)[number];
