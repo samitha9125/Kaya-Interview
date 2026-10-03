@@ -28,7 +28,22 @@ pnpm db:setup                # database plus ten demo customers
 pnpm dev                     # http://localhost:3000
 ```
 
-Sign in as `C1001` to `C1010`, password `Demo@1234`. The government credit API is a built-in mock, so there's nothing else to set up. The tests need no key: `pnpm test`, and `pnpm test:e2e` after `pnpm exec playwright install chromium` (a scripted model stands in for the LLM).
+Then open the app and sign in:
+
+| | |
+|---|---|
+| Customer number | `C1001` to `C1010` |
+| Password | `Demo@1234` for all of them |
+
+The government credit API is a built-in mock, so it needs no setup.
+
+**Running the tests.** They need no OpenRouter key; a scripted model stands in for the LLM.
+
+```bash
+pnpm test                               # unit, module and graph tests
+pnpm exec playwright install chromium   # once, before the first browser run
+pnpm test:e2e                           # browser tests
+```
 
 ## Try it
 
