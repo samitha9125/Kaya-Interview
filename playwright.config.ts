@@ -2,6 +2,9 @@ import { defineConfig, devices } from "@playwright/test";
 
 const PORT = 3000;
 const isCI = !!process.env.CI;
+// The app refuses to start without an encryption key (P0-16). Tests use a
+// fixed, obviously fake one.
+const TEST_ENCRYPTION_KEY = Buffer.alloc(32, 1).toString("base64");
 
 export default defineConfig({
   testDir: "./e2e",
@@ -20,5 +23,6 @@ export default defineConfig({
     url: `http://localhost:${PORT}`,
     reuseExistingServer: !isCI,
     timeout: 120_000,
+    env: { APP_ENCRYPTION_KEY: TEST_ENCRYPTION_KEY },
   },
 });

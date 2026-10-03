@@ -9,8 +9,9 @@ The checklist for [`plan.md`](plan.md). Tick a task when its acceptance and veri
 
 ## Phase 1: Foundation and risk spikes
 
-- [ ] **T1 · Platform: config, crypto, logger** (M). zod env with fail-fast (FR-PLAT-01), AES-256-GCM + `scrypt` + token helpers (FR-PLAT-02), redacting JSON logger (FR-PLAT-06), `.env.example` updated.
+- [x] **T1 · Platform: config, crypto, logger** (M). zod env with fail-fast (FR-PLAT-01), AES-256-GCM + `scrypt` + token helpers (FR-PLAT-02), redacting JSON logger (FR-PLAT-06), `.env.example` updated.
   *Accept:* P0-16 test; tampered ciphertext fails; redaction table test. *Verify:* `pnpm test`; manual mutant: drop the threshold-range check → P0-16 fails. *Deps:* T0. *Files:* `server/platform/{config,crypto,logger}/*`, `.env.example`.
+  *Result:* mutant: removed the 0–10000 range check → `P0-16: AUTO_DECISION_THRESHOLD 10001` failed; reverted. Also added `src/instrumentation.ts`, so a bad config stops `next start` and `next dev` (checked by hand: exit code 1).
 
 - [ ] **T2 · Platform: database, audit, idempotency** (M). Drizzle + SQLite, migrations, `pnpm db:setup`, audit log (FR-PLAT-03), one-transaction helper (FR-PLAT-04), idempotency store (FR-PLAT-05), SQLite `busy_timeout` + retry (P2-06). **Proves the native SQLite stack and the LangGraph SQLite checkpointer install and run on Node 24.**
   *Accept:* P0-17 and idempotency module tests on in-memory SQLite. *Verify:* `pnpm db:setup && pnpm test`; manual mutant: split the transaction → P0-17 fails. *Deps:* T1.
