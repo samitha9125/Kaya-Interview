@@ -1,6 +1,6 @@
 ## What & why
 
-<!-- One or two sentences. Link the PLAN.md task this PR delivers. -->
+<!-- One or two sentences. Link the `tasks/todo.md` task this change delivers. -->
 
 Plan task: <!-- e.g. T4 — credit-score cache -->
 

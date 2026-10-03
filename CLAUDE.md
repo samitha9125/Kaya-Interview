@@ -5,6 +5,7 @@ Banking assistant: a LangGraph.js chatbot for a small local bank (loan eligibili
 ## Start here
 
 - Work in stages: spec (`/agent-skills:spec`) → plan (`/agent-skills:plan`) → build. Don't start a stage without the user's explicit approval of the previous one.
+- The build plan is `tasks/plan.md`; the task checklist is `tasks/todo.md`. Work one task at a time, in order.
 - Narrow scope, full depth. Don't add or even mention things the brief didn't raise. Anything we discussed and left out goes in the decision register with a reason.
 
 ## Commands

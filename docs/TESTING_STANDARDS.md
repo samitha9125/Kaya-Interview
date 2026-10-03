@@ -69,7 +69,7 @@ describe("lending/assess: auto-decision threshold", () => {
 | Where | How | Why |
 |---|---|---|
 | **Decision modules** | **Stryker**, minimum mutation score **80%**, which breaks the build. Scope: the threshold boundary, eligibility rules, confidence, cache lifetime and stale window, daily budget and 429 block, login lockout | Here, a surviving mutant is a real business bug (`>=` → `>` on the threshold, `<` → `<=` on the 30-day lifetime) that coverage alone can't see |
-| **P0 controls outside Stryker's scope** (ownership, consent, duplicate submit, …) | **Manual mutant**: break the code on purpose, watch the test fail, revert. Recorded in the PLAN task's verification step (`Mutant: inverted the ownership check → P0-04 test failed`) | These are the controls where a silently passing test would hide a security hole |
+| **P0 controls outside Stryker's scope** (ownership, consent, duplicate submit, …) | **Manual mutant**: break the code on purpose, watch the test fail, revert. Recorded in the task's verification line in `tasks/todo.md` (`Mutant: inverted the ownership check → P0-04 test failed`) | These are the controls where a silently passing test would hide a security hole |
 | **Everything else** | Normal test-first red → green | Mutation ceremony on UI and glue code is slow and noisy and pins tests to implementation details |
 
 Bugs follow **Prove-It**: first a test that fails because of the bug, then the fix.

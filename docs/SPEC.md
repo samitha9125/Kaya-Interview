@@ -302,7 +302,7 @@ Full rules: [`TESTING_STANDARDS.md`](TESTING_STANDARDS.md).
   - task smuggling
   - "ignore previous instructions"
 - **Coverage:** 80% lines and branches on `src/server/**`.
-- **To verify in the plan's first tasks:**
+- **To verify early in the plan** (the reasoning-token check needs a real key, so it runs in the first live-model task):
   - `Command.PARENT` handoff from a wrapper node;
   - the SQLite checkpointer on Node 24;
   - whether the output-token limit counts reasoning tokens on the default models.
@@ -339,7 +339,7 @@ Project structure: ARCHITECTURE §6. Code style: CODING_STANDARDS (the typed-res
 - [ ] Stryker ≥ 80% on its scope; coverage ≥ 80%; CI green on `develop` and `main`.
 - [ ] Eval targets met on the default models; results for at least one Claude and one GPT model are in the README.
 - [ ] The README demo script walks J1–J4 end to end, including the referral, budget-exhausted and API-down paths.
-- [ ] ARCHITECTURE, DECISIONS, SPEC, PLAN, the standards and the diagrams match what was built.
+- [ ] ARCHITECTURE, DECISIONS, SPEC, the plan (`tasks/`), the standards and the diagrams match what was built.
 
 ## 13. Resolved questions
 

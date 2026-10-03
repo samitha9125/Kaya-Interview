@@ -49,5 +49,5 @@ pnpm dev                          # http://localhost:3000
 | Document | Purpose |
 |---|---|
 | `docs/SPEC.md` | What the system does *(next)* |
-| `docs/PLAN.md` | Build order *(after the spec)* |
+| `tasks/plan.md` · `tasks/todo.md` | Build plan and task checklist |
 | `docs/ARCHITECTURE.md` · `docs/DECISIONS.md` · `docs/PROCESS.md` | How it works, why, and how we worked *(during the build)* |
