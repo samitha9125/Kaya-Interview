@@ -8,10 +8,12 @@ import {
 import { isBusyError } from "@/server/platform/db";
 import { logger } from "@/server/platform/logger";
 import { ConversationContext, contextOf, type NodeConfig } from "../context";
+import { reportProgress } from "../progress";
 import type { ConversationStateValue } from "../state";
 import {
   ASSESSMENT_EXPIRED,
   CANT_COMPLETE,
+  CHECKING_CREDIT,
   CHECK_UNAVAILABLE_TODAY,
   eligible,
   notEligible,
@@ -19,6 +21,7 @@ import {
   REFERRED_TO_OFFICER,
   submitted,
   NEEDS_SIGN_IN,
+  SUBMITTING,
 } from "../templates";
 import { assessFailureLabel, submitFailureLabel } from "../labels";
 import { endWith, fromBank, labelled } from "./endings";
@@ -52,6 +55,7 @@ export function creditCheckNode({ lending, isStepUpFresh }: LoanFlowDeps) {
       return endWith(state, "CHECK_UNAVAILABLE_TODAY", CANT_COMPLETE);
     }
     if (!isStepUpFresh(context.sessionId)) return new Command({ goto: "step_up_check" });
+    reportProgress(config, CHECKING_CREDIT);
     const result = await assessLoan(
       { ...context, customerId: context.customerId, consentId: state.consentId },
       lending,
@@ -115,6 +119,7 @@ export function submitNode({ lending, isStepUpFresh }: LoanFlowDeps) {
       return endWith(state, "CHECK_UNAVAILABLE_TODAY", CANT_COMPLETE);
     }
     if (!isStepUpFresh(context.sessionId)) return new Command({ goto: "step_up_submit" });
+    reportProgress(config, SUBMITTING);
     const result = submitApplication(
       {
         ...context,

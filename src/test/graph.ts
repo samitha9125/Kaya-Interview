@@ -68,6 +68,34 @@ export async function resume(
   return prepared;
 }
 
+// What nodes wrote on the custom stream while running `input` (FR-WEB-04).
+export async function streamCustom(
+  graph: ConversationGraph,
+  threadId: string,
+  input: Parameters<ConversationGraph["stream"]>[0],
+  context = testContext(threadId),
+): Promise<unknown[]> {
+  const chunks: unknown[] = [];
+  const stream = await graph.stream(input, {
+    ...runConfig(threadId, context),
+    streamMode: "custom",
+  });
+  for await (const chunk of stream) chunks.push(chunk);
+  return chunks;
+}
+
+// The checked resume map for a pause the test expects to be pending.
+export async function checkedResume(
+  graph: ConversationGraph,
+  threadId: string,
+  interruptId: string,
+  reference: unknown,
+) {
+  const prepared = await prepareResume(graph, { threadId, interruptId, reference });
+  if (!prepared.ok) throw new Error(`the resume was refused: ${prepared.reason}`);
+  return prepared.resume;
+}
+
 export async function pendingInterrupts(graph: ConversationGraph, threadId: string) {
   const snapshot = await graph.getState(runConfig(threadId));
   return snapshot.tasks.flatMap((task) => task.interrupts);
