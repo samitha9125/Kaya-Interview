@@ -25,6 +25,7 @@ Demo customers: `C1001` to `C1010`, all with the password `Demo@1234`.
 | `pnpm dev` / `pnpm build` / `pnpm start` | Run, build, serve |
 | `pnpm db:setup` | Create or migrate the local SQLite database (`bank.db`) and add the demo customers; safe to re-run |
 | `pnpm audit:trail <customer number \| conversation ID \| reference code>` | Print one case's audit trail as a timeline: consent, government call, rules, confidence and its reasons, outcome |
+| `pnpm graph:draw` | Draw the agent graph from the compiled code to `docs/diagrams/agent-graph.mmd` (no model key) |
 | `pnpm db:generate` | Generate a migration after a Drizzle schema change |
 | `pnpm lint` · `pnpm format:check` · `pnpm typecheck` | Static checks |
 | `pnpm test` | Unit, module and graph tests (Vitest) |
