@@ -10,7 +10,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
-    "prepare": "husky"
+    "prepare": "husky",
+    "secrets:scan": "node scripts/secret-scan.mjs"
   },
   "dependencies": {
     "next": "16.3.8",
