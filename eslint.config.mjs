@@ -23,6 +23,8 @@ const eslintConfig = defineConfig([
     "coverage/**",
     "playwright-report/**",
     "test-results/**",
+    "reports/**",
+    ".stryker-tmp/**",
     "next-env.d.ts",
   ]),
 ]);
