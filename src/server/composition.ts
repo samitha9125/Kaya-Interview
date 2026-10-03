@@ -67,6 +67,7 @@ function createApp(config: AppConfig) {
     encryptionKey: config.APP_ENCRYPTION_KEY,
     isExistingCustomerNic: (nic) => hasCustomerWithNic(db, nic, config.APP_ENCRYPTION_KEY),
   };
+  const callbacks = { db, audit, clock, ids, encryptionKey: config.APP_ENCRYPTION_KEY };
   const models =
     config.CHAT_MODEL_PROVIDER === "scripted"
       ? new ScriptedChatProvider()
@@ -78,7 +79,7 @@ function createApp(config: AppConfig) {
     models,
     lending,
     onboarding,
-    callbacks: { db, audit, clock, ids, encryptionKey: config.APP_ENCRYPTION_KEY },
+    callbacks,
     isStepUpFresh: (sessionId) => isStepUpFreshFor(sessionId, { db, clock }),
     checkpointer: createCheckpointer(sqlite),
   });
@@ -93,6 +94,7 @@ function createApp(config: AppConfig) {
     settings,
     lending,
     onboarding,
+    callbacks,
     models,
     graph,
     idempotency: createIdempotency({ db, clock }),

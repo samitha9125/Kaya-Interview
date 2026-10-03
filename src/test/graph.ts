@@ -1,6 +1,7 @@
 import { Command, MemorySaver, type BaseCheckpointSaver } from "@langchain/langgraph";
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import { HumanMessage } from "langchain";
+import type { CallbackDeps } from "@/server/agent/callbacks/requests";
 import type { ConversationContextValue } from "@/server/agent/context";
 import { buildConversationGraph, runConfig, type ConversationGraph } from "@/server/agent/graph";
 import type { ChatModelProvider } from "@/server/agent/ports";
@@ -15,6 +16,7 @@ import { CONTEXT, lendingTestSetup, TERMS } from "@/test/lending-setup";
 export type TestGraphOptions = {
   lending?: LendingDeps;
   onboarding?: OnboardingDeps;
+  callbacks?: CallbackDeps;
   isStepUpFresh?: (sessionId: string) => boolean;
   checkpointer?: BaseCheckpointSaver;
   models?: ChatModelProvider;
@@ -29,7 +31,7 @@ export function buildTestGraph(model: BaseChatModel, options: TestGraphOptions =
     models: options.models ?? { chatModel: () => model },
     lending,
     onboarding: options.onboarding ?? onboardingTestDeps(lending),
-    callbacks: { ...pickStores(lending), encryptionKey: TEST_ENCRYPTION_KEY },
+    callbacks: options.callbacks ?? callbackTestDeps(lending),
     isStepUpFresh: options.isStepUpFresh ?? (() => true),
     checkpointer: options.checkpointer ?? new MemorySaver(),
     // Retries without real waiting (TESTING_STANDARDS §5).
@@ -37,7 +39,10 @@ export function buildTestGraph(model: BaseChatModel, options: TestGraphOptions =
   });
 }
 
-const pickStores = ({ db, audit, clock, ids }: LendingDeps) => ({ db, audit, clock, ids });
+// Callbacks on the same database as lending.
+export function callbackTestDeps({ db, audit, clock, ids }: LendingDeps): CallbackDeps {
+  return { db, audit, clock, ids, encryptionKey: TEST_ENCRYPTION_KEY };
+}
 
 // Real onboarding on the same database as lending; no applicant is an
 // existing customer unless a test says so.

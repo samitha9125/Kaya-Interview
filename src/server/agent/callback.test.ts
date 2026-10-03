@@ -1,9 +1,15 @@
 import { fakeModel } from "langchain";
 import { beforeEach, describe, expect, it } from "vitest";
 import { scriptedBureau } from "@/test/fake-bureau";
-import { buildTestGraph, pendingInterrupts, resume, startJourney, testContext } from "@/test/graph";
+import {
+  buildTestGraph,
+  callbackTestDeps,
+  pendingInterrupts,
+  resume,
+  startJourney,
+  testContext,
+} from "@/test/graph";
 import { lendingTestSetup } from "@/test/lending-setup";
-import { TEST_ENCRYPTION_KEY } from "@/test/fakes";
 import { requestCallback } from "./callbacks/requests";
 import { runConfig, type ConversationGraph } from "./graph";
 import {
@@ -62,7 +68,7 @@ describe("agent/callback: talk to a person (FR-AGT-14)", () => {
         reason: "general",
         caller: { guestSessionId: "s1", contact: { name: "Kasun", mobileNumber: "0771234567" } },
       },
-      { ...setup.deps, encryptionKey: TEST_ENCRYPTION_KEY },
+      callbackTestDeps(setup.deps),
     );
 
     await resume(graph, "t1", pending!.id!, { callbackId }, GUEST);
