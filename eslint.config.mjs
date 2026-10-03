@@ -24,8 +24,6 @@ const eslintConfig = defineConfig([
     "build/**",
     "playwright-report/**",
     "test-results/**",
-    "reports/**",
-    ".stryker-tmp/**",
     "next-env.d.ts",
   ]),
 ]);

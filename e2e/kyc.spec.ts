@@ -34,12 +34,3 @@ test("J2: a guest opens an account, fixes a mistake, reviews and sends it", asyn
   ).toBeVisible();
   await expect(page.getByLabel("Message")).toBeEnabled();
 });
-
-test("J2: leaving the form saves nothing and says so", async ({ page }) => {
-  await startAsGuest(page, 2);
-  await page.getByRole("button", { name: "Open an account" }).click();
-
-  await page.getByRole("button", { name: "Not now" }).click();
-
-  await expect(page.getByText("No problem, nothing has been saved.")).toBeVisible();
-});

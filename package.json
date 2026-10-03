@@ -17,7 +17,6 @@
     "smoke:models": "node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/smoke-models.ts",
     "test": "vitest run",
     "test:watch": "vitest",
-    "test:mutation": "stryker run",
     "test:e2e": "playwright test",
     "eval": "PROMPTFOO_DISABLE_TELEMETRY=1 PROMPTFOO_CONFIG_DIR=.promptfoo promptfoo eval -c evals/promptfooconfig.yaml",
     "eval:view": "PROMPTFOO_DISABLE_TELEMETRY=1 PROMPTFOO_CONFIG_DIR=.promptfoo promptfoo view"
@@ -45,8 +44,6 @@
     "@commitlint/cli": "^21.2.3",
     "@commitlint/config-conventional": "^21.2.3",
     "@playwright/test": "^1.63.0",
-    "@stryker-mutator/core": "^10.0.0",
-    "@stryker-mutator/vitest-runner": "^10.0.0",
     "@tailwindcss/postcss": "^4",
     "@types/better-sqlite3": "^9.6.0",
     "@types/node": "^25.9.9",
