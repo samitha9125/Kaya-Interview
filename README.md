@@ -85,12 +85,12 @@ The other journeys: **I'm new → Open an account** on the sign-in screen (no si
 | Government credit service | Calls used today out of 5, whether the next check can call or must wait (and why), how the mock is behaving, and how old this customer's saved score is |
 | Audit trail | This conversation, step by step, in plain English, including any resets or demo actions |
 
-A referred loan reads like this in the audit trail:
+A referred loan reads like this in the audit trail (the last line is wrapped here for reading):
 
 ```text
 15:09:40  password re-entered (step-up)
 15:09:45  consent given for a credit check: LKR 3,000,000 over 60 months
-15:09:45  government credit service called: score received (call 1 of 5 today)
+15:09:45  government credit service called (call 1 of 5 today): score received
 15:09:45  assessed: rules say eligible [band A, max LKR 3,000,000, repayments 18.3% of income]
           → confidence 90% (amount near the band maximum −10%)
           → below the 95% threshold → referred to a loan officer
