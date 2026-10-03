@@ -2,7 +2,8 @@ import { END, START, StateGraph, type BaseCheckpointSaver } from "@langchain/lan
 import { AIMessage } from "langchain";
 import { ConversationContext, type ConversationContextValue } from "./context";
 import { CALL_LIMITS } from "./limits";
-import { createLoanAgentNode, type ModelRetryOptions } from "./nodes/loan-agent";
+import { createLoanAgentNode } from "./nodes/loan-agent";
+import type { ModelRetryOptions } from "./nodes/specialist";
 import {
   CREDIT_CHECK_POLICY,
   creditCheckNode,
