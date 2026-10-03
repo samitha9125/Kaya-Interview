@@ -13,6 +13,10 @@ const config = {
     "src/server/modules/gov-credit/policy.ts",
     "src/server/modules/gov-credit/budget.ts",
     "src/server/modules/gov-credit/get-score.ts",
+    // BR-LEND-01…06
+    "src/server/modules/lending/rules.ts",
+    "src/server/modules/lending/confidence.ts",
+    "src/server/modules/lending/decide.ts",
   ],
   // perTest runs only the tests that reach each mutant. It needs the patch
   // in patches/ (TD19): Stryker names tests "suite test", Vitest 5 matches
