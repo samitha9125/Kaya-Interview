@@ -66,7 +66,7 @@ export default async function SettingsPage() {
                     }
                   >
                     {view.keyStatus === "configured" ? (
-                      <Badge className="bg-success/10 text-success">Connected</Badge>
+                      <Badge className="bg-success/10 text-success">Key set</Badge>
                     ) : (
                       <Badge variant="destructive">Missing</Badge>
                     )}
