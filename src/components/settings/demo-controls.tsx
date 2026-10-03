@@ -85,7 +85,11 @@ export function DemoControls({
         <AlertDialog open={isConfirming} onOpenChange={setIsConfirming}>
           <AlertDialogTrigger
             render={
-              <Button variant="destructive" disabled={!isCustomer || busyRow !== null}>
+              <Button
+                variant="outline"
+                className="border-destructive/40 text-destructive hover:bg-destructive/5 hover:text-destructive"
+                disabled={!isCustomer || busyRow !== null}
+              >
                 Reset my data
               </Button>
             }
@@ -101,7 +105,8 @@ export function DemoControls({
             <AlertDialogFooter>
               <AlertDialogCancel>Cancel</AlertDialogCancel>
               <AlertDialogAction
-                variant="destructive"
+                variant="outline"
+                className="border-destructive/40 text-destructive hover:bg-destructive/5 hover:text-destructive"
                 onClick={() => {
                   setIsConfirming(false);
                   void run("data", "/api/demo/reset-my-data", {}, "Your demo data is cleared.");
