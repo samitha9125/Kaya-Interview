@@ -1,6 +1,9 @@
-import { and, asc, desc, eq, gte, inArray, like, ne, or } from "drizzle-orm";
-import type { AuditRecord } from "@/server/platform/audit";
-import { auditEvents } from "@/server/platform/audit/schema";
+import {
+  findConversationEvents,
+  findEventsSince,
+  findLatestEvent,
+  type AuditRecord,
+} from "@/server/platform/audit";
 import type { DbExecutor } from "@/server/platform/db";
 
 // One case as plain English, for staff and reviewers: `pnpm audit:trail`
@@ -149,48 +152,18 @@ export type TimelineQuery = {
 // A conversation's own events, those of the same requests that carry no
 // conversation (sign-in, step-up), and the demo controls used meanwhile.
 export function readTimeline(db: DbExecutor, query: TimelineQuery): AuditRecord[] {
-  const ofConversation = query.conversationId
-    ? or(
-        eq(auditEvents.conversationId, query.conversationId),
-        inArray(
-          auditEvents.correlationId,
-          db
-            .selectDistinct({ id: auditEvents.correlationId })
-            .from(auditEvents)
-            .where(eq(auditEvents.conversationId, query.conversationId)),
-        ),
-      )
-    : undefined;
-  const own = ofConversation
-    ? db.select().from(auditEvents).where(ofConversation).orderBy(asc(auditEvents.at)).all()
-    : [];
+  const own = query.conversationId ? findConversationEvents(db, query.conversationId) : [];
   const since = query.since ?? own[0]?.at;
   if (!since) return own;
-  const demo = db
-    .select()
-    .from(auditEvents)
-    .where(
-      and(
-        like(auditEvents.type, "demo.%"),
-        gte(auditEvents.at, since),
-        or(
-          ne(auditEvents.type, "demo.customer_reset"),
-          eq(auditEvents.actor, query.customerId ?? ""),
-        ),
-      ),
-    )
-    .all();
+  const demo = findEventsSince(db, "demo.", since).filter(
+    (event) => event.type !== "demo.customer_reset" || event.actor === (query.customerId ?? ""),
+  );
   return [...own, ...demo].sort((a, b) => a.at.getTime() - b.at.getTime());
 }
 
 // The mock's behaviour as last set from Settings: the mock is reached only
 // over HTTP, and the audit already records every change.
 export function currentFailureMode(db: DbExecutor): string {
-  const latest = db
-    .select({ payload: auditEvents.payload })
-    .from(auditEvents)
-    .where(eq(auditEvents.type, "demo.failure_mode_set"))
-    .orderBy(desc(auditEvents.at))
-    .get();
+  const latest = findLatestEvent(db, "demo.failure_mode_set");
   return typeof latest?.payload.mode === "string" ? latest.payload.mode : "normal";
 }
