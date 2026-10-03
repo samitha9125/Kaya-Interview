@@ -57,6 +57,13 @@
       "when": 1791028728758,
       "tag": "0007_lending_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "6",
+      "when": 1791029311079,
+      "tag": "0008_settings_table",
+      "breakpoints": true
     }
   ]
 }
