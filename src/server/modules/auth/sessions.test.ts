@@ -10,6 +10,7 @@ import {
   createCustomer,
   endSession,
   hasFreshStepUp,
+  isStepUpFreshFor,
   login,
   resolveSession,
   startSession,
@@ -186,5 +187,30 @@ describe("auth/sessions: step-up (BR-AUTH-03)", () => {
     );
 
     expect(signIn).toEqual({ ok: false, reason: "invalid_credentials" });
+  });
+
+  it.each([
+    { sinceMs: 5 * MINUTE - 1, fresh: true },
+    { sinceMs: 5 * MINUTE, fresh: false },
+  ])(
+    "BR-AUTH-03: asked by session ID, $sinceMs ms after a step-up → fresh $fresh",
+    async ({ sinceMs, fresh }) => {
+      const { token, session } = signedIn();
+      await stepUpWith(token, CUSTOMER_PASSWORD);
+      advance(sinceMs);
+
+      expect(isStepUpFreshFor(session.id, deps)).toBe(fresh);
+    },
+  );
+
+  it("BR-AUTH-03: by session ID, no step-up, a signed-out session or an unknown ID is never fresh", async () => {
+    const { token, session } = signedIn();
+    const neverSteppedUp = isStepUpFreshFor(session.id, deps);
+    const { token: rotated } = expectOk(await stepUpWith(token, CUSTOMER_PASSWORD));
+    endSession(rotated, "c", deps);
+
+    expect(neverSteppedUp).toBe(false);
+    expect(isStepUpFreshFor(session.id, deps)).toBe(false);
+    expect(isStepUpFreshFor("no-such-session", deps)).toBe(false);
   });
 });
