@@ -20,13 +20,13 @@ Banking assistant: a LangGraph.js chatbot for a small local bank (loan eligibili
 
 Use pnpm only. Node 24 (`.nvmrc`).
 
-## Code rules
+## Architecture and standards (always apply)
 
-- TypeScript strict, no `any`, max **300 lines per file**. Modular monolith: feature modules with clear boundaries, no microservices.
-- Validate every external input with zod at the boundary.
-- **Security invariants:** the NIC and the credit score never reach the LLM. Tools get the customer's identity from LangGraph runtime context, never from tool arguments. The credit check is reachable only after login and recorded consent, enforced in graph code.
-- Deterministic logic (cache, budget, rules engine, confidence, auth, idempotency) is written test-first and stays above the 80% coverage gate.
-- **LangGraph/LangChain:** check the current docs (the `langchain-docs` MCP server) before using any API. As verified on 2026-10-01: `StateSchema` over `Annotation.Root`, `createAgent` + middleware over `createReactAgent`, `ChatOpenRouter` behind our own adapter.
+Every change, including bug fixes, must stay within these. If a change needs to break one, stop and ask first.
+
+@docs/ARCHITECTURE.md
+@docs/CODING_STANDARDS.md
+@docs/TESTING_STANDARDS.md
 
 ## Git
 
