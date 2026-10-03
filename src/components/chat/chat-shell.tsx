@@ -19,6 +19,9 @@ const STARTERS: { label: string; message: string; starter: Starter }[] = [
   { label: "Talk to a person", message: "I'd like to talk to a person.", starter: "human" },
 ];
 
+// The gap kept above a card when it's scrolled into view.
+const CARD_GAP_PX = 16;
+
 export function ChatShell({ greetingName, restored }: ChatShellProps) {
   const chat = useChat(restored);
   const [draft, setDraft] = useState("");
@@ -27,9 +30,13 @@ export function ChatShell({ greetingName, restored }: ChatShellProps) {
 
   // Follows the newest message, progress line or card. A card is scrolled to
   // its top, so a tall form opens at its first field rather than its end.
+  // Only the conversation box scrolls (scrollIntoView would move the page
+  // too); it's positioned, so the card's offsetTop is measured from it.
   useEffect(() => {
-    if (cardRef.current) cardRef.current.scrollIntoView({ block: "start" });
-    else scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
+    const box = scrollRef.current;
+    if (!box) return;
+    const card = cardRef.current;
+    box.scrollTo({ top: card ? card.offsetTop - CARD_GAP_PX : box.scrollHeight });
   }, [chat.messages.length, chat.progress, chat.isBusy, chat.pause]);
 
   function send(event: FormEvent<HTMLFormElement>) {
@@ -46,7 +53,7 @@ export function ChatShell({ greetingName, restored }: ChatShellProps) {
       <h1 className="sr-only">Chat</h1>
       <div
         ref={scrollRef}
-        className="no-scrollbar flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto py-4 motion-safe:scroll-smooth"
+        className="no-scrollbar relative flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto py-4 motion-safe:scroll-smooth"
       >
         <p>
           {greetingName
@@ -68,7 +75,7 @@ export function ChatShell({ greetingName, restored }: ChatShellProps) {
         )}
         <MessageList messages={chat.messages} isBusy={chat.isBusy} progress={chat.progress} />
         {chat.pause && (
-          <div ref={cardRef} className="scroll-mt-4">
+          <div ref={cardRef}>
             <PauseCard
               pause={chat.pause}
               isBusy={chat.isBusy}
