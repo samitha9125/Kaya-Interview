@@ -4,6 +4,21 @@
 
 Four parts: **business** decisions (the bank's calls), **technical** decisions (options → choice → trade-off), **deferred** items (right idea, wrong time) and **rejected** items (wrong idea).
 
+**Start here.** These ten shape the system the most; the rest refine them.
+
+| Decision | In one line |
+|---|---|
+| [B2](#1-business-decisions) | Rules decide a loan, never the LLM; three endings: eligible, not eligible, referred |
+| [B9](#1-business-decisions) | The score and band are never shown to the customer, and the LLM never sees the score |
+| [B13](#1-business-decisions) | Below 95% confidence, a loan officer decides; the bank sets the number |
+| [TD2](#td2-agent-pattern-router) | A router agent: cheap triage, then one specialist per journey |
+| [TD4](#td4-replies-are-buffered-and-validated-not-token-streamed) | Replies are checked before they're shown, so they're buffered rather than streamed |
+| [TD7](#td7-credit-score-cache-30-days) | Scores are cached for 30 days, the answer to a 5-calls-a-day API |
+| [TD8](#td8-unreliable-government-api-budget-block-and-cool-down) | A shared daily budget, a 429 block and a cool-down instead of a circuit breaker |
+| [TD9](#td9-decision-confidence) | Confidence is a rules heuristic, not the model's opinion |
+| [TD11](#td11-pauses-resume-with-references-only) | Passwords, consent and forms go to the server; the graph only ever gets a reference |
+| [TD28](#td28-a-focused-test-suite-without-stryker) | About 140 focused tests instead of 740, with hand-made mutants as proof |
+
 ## 1. Business decisions
 
 | ID | Decision | Reason |
@@ -15,9 +30,9 @@ Four parts: **business** decisions (the bank's calls), **technical** decisions (
 | B5 | Minimal disclosure: never reveal or guess the next score evaluation date, internal thresholds, or anything about other customers. Two deliberate exceptions, neither in the chat: Settings shows the operator the auto-decision threshold (read-only), and the demo-only panel shows a decision's workings (B10) | Government credit data is strictly controlled |
 | B6 | The 5-a-day government budget is shared by the whole bank. When it's gone, the assistant says so honestly and offers a next-day retry or a callback | 5 calls a day across 50–60 daily users is the binding constraint |
 | B7 | Credit scores are cached for **30 days** | See [TD7](#td7-credit-score-cache-30-days) |
-| B8 | Built for ~500 customers. No scaling work; the growth path is documented only | Time to market |
+| B8 | Built for ~500 customers. No scaling work; the growth path is documented only ([ARCHITECTURE §12](ARCHITECTURE.md#12-observability-and-runtime)) | Time to market |
 | B9 | The credit score and band are **never shown** to the customer, only the outcome and a plain-language reason (the band appears only in the demo-only panel, B10; the score never) | The bank may use bureau data for its decision, not republish it. A raw number invites disputes branch staff can't resolve, and the customer's real question is "can I get the loan?" Side effect: the LLM never sees the score, so it can't leak it |
-| B10 | Audit logs are **not exposed in any UI** outside demo mode. Reviewers query them as the README shows. In demo mode, a **Behind the scenes** panel shows the signed-in visitor their own conversation's trail and the service-wide credit-check counters, so a tester can see the cache and the daily limit at work. It **deliberately** shows each decision's band, band maximum, repayment-to-income, confidence with its reasons, and the threshold, so a reviewer can follow a decision; never the score. With `DEMO_MODE=false` the panel and its route don't exist | Audit data is for compliance and staff; a screen would widen access to personal data. The demo panel shows only what the visitor already owns, and the score is never recorded |
+| B10 | Audit logs have **no UI** outside demo mode; staff read them with `pnpm audit:trail`. In demo mode a **Behind the scenes** panel shows the visitor their own conversation's trail and the credit-check counters. It deliberately includes each decision's workings (band, band maximum, repayment-to-income, confidence and its reasons, the threshold), never the score. With `DEMO_MODE=false` the panel and its route don't exist | Audit data is for compliance and staff, and a screen would widen access to it. In a demo, seeing why a case was referred is the point, so the trade-off flips there and only there |
 | B11 | English only | Sinhala and Tamil quality differs per model; it needs its own evaluation |
 | B12 | "Talk to a person" creates a **callback request**. No live-agent console | A small team; it matches how the branch already works |
 | B13 | **Auto-decision threshold: 95% confidence by default**, set by the bank in config (`AUTO_DECISION_THRESHOLD`). At or above it the outcome is final; below it an officer decides. Only a person changes it | The threshold is the bank's risk appetite: higher means fewer wrong instant answers, lower means more customers get one. That's a business call |
@@ -73,7 +88,7 @@ LangChain's docs list five multi-agent patterns. Three are real alternatives her
 
 | Options | Choice | Trade-off |
 |---|---|---|
-| `streamEvents` v3 · **`stream()` with `updates` and `custom` modes** | `stream()` | The docs recommend `streamEvents` v3 for new apps, but our installed version marks it experimental. `stream()` is stable and enough, because we don't stream LLM tokens (TD4) |
+| `streamEvents` v3 · **`stream()` with the `custom` mode** | `stream()` | The docs recommend `streamEvents` v3 for new apps, but our installed version marks it experimental. `stream()` is stable and enough, because we don't stream LLM tokens (TD4) |
 
 ### TD6. Models per role and cost
 
@@ -97,7 +112,7 @@ The bank brings its own OpenRouter key and can change any model in Settings. Def
 
 The same loan traffic on Claude Haiku ($1 / $5) would cost ≈ $47 a month on its own. Real token counts are recorded with each model reply in the audit (`agent.reply`, input and output), and the evals report them per turn.
 
-**Provider settings:** every request sends `provider: { zdr: true, data_collection: "deny" }` (only providers that keep no data) and ignores China-hosted first-party endpoints (`z-ai`, `siliconflow`) for the GLM model. Triage also sends `require_parameters: true`, so its structured answer only goes to providers that honour the schema. Reasoning is set explicitly because GLM defaults to its maximum. **Reasoning tokens count toward the output limit** (measured in the T13 smoke check: GLM at `low` spent 197 of 400 on reasoning, GPT-5.6 Luna 46), so the loan and KYC requests allow 800 output tokens: the 400 visible tokens of FR-AGT-11 plus 400 for reasoning. Triage has no reasoning setting and keeps 400. OpenRouter publishes no latency or tool-error data, so our evals measure both on at least two models.
+**Provider settings:** every request sends `provider: { zdr: true, data_collection: "deny" }` (only providers that keep no data) and ignores China-hosted first-party endpoints (`z-ai`, `siliconflow`), which matter for the default GLM loan model. Triage also sends `require_parameters: true`, so its structured answer only goes to providers that honour the schema. Reasoning is set explicitly because GLM defaults to its maximum. **Reasoning tokens count toward the output limit** (measured in the T13 smoke check: GLM at `low` spent 197 of 400 on reasoning, GPT-5.6 Luna 46), so the loan and KYC requests allow 800 output tokens: the 400 visible tokens of FR-AGT-11 plus 400 for reasoning. Triage has no reasoning setting and keeps 400. OpenRouter publishes no latency or tool-error data, so our evals measure both on at least two models.
 
 ### TD7. Credit-score cache: 30 days
 
