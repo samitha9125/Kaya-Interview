@@ -197,6 +197,7 @@ Every manual mutant run since T21, all reverted. T21 removed the tests behind so
 | Origin check removed | both `FR-WEB-01` rows (new) | final review |
 | Pending-pause guard removed | `P1-15: a chat message while a card waits → 409 …` (new) | final review |
 | Turn lock never refuses | `FR-WEB-03: answering a card while a turn is still running → 409` (new) | final review |
+| Empty-reply check removed | `FR-AGT-10: a model that returns no text never leaves the customer a blank reply` (new) | manual testing |
 
 Dropping only `!credit.hasHistory` from the no-history rule is an equivalent mutant: the cache sets `hasHistory` to `score !== null`, so the score check alone refers the same cases. Two single mutants were held by a second control, so each was rerun with that control loosened too: the score added to the assessment is stripped by the state schema, and a password added to the step-up reference is refused by its strict schema, which stops the journey.
 
