@@ -1,8 +1,8 @@
 import { AIMessage, fakeModel, HumanMessage, SystemMessage, type BaseMessage } from "langchain";
 import type { ChatModelProvider } from "@/server/agent/ports";
 
-// TD25: browser tests and keyless demos run the real graph with this
-// stand-in for the specialists' model. It plays them by rule. As the loan
+// TD25: browser tests run the real graph with this stand-in for the
+// specialists' model. It plays them by rule. As the loan
 // agent: with an amount and a term in the customer's last message it asks
 // for an assessment; otherwise it asks for them. As the KYC agent (its
 // prompt names start_account_opening): it opens the form. As triage, it

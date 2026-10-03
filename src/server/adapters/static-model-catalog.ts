@@ -1,8 +1,8 @@
 import "server-only";
 import type { CatalogResult, ModelCatalog } from "@/server/modules/settings";
 
-// TD25: keyless runs (browser tests, a demo without a key) use a fixed
-// catalogue instead of OpenRouter's, so Settings works offline. It lists
+// TD25: the browser tests use a fixed catalogue instead of OpenRouter's, so
+// Settings works offline. It lists
 // the three defaults at the list prices recorded in DECISIONS (integer
 // micro-dollars per 1M tokens, TD17); the context sizes are illustrative.
 const MODELS = [

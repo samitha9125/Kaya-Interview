@@ -30,9 +30,8 @@ export default defineConfig({
       APP_ENCRYPTION_KEY: TEST_ENCRYPTION_KEY,
       DATABASE_PATH,
       DEMO_MODE: "true",
-      // No model key in tests: the loan agent is rule-played (TD25).
-      CHAT_MODEL_PROVIDER: "scripted",
-      GOV_API_BASE_URL: `http://localhost:${PORT}/api/mock-gov`,
+      // No model key in tests: the specialists are rule-played (TD25, TD27).
+      E2E_SCRIPTED_MODEL: "1",
     },
   },
 });

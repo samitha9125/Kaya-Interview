@@ -19,8 +19,8 @@ describe("platform/config: startup validation", () => {
         DEMO_MODE: false,
         OPENROUTER_API_KEY: undefined,
         DATABASE_PATH: "bank.db",
-        GOV_API_BASE_URL: "http://localhost:3000/api/mock-gov",
-        CHAT_MODEL_PROVIDER: "openrouter",
+        PORT: 3000,
+        E2E_SCRIPTED_MODEL: false,
       },
     });
   });
@@ -114,33 +114,23 @@ describe("platform/config: startup validation", () => {
     expect(message).not.toContain("20000");
   });
 
-  it.each([
-    { url: "https://credit.gov.example/api", ok: true },
-    { url: "http://localhost:3100/api/mock-gov", ok: true },
-    { url: "http://credit.gov.example/api", ok: false }, // plain HTTP off this machine
-    { url: "ftp://localhost/api", ok: false },
-    { url: "not a url", ok: false },
-  ])("ARCHITECTURE §10: GOV_API_BASE_URL $url → starts $ok", ({ url, ok }) => {
-    expect(parseConfig({ ...validEnv, GOV_API_BASE_URL: url }).ok).toBe(ok);
-  });
-
   it.each([{ demoMode: undefined }, { demoMode: "false" }])(
     "FR-PLAT-01: the scripted model with DEMO_MODE $demoMode → the app refuses to start",
     ({ demoMode }) => {
       const result = parseConfig({
         ...validEnv,
-        CHAT_MODEL_PROVIDER: "scripted",
+        E2E_SCRIPTED_MODEL: "1",
         DEMO_MODE: demoMode,
       });
 
       expect(result.ok).toBe(false);
-      expect(!result.ok && result.message).toContain("CHAT_MODEL_PROVIDER");
+      expect(!result.ok && result.message).toContain("E2E_SCRIPTED_MODEL");
     },
   );
 
   it("FR-PLAT-01: the scripted model runs only in demo mode", () => {
-    const result = parseConfig({ ...validEnv, CHAT_MODEL_PROVIDER: "scripted", DEMO_MODE: "true" });
+    const result = parseConfig({ ...validEnv, E2E_SCRIPTED_MODEL: "1", DEMO_MODE: "true" });
 
-    expect(result.ok && result.config.CHAT_MODEL_PROVIDER).toBe("scripted");
+    expect(result.ok && result.config.E2E_SCRIPTED_MODEL).toBe(true);
   });
 });

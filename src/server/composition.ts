@@ -38,6 +38,9 @@ const CHAT_RATE_LIMIT = { limit: 20, windowMs: 60_000 } as const;
 
 function createApp(config: AppConfig) {
   const { db, sqlite } = openDatabase(config.DATABASE_PATH);
+  // B20, TD27: the bank is hypothetical, so the government API is always the
+  // built-in mock, reached over HTTP on this server like an external service.
+  const govApiBaseUrl = `http://localhost:${config.PORT}/api/mock-gov`;
   const clock = systemClock;
   const ids = randomIds;
   const audit = createAuditLog({ clock, ids });
@@ -45,13 +48,13 @@ function createApp(config: AppConfig) {
     db,
     audit,
     clock,
-    bureau: new HttpGovBureau({ baseUrl: config.GOV_API_BASE_URL, clock }),
+    bureau: new HttpGovBureau({ baseUrl: govApiBaseUrl, clock }),
     cacheTtlDays: config.CREDIT_CACHE_TTL_DAYS,
     loadNic: (customerId) => findCustomerNic(db, customerId, config.APP_ENCRYPTION_KEY),
     sleep: (ms) => sleep(ms),
     random: Math.random,
   };
-  const isScripted = config.CHAT_MODEL_PROVIDER === "scripted";
+  const isScripted = config.E2E_SCRIPTED_MODEL;
   const settings: SettingsDeps = {
     db,
     audit,
@@ -104,7 +107,7 @@ function createApp(config: AppConfig) {
     callbacks,
     models,
     graph,
-    mockBureauAdmin: new HttpMockBureauAdmin(config.GOV_API_BASE_URL),
+    mockBureauAdmin: new HttpMockBureauAdmin(govApiBaseUrl),
     idempotency: createIdempotency({ db, clock }),
     loginLimiter: createRateLimiter({ ...LOGIN_RATE_LIMIT, clock }),
     chatLimiter: createRateLimiter({ ...CHAT_RATE_LIMIT, clock }),

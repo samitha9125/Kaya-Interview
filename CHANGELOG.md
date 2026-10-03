@@ -30,4 +30,4 @@ rather than generated from commits. The format follows
 ### Changed
 
 - A loan amount over the customer's band maximum, with otherwise clear data, is a final "not eligible" instead of a referral to an officer. Demo customer C1009 shows it.
-- `.env.example` documents every setting. The admin password is gone, and `AUTO_DECISION_THRESHOLD` is in basis points (`9500` = 95%).
+- `.env.example` lists only the five settings an operator sets: the OpenRouter key, the encryption key, the auto-decision threshold, the cache lifetime and demo mode. The admin password is gone, and `AUTO_DECISION_THRESHOLD` is in basis points (`9500` = 95%). The government credit service is always the built-in mock, and the assistant always uses OpenRouter.
