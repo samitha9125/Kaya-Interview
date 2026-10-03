@@ -113,13 +113,14 @@ flowchart LR
 | Mechanism | Used for |
 |---|---|
 | `contextSchema` + `ToolRuntime.context` | The harness supplies the customer's identity; tools take no identity arguments |
-| `interrupt(…, { responseSchema })` + `Command({ resume })` | Step-up, consent, KYC form, confirmation. Resume values are single-use, validated references |
-| `Command({ goto, graph: Command.PARENT })` | Specialist → deterministic steps, and hand-back to triage |
+| `interrupt(…, { responseSchema })` + `Command({ resume: { [id]: … } })` | Step-up, consent, KYC form, confirmation. Resume values are validated references, resumed by interrupt ID. An ID is single-use because it must still be pending in **that thread's** checkpoint; the turn lock (FR-WEB-03) stops two resumes racing |
+| `Command({ goto, graph: Command.PARENT })` | Specialist → deterministic steps, and hand-back to triage. Returned by a specialist's tool; the specialist runs in a wrapper node that calls `agent.invoke` (proven in T4) |
 | Conditional edges | Gates: sign-in, consent, hard referral rules, confidence threshold |
 | `createAgent` middleware | Call limits, model retry, personal-data redaction, tool failure → situation label |
 | Node `retryPolicy` / `timeout` / `errorHandler` | The credit-check node |
 | SQLite checkpointer, `durability: "sync"` | Conversations survive restarts; a replayed step is safe because its side effects are idempotent |
 | `stream()` with `updates` and `custom` | Typing and progress events. LLM replies are buffered, validated, then sent whole |
+| `validate_reply` node | After a specialist's text reply: decision wording with no decision in state is replaced by the template, keeping the message ID so the reducer swaps it in place |
 
 ## 8. Request lifecycle
 
