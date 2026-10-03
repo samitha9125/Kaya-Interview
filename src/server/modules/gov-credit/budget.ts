@@ -42,11 +42,23 @@ export function coolDownUntil(db: AppDatabase, until: Date, now: Date): void {
   );
 }
 
-// For the Settings screen: attempts made in today's Sri Lanka window.
-export function attemptsToday(db: AppDatabase, now: Date): number {
+export type BudgetStatus = {
+  usedToday: number;
+  blockedUntil: Date | null;
+  coolDownUntil: Date | null;
+};
+
+// For Settings, the demo panel and the audit: attempts made in today's Sri
+// Lanka window, and any block or cool-down still in force.
+export function budgetStatus(db: AppDatabase, now: Date): BudgetStatus {
   const today = sriLankaDay(now);
   const state = readState(db, today);
-  return state.day === today ? state.attempts : 0;
+  const ifAfterNow = (until: Date | null) => (until && until > now ? until : null);
+  return {
+    usedToday: state.day === today ? state.attempts : 0,
+    blockedUntil: ifAfterNow(state.blockedUntil),
+    coolDownUntil: ifAfterNow(state.coolDownUntil),
+  };
 }
 
 // FR-SET-04: the demo control clears today's count, the block and the

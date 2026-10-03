@@ -9,7 +9,7 @@ import {
   type MockFailureMode,
   type SettingsDeps,
 } from "@/server/modules/settings";
-import { attemptsToday, type GovCreditDeps } from "@/server/modules/gov-credit";
+import { budgetStatus, type GovCreditDeps } from "@/server/modules/gov-credit";
 import type { AppConfig } from "@/server/platform/config";
 
 export type SettingsViewDeps = {
@@ -50,7 +50,7 @@ export async function readSettingsView(deps: SettingsViewDeps): Promise<Settings
     })),
     failureModes: MOCK_FAILURE_MODES,
     govChecks: {
-      usedToday: attemptsToday(deps.credit.db, deps.credit.clock.now()),
+      usedToday: budgetStatus(deps.credit.db, deps.credit.clock.now()).usedToday,
       perDay: deps.credit.bureau.callsPerDay,
     },
   };

@@ -11,3 +11,7 @@ export const CREDIT_POLICY = {
 } as const;
 
 export const DAY_MS = 24 * 60 * 60_000;
+
+// Demo only: one press takes a score past the 30-day lifetime; three take
+// it past the 90-day stale window, so both can be shown without waiting.
+export const DEMO_CACHE_AGE_DAYS = 31;

@@ -13,6 +13,15 @@ export function isUsableStale(fetchedAt: Date, now: Date): boolean {
   return ageMs(fetchedAt, now) <= CREDIT_POLICY.staleWindowMs;
 }
 
+export const ageInDays = (fetchedAt: Date, now: Date) => Math.floor(ageMs(fetchedAt, now) / DAY_MS);
+
+export type CacheState = "fresh" | "stale_usable" | "too_old";
+
+export function cacheState(fetchedAt: Date, now: Date, ttlDays: number): CacheState {
+  if (isFresh(fetchedAt, now, ttlDays)) return "fresh";
+  return isUsableStale(fetchedAt, now) ? "stale_usable" : "too_old";
+}
+
 export type BudgetState = {
   day: string;
   attempts: number;
