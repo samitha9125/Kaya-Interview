@@ -108,7 +108,7 @@ zod at **every** boundary, with types inferred from the schema (`z.infer<typeof 
 
 | Use | When |
 |---|---|
-| `audit.record(event)` | Anything a bank would need to prove later: messages, login, step-up, consent, tool calls, decisions (with confidence and threshold used), government calls, budget changes |
+| `audit.record(event)` | Anything a bank would need to prove later: model replies (role, model, prompt version, tool names, tokens; never the text), login, step-up, consent, tool calls, decisions (with confidence and threshold used), government calls, budget changes |
 | `logger.info/warn/error` | Operational detail for debugging, with the correlation ID |
 
 Decisions and their audit records are written in the **same transaction**. No decision exists without its audit trail.

@@ -62,7 +62,10 @@ A module declares the port it needs; an adapter implements it for one external s
 | `CreditBureau` (gov-credit) | `fetchScore(nic)` returns a validated result; declares `callsPerDay` | `HttpGovBureau` (calls the mock) | A new endpoint, an API version or the real service is a new adapter. Cache, budget, backoff and fallback rules don't change |
 | `ChatModelProvider` (agent) | `chatModel({ modelId, reasoningEffort, maxOutputTokens, needsStructuredOutput })` returns a LangChain chat model. The agent picks these per role; the adapter adds the provider's privacy settings and never retries on its own | `OpenRouterProvider` | A direct provider, Azure, or a self-hosted model |
 | `ModelCatalog` (settings) | Lists tool-capable models with price and context | `OpenRouterCatalog` | Any other catalogue |
+| `MockBureauAdmin` (settings) | `resetDailyLimit()`, `setFailureMode(mode)`: the demo controls on the mocked government service, over HTTP | `HttpMockBureauAdmin` | Nothing for the real service, which has no such controls; they exist only in demo mode |
 | `Clock`, `IdGenerator` (platform) | `now()`, `newId()` | System | Deterministic fakes in tests |
+
+For E2E only (`E2E_SCRIPTED_MODEL`), `ScriptedChatProvider` and `StaticModelCatalog` stand in for OpenRouter, so browser tests need no model key (TD25).
 
 **The database is deliberately not behind a port.** Drizzle already isolates the SQL dialect, so moving to Postgres is a dialect change; a repository layer would add files without adding options.
 
@@ -103,7 +106,7 @@ flowchart LR
   D -- eligible, confident --> E[Eligible] --> CF[[Confirm]] --> S[Submit]
   D -- not eligible, confident --> NE[Not eligible · ends]
   D -- below threshold or hard rule --> REF[Referral created]
-  K[KYC agent LLM] -- form requested --> F[[KYC form]] --> V[Validate] --> KC[[Confirm]] --> KS[Pending application]
+  K[KYC agent LLM] -- form requested --> F[[KYC form]] --> KC[[Confirm]] --> KS[Pending application]
 ```
 
 - **LLM nodes:** triage, loan and KYC (three roles, model chosen per role). Everything else is code.
@@ -115,7 +118,8 @@ flowchart LR
 | `contextSchema` + `ToolRuntime.context` | The harness supplies the customer's identity; tools take no identity arguments |
 | `interrupt(…, { responseSchema })` + `Command({ resume: { [id]: … } })` | Step-up, consent, KYC form, confirmation. Resume values are validated references, resumed by interrupt ID. An ID is single-use because it must still be pending in **that thread's** checkpoint; the turn lock (FR-WEB-03) stops two resumes racing |
 | `Command({ goto, graph: Command.PARENT })` | Specialist → deterministic steps, and hand-back to triage. Returned by a specialist's tool; the specialist runs in a wrapper node that calls `agent.invoke` (proven in T4) |
-| Conditional edges | Gates: sign-in, consent, hard referral rules, confidence threshold |
+| `Command({ goto })` from gate nodes | Gates: sign-in, step-up, consent, hard referral rules, confidence threshold |
+| Conditional edges | Only at `START` (sticky routing) and after a specialist (a text reply goes to `validate_reply`) |
 | `createAgent` middleware | Call limits, model retry, personal-data redaction, tool failure → situation label |
 | Node `retryPolicy` / `timeout` / `errorHandler` | The credit-check node |
 | SQLite checkpointer, `durability: "sync"` | Conversations survive restarts; a replayed step is safe because its side effects are idempotent |
@@ -193,5 +197,5 @@ erDiagram
 
 ## 12. Observability and runtime
 
-- **Audit log:** append-only; every message, auth event, consent, tool call, decision and external call, plus the model and prompt version. `pnpm audit:trail <customer number | conversation ID | reference code>` prints one case as a plain-English timeline. In demo mode, the chat's **Behind the scenes** panel shows the same timeline for the signed-in visitor's own conversation, beside the government service's calls today, block or cool-down, and the customer's cached-score age (never the score). **Logs:** structured JSON. Both share a correlation ID, which is also the customer's reference code.
+- **Audit log:** append-only; each model reply (role, model, prompt version, tool names, tokens; no text), auth event, consent, tool call, decision and external call. Transcript text lives only in the checkpoint. `pnpm audit:trail <customer number | conversation ID | reference code>` prints one case as a plain-English timeline. In demo mode, the chat's **Behind the scenes** panel shows the same timeline for the signed-in visitor's own conversation, beside the government service's calls today, block or cool-down, and the customer's cached-score age (never the score). **Logs:** structured JSON. Both share a correlation ID, which is also the customer's reference code.
 - **Runtime:** one Node 25 instance, one SQLite file, TLS terminated at a reverse proxy. Growth path: Postgres plus a shared session store. Modules reach storage only through `platform/db`, so nothing else changes.
