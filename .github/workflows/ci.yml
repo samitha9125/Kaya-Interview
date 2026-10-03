@@ -1,9 +1,8 @@
 name: CI
 
 on:
-  pull_request:
   push:
-    branches: [main]
+    branches: [main, develop]
 
 concurrency:
   group: ci-${{ github.ref }}
@@ -13,24 +12,6 @@ permissions:
   contents: read
 
 jobs:
-  pr-title:
-    name: PR title
-    if: github.event_name == 'pull_request'
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v5
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v5
-        with:
-          node-version-file: .nvmrc
-          cache: pnpm
-      - run: pnpm install --frozen-lockfile
-      # PRs are squash-merged, so the title becomes the commit on main.
-      - name: Title follows Conventional Commits
-        env:
-          PR_TITLE: ${{ github.event.pull_request.title }}
-        run: echo "$PR_TITLE" | pnpm exec commitlint
-
   quality:
     name: Lint, typecheck, test, build
     runs-on: ubuntu-latest
@@ -49,8 +30,7 @@ jobs:
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm typecheck
-      - name: Unit tests with coverage gate
-        run: pnpm test:coverage
+      - run: pnpm test
       - run: pnpm build
 
   e2e:

@@ -1,25 +1,43 @@
 # yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
 #
-# Eval harness for the banking assistant.
-#
-# Right now this only proves the harness runs (the `echo` provider needs no
-# API key). When the agent exists, a custom provider in evals/providers/ will
-# call the LangGraph app, and the suites below get real cases:
-#   routing, tool gating, refusals, tone, and red-team attacks.
-# Run against any OpenRouter model with OPENROUTER_API_KEY set.
-description: Banking assistant evals (harness smoke test)
+# Behaviour evals on real models (TESTING_STANDARDS §8). Each case is one
+# turn of the real graph (evals/run-turn.ts), which prints what the turn
+# did as JSON: { reply, route, tools, pause, tokens, ms }. Pass marks are
+# quality targets, not guarantees; every P0 is proven by a deterministic
+# test.
+# Needs OPENROUTER_API_KEY, for the graph and for the tone judge. The
+# runner's paths are relative to this folder, where promptfoo runs it.
+description: Bank assistant behaviour evals
 
 prompts:
-  - "Customer says: {{message}}"
+  - "{{message}}"
 
+# The defaults (FR-SET-01), then one Claude and one GPT model in every role.
 providers:
-  - id: echo
-    label: harness-smoke
+  - id: exec:node --env-file-if-exists=../.env.local --conditions=react-server --import tsx run-turn.ts
+    label: defaults
+  - id: exec:node --env-file-if-exists=../.env.local --conditions=react-server --import tsx run-turn.ts
+    label: claude-haiku-4.5
+    config:
+      models:
+        {
+          triage: anthropic/claude-haiku-4.5,
+          loan: anthropic/claude-haiku-4.5,
+          kyc: anthropic/claude-haiku-4.5,
+        }
+  - id: exec:node --env-file-if-exists=../.env.local --conditions=react-server --import tsx run-turn.ts
+    label: gpt-5.6-luna
+    config:
+      models: { triage: openai/gpt-5.6-luna, loan: openai/gpt-5.6-luna, kyc: openai/gpt-5.6-luna }
+
+defaultTest:
+  options:
+    # The tone judge: a stronger model than any under test.
+    provider: openrouter:openai/gpt-5.6-terra
 
 tests:
-  - description: harness passes variables through to the provider
-    vars:
-      message: I want to apply for a loan
-    assert:
-      - type: contains
-        value: apply for a loan
+  - file://suites/routing.yaml
+  - file://suites/refusals.yaml
+  - file://suites/red-team.yaml
+  - file://suites/tone.yaml
+  - file://suites/follow-ups.yaml

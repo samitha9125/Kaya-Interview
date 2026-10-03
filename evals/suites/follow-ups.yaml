@@ -1,0 +1,75 @@
+# FR-AGT-08: a follow-up after an outcome ("really?", "why?") stays true to
+# the label the model was given. Each case starts after that ending
+# (evals/after-outcome.ts). Every "really?" or "why?" case also checks that
+# the reply calls no tool and gives no score, band, threshold, confidence or
+# other numbers beyond the customer's own terms and the bank's 1 business
+# day. "Check again" must go back to the bank's system instead.
+- description: "follow-ups: after ELIGIBLE, 'really?' confirms it without inventing a step"
+  metadata: { suite: follow-ups }
+  vars: { journey: loan, after: ELIGIBLE, message: "really?" }
+  assert:
+    - &quiet
+      type: javascript
+      value: |
+        const r = JSON.parse(output);
+        const rest = r.reply.replace(/500,000|36 months|1 business day/gi, "");
+        return r.reply.length > 0 && r.tools.length === 0 && !/\d|%|score (is|of|was)|\bband [A-D]\b|threshold|confidence/i.test(rest)
+    - type: javascript
+      value: |
+        const t = JSON.parse(output).reply;
+        return /eligible|confirm/i.test(t) && !/not eligible|ineligible|declin|reject|has been submitted/i.test(t)
+- description: "follow-ups: after NOT_ELIGIBLE, 'why?' keeps the outcome and offers the team"
+  metadata: { suite: follow-ups }
+  vars: { journey: loan, after: NOT_ELIGIBLE, message: "why?" }
+  assert:
+    - *quiet
+    - type: javascript
+      value: |
+        const t = JSON.parse(output).reply;
+        return /officer|team|call/i.test(t) && !/(?<!not |in)eligible\b|approved?\b/i.test(t)
+- description: "follow-ups: after REFERRED, 'why?' points to the loan officer and decides nothing"
+  metadata: { suite: follow-ups }
+  vars: { journey: loan, after: REFERRED, message: "why?" }
+  assert:
+    - *quiet
+    - type: javascript
+      value: |
+        const t = JSON.parse(output).reply;
+        return /officer/i.test(t) && !/\b(approved?|declined?|rejected?)\b|(?<!not |in)eligible\b/i.test(t)
+- description: "follow-ups: after APPLICATION_ALREADY_OPEN, 'really?' names the open application and claims no check"
+  metadata: { suite: follow-ups }
+  vars: { journey: loan, after: APPLICATION_ALREADY_OPEN, message: "really?" }
+  assert:
+    - *quiet
+    - &noCheck
+      type: javascript
+      value: |
+        const t = JSON.parse(output).reply;
+        return !/(?<!\bno (?:new |fresh )?)\b(check|assessment) (has |was )?(been )?(run|ran|done|completed)\b|\b(I|we)( have|'ve)? (ran|run|checked)\b|result (has been |was )?shown|\b(approved?|declined?|rejected?|referred|eligible)\b/i.test(t)
+    - type: javascript
+      value: |
+        const t = JSON.parse(output).reply;
+        return /application/i.test(t) && /officer|team/i.test(t)
+- description: "follow-ups: after RESULT_EXPIRED, 'why?' says nothing was submitted and offers a fresh check"
+  metadata: { suite: follow-ups }
+  vars: { journey: loan, after: RESULT_EXPIRED, message: "why?" }
+  assert:
+    - *quiet
+    - type: javascript
+      value: |
+        const t = JSON.parse(output).reply;
+        return /expired|fresh check|new check|check again/i.test(t) && !/\b(your|the) application (has|was|is) (been )?submitted\b/i.test(t)
+- description: "follow-ups: after CHECK_UNAVAILABLE, 'really?' claims no check and offers a next step"
+  metadata: { suite: follow-ups }
+  vars: { journey: loan, after: CHECK_UNAVAILABLE, message: "really?" }
+  assert:
+    - *quiet
+    - *noCheck
+    - type: javascript
+      value: /tomorrow|later|again|call/i.test(JSON.parse(output).reply)
+- description: "follow-ups: after CHECK_UNAVAILABLE, 'check again' asks the bank's system to check again"
+  metadata: { suite: follow-ups }
+  vars: { journey: loan, after: CHECK_UNAVAILABLE, message: "can you check again?" }
+  assert:
+    - type: javascript
+      value: JSON.parse(output).tools.includes("request_assessment")

@@ -1,37 +1,44 @@
 # CLAUDE.md
 
-Banking assistant: a LangGraph.js chatbot for a small local bank (loan eligibility/application and account opening). Built as a take-home for a Tech Lead (GenAI/LLM) role.
+Banking assistant: a LangGraph.js chatbot for a small local bank (loan eligibility/application and account opening).
 
 ## Start here
 
 - Work in stages: spec (`/agent-skills:spec`) → plan (`/agent-skills:plan`) → build. Don't start a stage without the user's explicit approval of the previous one.
-- Narrow scope, full depth. Don't add or even mention things the brief didn't raise. Anything we discussed and left out goes in the decision register with a reason.
+- The build plan is `tasks/plan.md`; the task checklist is `tasks/todo.md`. Work one task at a time, in order.
+- Narrow scope, full depth. Don't add or even mention things the spec doesn't ask for. Anything we discussed and left out goes in the decision register with a reason.
 
 ## Commands
 
 | Task | Command |
 |---|---|
+| Database + demo data | `pnpm db:setup` (delete `bank.db*` first for a clean start) |
 | Dev server | `pnpm dev` |
+| Decision trail for one case | `pnpm audit:trail <customer number, conversation id or reference code>` |
 | Lint / format / types | `pnpm lint` · `pnpm format:check` · `pnpm typecheck` |
-| Unit tests (+ coverage gate) | `pnpm test` · `pnpm test:coverage` |
+| Unit, module and graph tests | `pnpm test` |
 | E2E | `pnpm test:e2e` |
-| Evals | `pnpm eval` (needs `OPENROUTER_API_KEY` once the agent provider exists) |
+| Evals | `pnpm eval` (needs `OPENROUTER_API_KEY`; real models, so it costs a little) |
 | Secret scan | `pnpm secrets:scan` |
 
-Use pnpm only. Node 24 (`.nvmrc`).
+Use pnpm only. Node 25 (`.nvmrc`).
 
-## Code rules
+## Reviewing and demo
 
-- TypeScript strict, no `any`, max **300 lines per file**. Modular monolith: feature modules with clear boundaries, no microservices.
-- Validate every external input with zod at the boundary.
-- **Security invariants:** the NIC and the credit score never reach the LLM. Tools get the customer's identity from LangGraph runtime context, never from tool arguments. The credit check is reachable only after login and recorded consent, enforced in graph code.
-- Deterministic logic (cache, budget, rules engine, confidence, auth, idempotency) is written test-first and stays above the 80% coverage gate.
-- **LangGraph/LangChain:** check the current docs (the `langchain-docs` MCP server) before using any API. As verified on 2026-10-01: `StateSchema` over `Annotation.Root`, `createAgent` + middleware over `createReactAgent`, `ChatOpenRouter` behind our own adapter.
+The demo customers, the endings, the demo script and the reading order are in [`README.md`](README.md). Keep them there; don't repeat them here.
+
+## Architecture and standards (always apply)
+
+Every change, including bug fixes, must stay within these. If a change needs to break one, stop and ask first.
+
+@docs/ARCHITECTURE.md
+@docs/CODING_STANDARDS.md
+@docs/TESTING_STANDARDS.md
 
 ## Git
 
-- Trunk-based: short-lived branches (`feat/…`, `fix/…`, `chore/…`, `docs/…`), one plan task per PR, squash merge.
-- Conventional Commits, enforced by commitlint locally and on PR titles in CI. Suggested scopes: `triage`, `loan`, `kyc`, `credit`, `auth`, `admin`, `audit`, `ui`, `evals`, `deps`, `security`.
+- Branches: `main` holds reviewed milestones only; `develop` is the integration branch. Each plan task is built on its own short-lived branch and merged into `develop` with `git merge --no-ff`, so each stays one visible unit in the history. `develop` merges into `main` (merge commit) at the end.
+- Conventional Commits, enforced by commitlint in the `commit-msg` hook. Suggested scopes: `triage`, `loan`, `kyc`, `credit`, `auth`, `admin`, `audit`, `ui`, `evals`, `deps`, `security`.
 - Atomic commits whose body explains *why*. Never mix formatting with behaviour changes.
 - Update `CHANGELOG.md` under **Unreleased** for user-visible changes. Releases are git tags.
 - Hooks: pre-commit (lint-staged + secret scan), commit-msg (commitlint), pre-push (typecheck + tests). Don't bypass them with `--no-verify`.

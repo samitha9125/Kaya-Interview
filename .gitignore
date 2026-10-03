@@ -10,15 +10,15 @@
 !.yarn/releases
 !.yarn/versions
 
-# testing
-/coverage
-
 # next.js
 /.next/
 /out/
 
 # production
 /build
+
+# e2e database
+/.e2e*.db*
 
 # misc
 .DS_Store
@@ -50,3 +50,8 @@ next-env.d.ts
 # local databases
 *.db
 *.db-journal
+*.db-wal
+*.db-shm
+
+# Local Claude Code settings
+.claude/
