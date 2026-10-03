@@ -15,8 +15,6 @@
     "db:generate": "drizzle-kit generate",
     "db:setup": "node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/db-setup.ts",
     "audit:trail": "node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/audit-trail.ts",
-    "graph:draw": "node --conditions=react-server --import tsx scripts/graph-draw.ts",
-    "smoke:models": "node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/smoke-models.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:e2e": "playwright test",
