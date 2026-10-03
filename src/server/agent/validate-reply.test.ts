@@ -14,7 +14,7 @@ import { runConfig } from "./graph";
 import { claimedOutcomes, leaksSomething, plainTypography } from "./nodes/validate-reply";
 import { KYC_PROMPT } from "./prompts/kyc";
 import { LOAN_PROMPT } from "./prompts/loan";
-import { CANT_SHARE, NO_DECISION_IN_CHAT } from "./templates";
+import { CANT_COMPLETE, CANT_SHARE, NO_DECISION_IN_CHAT } from "./templates";
 
 describe("agent graph: replies are checked before display", () => {
   it("P0-05: a model claiming approval is replaced; the customer never sees the claim", async () => {
@@ -28,6 +28,14 @@ describe("agent graph: replies are checked before display", () => {
     expect(result.messages.map((message) => message.text)).not.toContain(
       "Great news, you're approved!",
     );
+  });
+
+  it("FR-AGT-10: a model that returns no text never leaves the customer a blank reply", async () => {
+    const graph = buildTestGraph(fakeModel().respond(new AIMessage("")));
+
+    const result = await sendMessage(graph, "t1", "Am I eligible?");
+
+    expect(result.messages.at(-1)?.text).toBe(CANT_COMPLETE);
   });
 });
 

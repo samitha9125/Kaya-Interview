@@ -3,7 +3,7 @@ import { KYC_PROMPT } from "../prompts/kyc";
 import { LOAN_PROMPT } from "../prompts/loan";
 import { TONE_GUIDE } from "../prompts/tone";
 import type { ConversationStateValue } from "../state";
-import { CANT_SHARE, NO_DECISION_IN_CHAT } from "../templates";
+import { CANT_COMPLETE, CANT_SHARE, NO_DECISION_IN_CHAT } from "../templates";
 import { fromBank } from "./endings";
 
 type Outcome = "eligible" | "not_eligible" | "referred";
@@ -61,6 +61,9 @@ export function leaksSomething(text: string): boolean {
 export function validateReplyNode(state: ConversationStateValue) {
   const reply = state.messages.at(-1);
   if (!AIMessage.isInstance(reply)) return {};
+  // A reasoning model can spend its whole output budget thinking and return
+  // no text; the customer gets an honest retry message, never a blank reply.
+  if (!reply.text.trim()) return { messages: [fromBank(CANT_COMPLETE, reply.id)] };
   if (leaksSomething(reply.text)) return { messages: [fromBank(CANT_SHARE, reply.id)] };
   const contradicts = claimedOutcomes(reply.text).some((claim) => claim !== state.decision);
   if (contradicts) return { messages: [fromBank(NO_DECISION_IN_CHAT, reply.id)] };
