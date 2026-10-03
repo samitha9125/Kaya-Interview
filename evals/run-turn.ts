@@ -9,6 +9,7 @@ import { getConfig } from "@/server/platform/config";
 import { scriptedBureau } from "@/test/fake-bureau";
 import { callbackTestDeps, onboardingTestDeps, testContext } from "@/test/graph";
 import { lendingTestSetup } from "@/test/lending-setup";
+import { afterOutcome, type QuestionedEnding } from "./after-outcome";
 
 // promptfoo's exec provider calls this with the customer's message, the
 // provider options (the models under test) and the test's vars. It runs
@@ -16,9 +17,10 @@ import { lendingTestSetup } from "@/test/lending-setup";
 // onboarding and callbacks on in-memory SQLite, and prints what the turn
 // did as JSON. The customer is signed in but hasn't re-entered their
 // password, so an assessment stops at the step-up card and the bureau is
-// never reached.
+// never reached. With `after`, the turn is a follow-up to that ending
+// (see after-outcome.ts).
 type Options = { config?: { models?: Partial<typeof DEFAULT_MODELS> } };
-type Vars = { journey?: "loan" | "kyc" | "human" };
+type Vars = { journey?: "loan" | "kyc" | "human"; after?: QuestionedEnding };
 
 const SPECIALISTS = new Set(["loan_agent", "kyc_agent", "callback"]);
 
@@ -37,7 +39,12 @@ async function runTurn(message: string, options: Options, vars: Vars) {
   const context = testContext(threadId, {
     models: { ...DEFAULT_MODELS, ...options.config?.models },
   });
-  const input = { messages: [new HumanMessage(message)], journey: vars.journey };
+  const earlier = vars.after ? afterOutcome(vars.after) : { history: [], decision: null };
+  const input = {
+    messages: [...earlier.history, new HumanMessage(message)],
+    journey: vars.journey,
+    decision: earlier.decision,
+  };
 
   const started = performance.now();
   const nodes: string[] = [];
@@ -50,7 +57,8 @@ async function runTurn(message: string, options: Options, vars: Vars) {
 
   const snapshot = await graph.getState(runConfig(threadId));
   const messages: BaseMessage[] = snapshot.values.messages ?? [];
-  const replies = messages.filter((m): m is AIMessage => AIMessage.isInstance(m));
+  const thisTurn = messages.slice(messages.findLastIndex((m) => HumanMessage.isInstance(m)));
+  const replies = thisTurn.filter((m): m is AIMessage => AIMessage.isInstance(m));
   const pending = await findPendingPause(graph, threadId);
   return {
     reply: replies

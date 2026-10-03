@@ -80,7 +80,7 @@ Bugs follow **Prove-It**: first a test that fails because of the bug, then the f
 
 ## 8. Evals
 
-- One suite per concern: routing, refusals, tone, red-team.
+- One suite per concern: routing, refusals, tone, red-team, and follow-ups (a "really?" or "why?" after each outcome stays true to it, claims no step that didn't happen, and gives no reasons or numbers).
 - Prefer deterministic assertions (contains, not-contains, which tool was called). Use an LLM-as-judge **only** for tone, with an explicit written rubric.
 - Pass marks are **quality targets**, not guarantees. Run on at least two models; record pass rate and latency. Results go in the README.
 - Evals cost money, so they never run in hooks; they run on demand and through the manual CI workflow.

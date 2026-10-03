@@ -39,3 +39,4 @@ tests:
   - file://suites/refusals.yaml
   - file://suites/red-team.yaml
   - file://suites/tone.yaml
+  - file://suites/follow-ups.yaml
