@@ -11,6 +11,7 @@ export { login, type AuthDeps, type LoginRequest, type LoginResult } from "./log
 export {
   endSession,
   hasFreshStepUp,
+  isStepUpFreshFor,
   resolveSession,
   startSession,
   stepUp,

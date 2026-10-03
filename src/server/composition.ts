@@ -3,8 +3,16 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { HttpGovBureau } from "@/server/adapters/http-gov-bureau";
 import { OpenRouterCatalog } from "@/server/adapters/openrouter-catalog";
 import { OpenRouterProvider } from "@/server/adapters/openrouter-provider";
-import { findCustomerNic, LOGIN_RATE_LIMIT } from "@/server/modules/auth";
+import { createCheckpointer } from "@/server/agent/checkpointer";
+import { buildConversationGraph } from "@/server/agent/graph";
+import {
+  findBankRecord,
+  findCustomerNic,
+  isStepUpFreshFor,
+  LOGIN_RATE_LIMIT,
+} from "@/server/modules/auth";
 import type { GovCreditDeps } from "@/server/modules/gov-credit";
+import type { LendingDeps } from "@/server/modules/lending";
 import type { SettingsDeps } from "@/server/modules/settings";
 import { createAuditLog } from "@/server/platform/audit";
 import { systemClock } from "@/server/platform/clock";
@@ -24,7 +32,7 @@ import { createTurnLock } from "@/server/harness/turn-lock";
 const CHAT_RATE_LIMIT = { limit: 20, windowMs: 60_000 } as const;
 
 function createApp(config: AppConfig) {
-  const { db } = openDatabase(config.DATABASE_PATH);
+  const { db, sqlite } = openDatabase(config.DATABASE_PATH);
   const clock = systemClock;
   const ids = randomIds;
   const audit = createAuditLog({ clock, ids });
@@ -39,6 +47,22 @@ function createApp(config: AppConfig) {
     random: Math.random,
   };
   const settings: SettingsDeps = { db, audit, clock, catalog: new OpenRouterCatalog() };
+  const lending: LendingDeps = {
+    db,
+    audit,
+    clock,
+    ids,
+    credit,
+    thresholdBp: config.AUTO_DECISION_THRESHOLD,
+    loadBankRecord: (customerId) => findBankRecord(db, customerId),
+  };
+  const models = new OpenRouterProvider({ apiKey: config.OPENROUTER_API_KEY });
+  const graph = buildConversationGraph({
+    models,
+    lending,
+    isStepUpFresh: (sessionId) => isStepUpFreshFor(sessionId, { db, clock }),
+    checkpointer: createCheckpointer(sqlite),
+  });
   return {
     config,
     db,
@@ -48,7 +72,9 @@ function createApp(config: AppConfig) {
     audit,
     credit,
     settings,
-    models: new OpenRouterProvider({ apiKey: config.OPENROUTER_API_KEY }),
+    lending,
+    models,
+    graph,
     idempotency: createIdempotency({ db, clock }),
     loginLimiter: createRateLimiter({ ...LOGIN_RATE_LIMIT, clock }),
     chatLimiter: createRateLimiter({ ...CHAT_RATE_LIMIT, clock }),

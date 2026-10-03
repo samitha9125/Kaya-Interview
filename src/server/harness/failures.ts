@@ -10,6 +10,9 @@ export type FailureKind =
   | "too_many_requests"
   | "duplicate_request"
   | "turn_in_progress"
+  | "pause_pending"
+  | "pause_not_pending"
+  | "step_up_failed"
   | "not_found"
   | "internal";
 
@@ -46,6 +49,15 @@ const FAILURES: Record<FailureKind, { status: number; message: string }> = {
   },
   duplicate_request: { status: 409, message: "We've already received that." },
   turn_in_progress: { status: 409, message: "I'm still working on your last message. One moment." },
+  // FR-WEB-03 (TD14): a pending card must be answered first; declining
+  // counts as an answer.
+  pause_pending: { status: 409, message: "Please answer the card on your screen first." },
+  pause_not_pending: { status: 409, message: "That card has already been answered." },
+  // Step-up failures count toward the sign-in lockout (BR-AUTH-02).
+  step_up_failed: {
+    status: 401,
+    message: "That password didn't match. After 5 tries in a row, sign-in pauses for 15 minutes.",
+  },
   not_found: { status: 404, message: "We couldn't find that conversation." },
   internal: { status: 500, message: "" },
 };

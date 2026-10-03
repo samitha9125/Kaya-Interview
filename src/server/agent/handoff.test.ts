@@ -1,15 +1,15 @@
 import { AIMessage, fakeModel, ToolMessage } from "langchain";
 import { describe, expect, it } from "vitest";
-import { buildTestGraph, pendingInterrupts, sendMessage } from "@/test/graph";
+import { ASSESSMENT_CALL, buildTestGraph, pendingInterrupts, sendMessage } from "@/test/graph";
+import { TERMS } from "@/test/lending-setup";
 import { runConfig } from "./graph";
-import { REQUEST_ASSESSMENT } from "./nodes/loan-agent";
 
 function modelRequestingAssessment() {
-  return fakeModel().respondWithTools([{ name: REQUEST_ASSESSMENT, args: {}, id: "call-1" }]);
+  return fakeModel().respondWithTools([ASSESSMENT_CALL]);
 }
 
 describe("agent graph: specialist hands off to deterministic steps", () => {
-  it("FR-AGT-05: request_assessment hands off through Command.PARENT and pauses at consent", async () => {
+  it("FR-AGT-05: request_assessment hands off through Command.PARENT and pauses at consent for the requested terms", async () => {
     const graph = buildTestGraph(modelRequestingAssessment());
 
     await sendMessage(graph, "t1", "Can I get a loan?");
@@ -17,7 +17,7 @@ describe("agent graph: specialist hands off to deterministic steps", () => {
     const snapshot = await graph.getState(runConfig("t1"));
     expect(snapshot.next).toEqual(["consent"]);
     expect((await pendingInterrupts(graph, "t1")).map((item) => item.value)).toEqual([
-      { kind: "consent" },
+      { kind: "consent", ...TERMS },
     ]);
   });
 

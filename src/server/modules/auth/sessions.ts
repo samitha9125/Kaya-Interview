@@ -102,6 +102,20 @@ export function hasFreshStepUp(session: Session, now: Date): boolean {
   return isStepUpFresh(session.stepUpAt, now, STEP_UP_VALID_MS);
 }
 
+// The graph asks by session ID, so it never holds the token. A revoked
+// session's step-up counts for nothing.
+export function isStepUpFreshFor(
+  sessionId: string,
+  deps: Pick<SessionDeps, "db" | "clock">,
+): boolean {
+  const row = deps.db
+    .select({ stepUpAt: sessions.stepUpAt })
+    .from(sessions)
+    .where(and(eq(sessions.id, sessionId), isNull(sessions.revokedAt)))
+    .get();
+  return row !== undefined && isStepUpFresh(row.stepUpAt, deps.clock.now(), STEP_UP_VALID_MS);
+}
+
 function findLiveRow(db: AppDatabase, token: string) {
   return db
     .select()

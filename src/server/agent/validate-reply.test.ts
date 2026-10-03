@@ -1,10 +1,17 @@
 import { AIMessage, fakeModel } from "langchain";
 import { describe, expect, it } from "vitest";
-import { buildTestGraph, pendingInterrupts, sendMessage } from "@/test/graph";
+import { noHistory, scriptedBureau } from "@/test/fake-bureau";
+import {
+  ASSESSMENT_CALL,
+  buildTestGraph,
+  consentFor,
+  pendingInterrupts,
+  resume,
+  sendMessage,
+} from "@/test/graph";
+import { lendingTestSetup } from "@/test/lending-setup";
 import { runConfig } from "./graph";
 import { claimsDecision } from "./nodes/validate-reply";
-import { REQUEST_ASSESSMENT } from "./nodes/loan-agent";
-import { resumeInterrupt } from "./resume";
 import { NO_DECISION_IN_CHAT } from "./templates";
 
 describe("agent/validate-reply: decision wording", () => {
@@ -49,17 +56,14 @@ describe("agent graph: replies are checked before display", () => {
   });
 
   it("FR-AGT-07: once a decision exists in state, the reply may talk about it", async () => {
+    const { deps: lending } = lendingTestSetup(scriptedBureau([noHistory]).bureau);
     const model = fakeModel()
-      .respondWithTools([{ name: REQUEST_ASSESSMENT, args: {} }])
+      .respondWithTools([ASSESSMENT_CALL])
       .respond(new AIMessage("Your case was referred to an officer, who will call you."));
-    const graph = buildTestGraph(model);
+    const graph = buildTestGraph(model, { lending });
     await sendMessage(graph, "t1", "Check my loan");
     const [consent] = await pendingInterrupts(graph, "t1");
-    await resumeInterrupt(graph, {
-      threadId: "t1",
-      interruptId: consent!.id!,
-      reference: { consentId: "consent-1" },
-    });
+    await resume(graph, "t1", consent!.id!, { consentId: consentFor(lending, "t1") });
 
     const result = await sendMessage(graph, "t1", "What happens next?");
 
