@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DAY, creditTestSetup, request } from "@/test/credit-setup";
-import { aScore, clientError, scriptedBureau } from "@/test/fake-bureau";
+import { aScore, clientError, scriptedBureau, timeout } from "@/test/fake-bureau";
 import { getScore, type GovCreditDeps } from "./index";
 
 // Different customers, so each check misses the cache and needs a call.
@@ -35,4 +35,37 @@ describe("gov-credit/getScore: stale fallback (BR-CRED-02)", () => {
       expect(await getScore(request(), deps)).toMatchObject(result);
     },
   );
+});
+
+describe("gov-credit/getScore: retry and cool-down (BR-CRED-05)", () => {
+  it("P1-01: two timeouts use two calls, then the next check is refused while cooling down", async () => {
+    const scripted = scriptedBureau([timeout, timeout]);
+    const { deps, slept } = creditTestSetup(scripted.bureau);
+    const first = await getScore(request(), deps);
+
+    const next = await getScore(request("other-customer"), deps);
+
+    expect(first).toEqual({ ok: false, reason: "unavailable" });
+    expect(slept).toEqual([1_000]);
+    expect(next).toEqual({ ok: false, reason: "cooling_down" });
+    expect(scripted.calls).toHaveLength(2);
+  });
+});
+
+describe("gov-credit/getScore: a 429 blocks calls until Retry-After (BR-CRED-04)", () => {
+  const HOUR = 60 * 60_000;
+
+  it.each([
+    { waitedMs: 2 * HOUR - 1, result: { ok: false, reason: "blocked" }, calls: 1 },
+    { waitedMs: 2 * HOUR, result: { ok: true, score: 700 }, calls: 2 },
+  ])("P1-02: $waitedMs ms after a 429 → $result", async ({ waitedMs, result, calls }) => {
+    const retryAfter = new Date("2026-10-03T06:30:00.000Z"); // two hours after the 429
+    const scripted = scriptedBureau([{ kind: "rate_limited", retryAfter }, aScore(700)]);
+    const { deps, advance } = creditTestSetup(scripted.bureau);
+    await getScore(request(), deps);
+    advance(waitedMs);
+
+    expect(await getScore(request("other-customer"), deps)).toMatchObject(result);
+    expect(scripted.calls).toHaveLength(calls);
+  });
 });
