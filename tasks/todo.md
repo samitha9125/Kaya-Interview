@@ -33,7 +33,7 @@ The checklist for [`plan.md`](plan.md). Tick a task when its acceptance and veri
 
 ### Checkpoint A: foundation
 - [x] All green; the three spike results are recorded; review with the user before Phase 2.
-  *Result:* reviewed. The user's decisions: Node 25 (TD20), no PRs (TD21), no coverage gate (TD16), and a pending pause refuses chat messages (TD14, FR-WEB-03).
+  *Result:* reviewed. The user's decisions: Node 25 (TD20), a branch per task merged with `--no-ff` (TD21), no coverage gate (TD16), and a pending pause refuses chat messages (TD14, FR-WEB-03).
 
 ## Phase 2: Identity (sign in → chat shell)
 

@@ -10,7 +10,7 @@ We build the system bottom-up along the module dependency order, but **in vertic
 
 ## How each task is worked
 
-- **Branch:** `feat|fix|chore|docs/<module>-<slug>` off `develop`. Atomic Conventional Commits. Merged back with `git merge --no-ff`, so each task stays visible as one unit in the history. No PRs.
+- **Branch:** `feat|fix|chore|docs/<module>-<slug>` off `develop`. Atomic Conventional Commits. Merged back with `git merge --no-ff`, so each task stays visible as one unit in the history.
 - **Test first** for every business rule (red → green). P0 tests are named with their ID.
 - **Proof a test can fail:** a **manual mutant** for each P0 control and business-rule boundary, written in the task's *Verify* line (TD28).
 - **Done means:**
@@ -65,4 +65,4 @@ Once T3 is done, **the agent skeleton (T4, T13), identity (T5–T7b), credit (T8
 
 ## Resolved questions
 
-1. **"No PRs" is permanent** (Checkpoint A, TD21). The PR template and the CI PR-title job are gone; CI runs on pushes to `develop` and `main`. The flow is task branch → `--no-ff` merge into `develop` → `develop` merged into `main` at the end.
+1. **Integration flow** (Checkpoint A, TD21): task branch → `--no-ff` merge into `develop` → `develop` merged into `main` at the end. CI runs on pushes to `develop` and `main`.

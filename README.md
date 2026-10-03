@@ -46,7 +46,7 @@ Demo customers: `C1001` to `C1010`, all with the password `Demo@1234`.
 
 ## How this repo is worked on
 
-- `main` holds reviewed milestones; `develop` is the integration branch. Each plan task is a short-lived branch off `develop`, merged back with `git merge --no-ff` so the task stays one visible unit, then deleted. There are no PRs, so every commit follows Conventional Commits as written (checked by the `commit-msg` hook). `develop` merges into `main` at the end, tagged as a release.
+- `main` holds reviewed milestones; `develop` is the integration branch. Each plan task is a short-lived branch off `develop`, merged back with `git merge --no-ff` so the task stays one visible unit, then deleted. Every commit follows Conventional Commits (checked by the `commit-msg` hook). `develop` merges into `main` at the end, tagged as a release.
 - [`CHANGELOG.md`](CHANGELOG.md) is written by hand for readers; releases are git tags.
 - [`CLAUDE.md`](CLAUDE.md) holds the rules for AI-assisted work, and `.mcp.json` connects the LangChain docs so LangGraph code follows the current API.
 

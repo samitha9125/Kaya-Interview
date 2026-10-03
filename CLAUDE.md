@@ -58,7 +58,7 @@ Every change, including bug fixes, must stay within these. If a change needs to 
 
 ## Git
 
-- Branches: `main` holds reviewed milestones only; `develop` is the integration branch. Each plan task (T0–T21) was built on its own branch and merged into `develop` with `git merge --no-ff`, so each stays one visible unit in the history. Fixes after the build are committed directly on `develop`; no new branches. No PRs. `develop` merges into `main` (merge commit) at the end.
+- Branches: `main` holds reviewed milestones only; `develop` is the integration branch. Each plan task is built on its own short-lived branch and merged into `develop` with `git merge --no-ff`, so each stays one visible unit in the history. `develop` merges into `main` (merge commit) at the end.
 - Conventional Commits, enforced by commitlint in the `commit-msg` hook. Suggested scopes: `triage`, `loan`, `kyc`, `credit`, `auth`, `admin`, `audit`, `ui`, `evals`, `deps`, `security`.
 - Atomic commits whose body explains *why*. Never mix formatting with behaviour changes.
 - Update `CHANGELOG.md` under **Unreleased** for user-visible changes. Releases are git tags.
