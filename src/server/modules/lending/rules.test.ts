@@ -5,6 +5,8 @@ describe("lending/rules: bands (BR-LEND-01)", () => {
   it.each([
     { score: 549, band: "D" },
     { score: 550, band: "C" },
+    { score: 649, band: "C" },
+    { score: 650, band: "B" },
     { score: 749, band: "B" },
     { score: 750, band: "A" },
   ])("BR-LEND-01: score $score → band $band", ({ score, band }) => {
@@ -26,8 +28,9 @@ describe("lending/rules: the instalment (BR-LEND-02)", () => {
 
 describe("lending/rules: repayment-to-income (BR-LEND-02)", () => {
   it.each([
+    { repaymentsLkr: 39_990, bp: 3_999 },
     { repaymentsLkr: 40_000, bp: 4_000 },
-    { repaymentsLkr: 40_010, bp: 4_001 },
+    { repaymentsLkr: 40_001, bp: 4_001 }, // 4,000.1: a fraction over is over
   ])(
     "BR-LEND-02: LKR $repaymentsLkr a month on LKR 100,000 income → $bp bp",
     ({ repaymentsLkr, bp }) => {
