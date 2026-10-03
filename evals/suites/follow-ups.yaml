@@ -1,8 +1,9 @@
 # FR-AGT-08: a follow-up after an outcome ("really?", "why?") stays true to
 # the label the model was given. Each case starts after that ending
-# (evals/after-outcome.ts). Every case also checks that the reply calls no
-# tool and gives no score, band, threshold, confidence or other numbers
-# beyond the customer's own terms and the bank's 1 business day.
+# (evals/after-outcome.ts). Every "really?" or "why?" case also checks that
+# the reply calls no tool and gives no score, band, threshold, confidence or
+# other numbers beyond the customer's own terms and the bank's 1 business
+# day. "Check again" must go back to the bank's system instead.
 - description: "follow-ups: after ELIGIBLE, 'really?' confirms it without inventing a step"
   metadata: { suite: follow-ups }
   vars: { journey: loan, after: ELIGIBLE, message: "really?" }
@@ -44,7 +45,7 @@
       type: javascript
       value: |
         const t = JSON.parse(output).reply;
-        return !/\b(check|assessment) (has |was )?(been )?(run|ran|done|completed)\b|\b(I|we)( have|'ve)? (ran|run|checked)\b|result (has been |was )?shown|\b(approved?|declined?|rejected?|referred|eligible)\b/i.test(t)
+        return !/(?<!\bno (?:new |fresh )?)\b(check|assessment) (has |was )?(been )?(run|ran|done|completed)\b|\b(I|we)( have|'ve)? (ran|run|checked)\b|result (has been |was )?shown|\b(approved?|declined?|rejected?|referred|eligible)\b/i.test(t)
     - type: javascript
       value: |
         const t = JSON.parse(output).reply;
@@ -66,3 +67,9 @@
     - *noCheck
     - type: javascript
       value: /tomorrow|later|again|call/i.test(JSON.parse(output).reply)
+- description: "follow-ups: after CHECK_UNAVAILABLE_TODAY, 'check again' asks the bank's system to check again"
+  metadata: { suite: follow-ups }
+  vars: { journey: loan, after: CHECK_UNAVAILABLE_TODAY, message: "can you check again?" }
+  assert:
+    - type: javascript
+      value: JSON.parse(output).tools.includes("request_assessment")
