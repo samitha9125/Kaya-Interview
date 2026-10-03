@@ -14,8 +14,13 @@ export const NEEDS_SIGN_IN =
 export const CONSENT_DECLINED =
   "No problem, I haven't checked anything. If you change your mind, just ask me to check a loan again.";
 
+// "Tomorrow" only when today's government calls are used up; a failure,
+// a block or a cool-down can clear within the hour (BR-CRED-04/05).
 export const CHECK_UNAVAILABLE_TODAY =
-  "I can't run the credit check right now. Please try again tomorrow, or I can arrange a call from our team.";
+  "I can't run the credit check today. Please try again tomorrow, or I can arrange a call from our team.";
+
+export const CHECK_UNAVAILABLE_NOW =
+  "I can't run the credit check right now. Please try again a little later, or I can arrange a call from our team.";
 
 export const CONFIRM_DECLINED =
   "Okay, I haven't submitted anything. You can ask me to check a loan again at any time.";

@@ -14,6 +14,7 @@ import {
   ASSESSMENT_EXPIRED,
   CANT_COMPLETE,
   CHECKING_CREDIT,
+  CHECK_UNAVAILABLE_NOW,
   CHECK_UNAVAILABLE_TODAY,
   eligible,
   notEligible,
@@ -65,11 +66,13 @@ export function creditCheckNode({ lending, isStepUpFresh }: LoanFlowDeps) {
       if (result.reason === "open_application") {
         return endWith(state, label, openApplication(result.status));
       }
-      return endWith(
-        state,
-        label,
-        result.reason === "no_consent" ? CANT_COMPLETE : CHECK_UNAVAILABLE_TODAY,
-      );
+      const shown =
+        result.reason === "no_consent"
+          ? CANT_COMPLETE
+          : result.reason === "budget_exhausted"
+            ? CHECK_UNAVAILABLE_TODAY
+            : CHECK_UNAVAILABLE_NOW;
+      return endWith(state, label, shown);
     }
     const { assessment } = result;
     const update = { assessment, decision: assessment.outcome };
@@ -105,7 +108,7 @@ export const CREDIT_CHECK_POLICY = {
       correlationId: ConversationContext.safeParse(config?.context).data?.correlationId,
       error: error.error,
     });
-    return endWith(state, "CHECK_UNAVAILABLE_TODAY", CHECK_UNAVAILABLE_TODAY);
+    return endWith(state, "CHECK_UNAVAILABLE_TODAY", CHECK_UNAVAILABLE_NOW);
   },
 };
 
