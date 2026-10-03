@@ -193,5 +193,5 @@ erDiagram
 
 ## 12. Observability and runtime
 
-- **Audit log:** append-only; every message, auth event, consent, tool call, decision and external call, plus the model and prompt version. **Logs:** structured JSON. Both share a correlation ID, which is also the customer's reference code.
+- **Audit log:** append-only; every message, auth event, consent, tool call, decision and external call, plus the model and prompt version. `pnpm audit:trail <customer number | conversation ID | reference code>` prints one case as a plain-English timeline. **Logs:** structured JSON. Both share a correlation ID, which is also the customer's reference code.
 - **Runtime:** one Node 25 instance, one SQLite file, TLS terminated at a reverse proxy. Growth path: Postgres plus a shared session store. Modules reach storage only through `platform/db`, so nothing else changes.

@@ -28,6 +28,7 @@ rather than generated from commits. The format follows
 - Messages typed without pressing a starter are sorted to the right journey, and the assistant hands a conversation over when the customer changes topic. Anything the assistant doesn't handle gets a short redirect.
 - A Settings page, linked from the chat: whether the OpenRouter key is configured, the auto-decision threshold, and each assistant role's model with its price and context, flagged if it's no longer offered. In demo mode it also changes models (for new conversations), resets today's government limit, clears the credit cache and sets how the mock government service behaves. Outside demo mode it's read-only.
 - `pnpm eval` runs small routing, refusal, red-team and tone suites on real models (the defaults, Claude Haiku 4.5 and GPT-5.6 Luna) through the real assistant.
+- The audit trail explains each loan decision (the band, its maximum, repayment-to-income and each confidence penalty, never the score) and records every assistant reply and tool call with its model and prompt version. `pnpm audit:trail <customer number | conversation ID | reference code>` prints one case as a plain-English timeline.
 
 ### Changed
 
