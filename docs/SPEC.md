@@ -156,7 +156,7 @@ The credit-score policy. The government API itself sits behind the `CreditBureau
 | FR-LEND-01 | Every assessment is stored in `loan_assessments`: amount, term, outcome, reason, confidence, **threshold used**, score fetch time, stale flag | Persisted with its audit record in one transaction | M |
 | BR-LEND-09 | **Endings:** *eligible* → confirm → approved application; *not eligible* → ends, no application; *referral* → a referred application is created by the decision, with an `officer_decision` field left for the officer | Each ending reachable; not-eligible creates nothing | M, G |
 | BR-LEND-10 | **Submission is bound to its assessment:** the confirmation shows and submits the assessed amount and term only. At submit: step-up within 5 minutes and assessment younger than 30 minutes, else start again. The idempotency key is the assessment ID | Changed amounts are rejected; a replayed submit returns the same application | M, G, E |
-| BR-LEND-11 | The score and band are **never** shown to the customer or given to the LLM | Output filter test + red-team eval | G, V |
+| BR-LEND-11 | The score and band are **never** shown to the customer or given to the LLM. The one exception is the band in the demo-only panel (DECISIONS B10); the score is never shown | Output filter test + red-team eval | G, V |
 
 ### 6.6 `onboarding`
 
