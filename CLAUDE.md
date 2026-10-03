@@ -30,7 +30,7 @@ Use pnpm only. Node 24 (`.nvmrc`).
 
 ## Git
 
-- Trunk-based: short-lived branches (`feat/…`, `fix/…`, `chore/…`, `docs/…`), one plan task per PR, squash merge.
+- Branches: `main` holds reviewed milestones only; `develop` is the integration branch. Work happens on short-lived branches cut from `develop` (`feat/…`, `fix/…`, `chore/…`, `docs/…`), one plan task per PR into `develop`, squash merge. `develop` merges into `main` (merge commit, not squash) at the end, tagged as a release.
 - Conventional Commits, enforced by commitlint locally and on PR titles in CI. Suggested scopes: `triage`, `loan`, `kyc`, `credit`, `auth`, `admin`, `audit`, `ui`, `evals`, `deps`, `security`.
 - Atomic commits whose body explains *why*. Never mix formatting with behaviour changes.
 - Update `CHANGELOG.md` under **Unreleased** for user-visible changes. Releases are git tags.

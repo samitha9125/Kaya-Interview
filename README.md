@@ -40,7 +40,7 @@ pnpm dev                          # http://localhost:3000
 
 ## How this repo is worked on
 
-- Trunk-based: short-lived branches, one plan task per PR, squash merge. PR titles follow Conventional Commits because they become the commits on `main`.
+- `main` holds reviewed milestones; `develop` is the integration branch. Each plan task is a short-lived branch off `develop` and a PR back into it, squash-merged. PR titles follow Conventional Commits because they become the commits. `develop` merges into `main` at the end, tagged as a release.
 - [`CHANGELOG.md`](CHANGELOG.md) is written by hand for readers; releases are git tags.
 - [`CLAUDE.md`](CLAUDE.md) holds the rules for AI-assisted work, and `.mcp.json` connects the LangChain docs so LangGraph code follows the current API.
 
