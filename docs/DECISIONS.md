@@ -17,7 +17,7 @@ Four parts: **business** decisions (the bank's calls), **technical** decisions (
 | B7 | Credit scores are cached for **30 days** | See [TD7](#td7-credit-score-cache-30-days) |
 | B8 | Built for ~500 customers. No scaling work; the growth path is documented only | Time to market |
 | B9 | The credit score and band are **never shown** to the customer, only the outcome and a plain-language reason | The bank may use bureau data for its decision, not republish it. A raw number invites disputes branch staff can't resolve, and the customer's real question is "can I get the loan?" Side effect: the LLM never sees the score, so it can't leak it |
-| B10 | Audit logs are **not exposed in any UI**. Reviewers query them as the README shows | Audit data is for compliance and staff; a screen would widen access to personal data |
+| B10 | Audit logs are **not exposed in any UI** outside demo mode. Reviewers query them as the README shows. In demo mode, a **Behind the scenes** panel shows the signed-in visitor their own conversation's trail and the service-wide credit-check counters, so a tester can see the cache and the daily limit at work | Audit data is for compliance and staff; a screen would widen access to personal data. The demo panel shows only what the visitor already owns, and the score is never recorded |
 | B11 | English only | Sinhala and Tamil quality differs per model; it needs its own evaluation |
 | B12 | "Talk to a person" creates a **callback request**. No live-agent console | A small team; it matches how the branch already works |
 | B13 | **Auto-decision threshold: 95% confidence by default**, set by the bank in config (`AUTO_DECISION_THRESHOLD`). At or above it the outcome is final; below it an officer decides. Only a person changes it | The threshold is the bank's risk appetite: higher means fewer wrong instant answers, lower means more customers get one. That's a business call |
@@ -340,7 +340,7 @@ Each dependency added during the build gets one line here.
 | Customer-triggered credit refresh | Lets anyone drain the bank-wide budget (BR-CRED-07) |
 | Spreading calls across IPs to get round the rate limit | Breaks the government API's terms |
 | Showing the credit score | B9 |
-| Audit logs in the UI | B10 |
+| Audit logs in the UI outside demo mode | B10 |
 | A per-customer daily cap on assessments, against amount probing | It only reveals the customer's own band, every attempt is audited, and it would frustrate real customers (B16) |
 | IP or device binding for sessions | Breaks mobile users on changing networks (TD10) |
 | A humanizer agent | TD3 |
