@@ -1,12 +1,12 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { postJson } from "@/components/api";
 import { Button } from "@/components/ui/button";
 import { CardFooter } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
-import { ModelPicker } from "./model-picker";
+import { OptionPicker } from "./option-picker";
 
 export type CatalogModel = {
   id: string;
@@ -36,6 +36,20 @@ export function ModelsForm({ roles, models, canChange }: ModelsFormProps) {
   const router = useRouter();
   const saved = Object.fromEntries(roles.map((choice) => [choice.role, choice.modelId]));
   const [selected, setSelected] = useState(saved);
+  // A model that's no longer offered stays listed, so the saved choice
+  // still shows until it's replaced.
+  const optionsByRole = useMemo(
+    () =>
+      Object.fromEntries(
+        roles.map((choice) => [
+          choice.role,
+          !models || models.some((model) => model.id === choice.modelId)
+            ? (models ?? [])
+            : [{ id: choice.modelId, name: `${choice.modelId} (no longer offered)` }, ...models],
+        ]),
+      ),
+    [roles, models],
+  );
   const [isBusy, setIsBusy] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -79,16 +93,10 @@ export function ModelsForm({ roles, models, canChange }: ModelsFormProps) {
               </div>
               <div className="flex flex-col gap-1 sm:w-72 sm:shrink-0">
                 {isEditable ? (
-                  <ModelPicker
+                  <OptionPicker
                     id={fieldId}
-                    models={
-                      models.some((model) => model.id === choice.modelId)
-                        ? models
-                        : [
-                            { id: choice.modelId, name: `${choice.modelId} (no longer offered)` },
-                            ...models,
-                          ]
-                    }
+                    searchLabel="Search models"
+                    options={optionsByRole[choice.role] ?? models}
                     value={selected[choice.role] ?? choice.modelId}
                     disabled={isBusy}
                     onChange={(modelId) => {

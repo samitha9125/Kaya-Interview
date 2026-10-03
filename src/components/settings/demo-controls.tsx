@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { useState, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import { postJson } from "@/components/api";
 import {
   AlertDialog,
@@ -15,6 +15,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
+import { OptionPicker } from "./option-picker";
 
 // What each mode does to the mock government service (SPEC §6.9).
 const MODES: Record<string, { name: string; effect: string }> = {
@@ -36,6 +37,10 @@ type DemoControlsProps = {
 export function DemoControls({ failureModes, govChecks, isCustomer }: DemoControlsProps) {
   const router = useRouter();
   const [mode, setMode] = useState(failureModes[0] ?? "normal");
+  const modeOptions = useMemo(
+    () => failureModes.map((value) => ({ id: value, name: MODES[value]?.name ?? value })),
+    [failureModes],
+  );
   const [busyRow, setBusyRow] = useState<string | null>(null);
   const [feedback, setFeedback] = useState<Feedback | null>(null);
   const [isConfirming, setIsConfirming] = useState(false);
@@ -132,25 +137,22 @@ export function DemoControls({ failureModes, govChecks, isCustomer }: DemoContro
         </Button>
       </ControlRow>
       <ControlRow
-        title="Government service behaviour"
+        title="Government CRIB Service behaviour"
         titleFor="failure-mode"
         description={MODES[mode]?.effect ?? ""}
         note={note("mode")}
       >
         <div className="flex gap-2">
-          <select
-            id="failure-mode"
-            value={mode}
-            onChange={(event) => setMode(event.target.value)}
-            disabled={busyRow !== null}
-            className="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none sm:w-40"
-          >
-            {failureModes.map((value) => (
-              <option key={value} value={value}>
-                {MODES[value]?.name ?? value}
-              </option>
-            ))}
-          </select>
+          <div className="min-w-0 flex-1 sm:w-40">
+            <OptionPicker
+              id="failure-mode"
+              searchLabel="Search behaviours"
+              options={modeOptions}
+              value={mode}
+              disabled={busyRow !== null}
+              onChange={setMode}
+            />
+          </div>
           <Button
             variant="outline"
             disabled={busyRow !== null}
