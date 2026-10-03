@@ -2,6 +2,8 @@
 # only the ones we need are allowed.
 onlyBuiltDependencies:
   - "@swc/core"
+  # Native SQLite binding, used by Drizzle and the LangGraph checkpointer.
+  - better-sqlite3
   - esbuild
   - unrs-resolver
 ignoredBuiltDependencies:
