@@ -10,7 +10,7 @@ import { createLogger } from "@/server/platform/logger";
 import { createRateLimiter } from "@/server/platform/rate-limit";
 import { aCustomer, CUSTOMER_PASSWORD } from "@/test/builders/customer";
 import { CUSTOMER_NIC } from "@/test/credit-setup";
-import { createTestDatabase } from "@/test/database";
+import { createTestDatabase, everythingStored } from "@/test/database";
 import { readEvents } from "@/test/sse";
 import { aScore, scriptedBureau } from "@/test/fake-bureau";
 import { movableClock, sequentialIds, TEST_ENCRYPTION_KEY } from "@/test/fakes";
@@ -118,23 +118,6 @@ async function answer(turn: Turn, reply: Record<string, unknown>) {
   return { response, turn: await turnOf(response) };
 }
 
-// Every row of every table as text: what a reader of the database file
-// would see.
-function everythingStored(): string {
-  const tables = handle.sqlite
-    .prepare("SELECT name FROM sqlite_master WHERE type = 'table'")
-    .pluck()
-    .all() as string[];
-  return tables
-    .flatMap((table) => handle.sqlite.prepare(`SELECT * FROM "${table}"`).all())
-    .map((row) =>
-      Object.values(row as object)
-        .map((value) => String(value))
-        .join("|"),
-    )
-    .join("\n");
-}
-
 const PASSWORD_STEP_UP = { kind: "step_up", password: CUSTOMER_PASSWORD };
 
 describe("harness/chat-routes: a pending card (FR-WEB-03)", () => {
@@ -184,7 +167,7 @@ describe("harness/chat-routes: step-up through its card (BR-AUTH-03)", () => {
 
     await answer(confirm.turn, { kind: "confirm", confirm: true });
 
-    const stored = everythingStored();
+    const stored = everythingStored(handle);
     expect(stored).toContain("loan.applied");
     expect(stored).not.toContain(CUSTOMER_PASSWORD);
   });
