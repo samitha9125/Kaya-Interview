@@ -4,7 +4,7 @@ The structure of the bank assistant and the rules that keep it that way. **What*
 
 Every diagram here is also a PNG in [`diagrams/`](diagrams/), rendered from the Mermaid source in this file.
 
-**Principle: the LLM talks, code decides.** Identity, money, consent and data access are deterministic code paths. The LLM handles conversation and never holds a lever.
+**Principle: the LLM talks, code decides.** Identity, money, consent and data access are deterministic code paths. The LLM handles the conversation and has no authority over any of them.
 
 ## 1. Constraints that shape the design
 
@@ -199,7 +199,8 @@ A pause card's answer goes to the server, which verifies or stores it and resume
 | Mechanism | Used for |
 |---|---|
 | `contextSchema` + `ToolRuntime.context` | The harness supplies the customer's identity; tools take no identity arguments |
-| `interrupt(…, { responseSchema })` + `Command({ resume: { [id]: … } })` | Six pause kinds: step-up, consent, confirm, KYC form, KYC confirm, callback contact form. Resume values are validated references, resumed by interrupt ID. An ID is single-use because it must still be pending in **that thread's** checkpoint, and only the conversation's owner can resume it; the turn lock (FR-WEB-03) stops two resumes racing |
+| `interrupt(…, { responseSchema })` + `Command({ resume: { [id]: … } })` | Six pause kinds: step-up, consent, confirm, KYC form, KYC confirm and the callback contact form. Each resumes with a validated reference, by interrupt ID |
+| Single-use interrupt IDs | An ID works only while it is still pending in that conversation's checkpoint, and only for the conversation's owner. The turn lock (FR-WEB-03) stops two resumes racing |
 | `Command({ goto, graph: Command.PARENT })` | Specialist → deterministic steps, and hand-back to triage. Returned by a specialist's tool; the specialist runs in a wrapper node that calls `agent.invoke` (proven in T4) |
 | `Command({ goto })` from gate nodes | Gates: sign-in, an open application, step-up, consent. The hard referral rules and the confidence threshold run inside `lending`; the credit-check node only routes on the outcome it gets back |
 | Conditional edges | Only at `START` (sticky routing) and after a specialist (a text reply goes to `validate_reply`) |
@@ -207,7 +208,7 @@ A pause card's answer goes to the server, which verifies or stores it and resume
 | Node `retryPolicy` / `timeout` / `errorHandler` | The credit-check node |
 | SQLite checkpointer, `durability: "sync"` | Conversations survive restarts; a replayed step is safe because its side effects are idempotent |
 | `stream()` with `custom` | Progress events written by code nodes through `config.writer`. LLM replies are buffered, validated, then read back from the checkpoint and sent whole (TD25) |
-| `validate_reply` node | After a specialist's text reply: a claimed outcome must match the decision in state, or the reply is replaced by the template. A reply that mentions a score, a band or a line of its own instructions is replaced too. The message ID is kept, so the reducer swaps the text in place. This is a word-level check, so it is best-effort (SPEC P0-05) |
+| `validate_reply` node | Replaces a reply whose claimed outcome doesn't match the decision in state, or that mentions a score, a band or a line of its instructions (best-effort, SPEC P0-05 and P0-06). Then it swaps dashes and curly quotes for plain punctuation. The message ID is kept, so the text is replaced in place |
 
 ## 8. Request lifecycle
 
@@ -347,7 +348,7 @@ flowchart TB
 
 Every step lands in the audit trail (served from cache, call N of 5, call skipped and why), which is what the demo panel shows.
 
-## 12. Observability and runtime
+## 12. Observability, runtime and scaling
 
 - **Audit log:** append-only (§9). It records each model reply (role, model, prompt version, tool names, tokens; never the text), every auth event, consent, tool call, decision and government call. Transcript text lives only in the checkpoint.
 - **Reading it:** `pnpm audit:trail <customer number | conversation ID | reference code>` prints one case as a plain-English timeline. In demo mode the chat's *Behind the scenes* panel shows the same timeline (SPEC §5, DECISIONS B10).

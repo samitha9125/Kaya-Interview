@@ -11,11 +11,11 @@ A small local bank (2–3 branches, ~500 customers, 50–60 daily users) has ver
 
 It must be **security-first and kind**: no customer data reaches someone who shouldn't see it, no action happens without proof of identity and consent, and every failure leaves the customer with an honest next step.
 
-**Users:** customers (signed-in or new) on the chat screen; the bank operator (and, for this demo, the reviewer) on the settings screen.
+**Users:** customers (signed-in or new) on the chat screen; the bank operator (and, in demo mode, testers) on the settings screen.
 
 **Success looks like:**
 - A signed-in customer gets a final, correct eligibility outcome in one conversation, or a clear referral to an officer.
-- Every P0 failure case has a deterministic test of the control code enforces; where a P0 also relies on a best-effort check of free text, the spec labels it and evals measure it.
+- Every P0 failure case has a deterministic test of the code that enforces it; where a P0 also relies on a best-effort check of free text, the spec labels it and evals measure it.
 - The 5-calls-a-day government API is never called a 6th time, and an outage never leaves a customer stuck.
 
 ## 2. Assumptions
@@ -69,7 +69,12 @@ Two screens, built with shadcn/ui.
 
 Module IDs and build order follow [`ARCHITECTURE.md`](ARCHITECTURE.md) §6. **BR** = business rule, **FR** = system requirement. Failure-case IDs (P0/P1/P2) are listed in §8.
 
-**Test-level tags:** `U` unit · `M` module (real SQLite) · `G` graph (scripted fake model) · `E` browser · `V` eval. Each tag points to a test that exists and names its ID; a name in brackets says which test covers it when the ID differs. `—` means no automated test: the behaviour is covered by review, and the request plumbing follows Next.js practice instead of being unit-tested (TD28).
+**Test-level tags** (the Tests column):
+
+- `U` unit · `M` module (real SQLite) · `G` graph (scripted fake model) · `E` browser · `V` eval.
+- Each tag points to a test that exists and carries the row's ID.
+- A name in brackets, such as `M (P0-17)`, means the test that covers it carries a different ID.
+- `—` means no automated test. Review covers it, and the request plumbing follows Next.js practice instead of being unit-tested (TD28).
 
 ### 6.1 `platform`
 
@@ -104,7 +109,7 @@ Module IDs and build order follow [`ARCHITECTURE.md`](ARCHITECTURE.md) §6. **BR
 |---|---|---|---|
 | FR-SET-01 | A model per agent role, defaulting to: triage `google/gemini-3.1-flash-lite`, loan `z-ai/glm-5.3-flash` (reasoning low), KYC `openai/gpt-5.6-luna` (reasoning low) | A change applies to **new** conversations only | E (J4) |
 | FR-SET-02 | The model list comes from the `ModelCatalog` port: tool-capable models only, with price per 1M tokens (in/out) and context | Models without tool support are never listed; a removed model is flagged | — |
-| FR-SET-03 | Key status only: *configured* or *missing* | The key value is never in any response | — |
+| FR-SET-03 | Key status only: *Key set* or *Missing* | The key value is never in any response | — |
 | BR-SET-01 | Writes and demo controls work only with `DEMO_MODE=true` | With `false`: settings are read-only and demo endpoints return 404 | M, E |
 | FR-SET-04 | Demo control: **reset today's government limit**, which clears the mock's per-IP counter and our budget row, block and cool-down | After a reset, a fresh credit check is allowed | E (J4) |
 | FR-SET-05 | Demo controls: **clear the credit cache**; **age cached scores by 31 days**; **reset my demo data**; **mock failure mode** (`normal`, `slow`, `error`, `rate_limited`, `down`) | Each mode produces the behaviour in §6.4 | M |
@@ -164,8 +169,8 @@ The credit-score policy. The government API itself sits behind the `CreditBureau
 | FR-AGT-04 | No tool accepts identity; tools read the customer from runtime context | Tool schemas contain no identity fields | G |
 | FR-AGT-05 | Fixed loan order: step-up → consent → credit check → decide → ending (BR-LEND-09) | A scripted model calling `request_assessment` at once still meets step-up and consent first; the bureau isn't called before both | G |
 | FR-AGT-06 | Pauses resume only through the resume endpoint, with a **single-use** interrupt ID bound to the conversation and its owner. The resume value is a server-verified reference, never raw input. A node that pauses does nothing before its `interrupt()` | Typing "I consent" in chat does nothing; a replayed resume is rejected | G |
-| FR-AGT-07 | Outcomes, referrals and failures are **code-written templates**. Each LLM reply is checked before sending: if it contains decision wording (approve/approved, eligible, decline/declined, reject/rejected, referred, qualify/qualified, granted, sanctioned) that doesn't match the decision in state, it's replaced with: *"I can't give a decision in chat. I can run a proper eligibility check for you. Shall I start?"* | A scripted model claiming approval → the customer sees the replacement, never the claim | G |
-| FR-AGT-08 | The LLM receives **situation labels only**: `NEEDS_SIGN_IN`, `NEEDS_CONSENT`, `CHECK_UNAVAILABLE`, `ELIGIBLE`, `NOT_ELIGIBLE`, `REFERRED`, `APPLICATION_ALREADY_OPEN`, `RESULT_EXPIRED`, `APPLICATION_NOT_SENT`, `SUBMITTED`, `INVALID_INPUT`, `FORM_NOT_SENT`, `HANDED_TO_PERSON`, `CALLBACK_NOT_REQUESTED`: one per ending the customer was shown, so a follow-up stays consistent with it. Never error details, internal numbers or personal data | Tool-failure middleware tested per failure reason | G, V |
+| FR-AGT-07 | Outcomes, referrals and failures are **code-written templates**. A reply whose decision wording doesn't match the decision in state is replaced (word list and replacement text below the table) | A scripted model claiming approval → the customer sees the replacement, never the claim | G |
+| FR-AGT-08 | The LLM receives **situation labels only**, one per ending the customer was shown, so a follow-up stays consistent with it (list below the table). Never error details, internal numbers or personal data | Tool-failure middleware tested per failure reason | G, V |
 | FR-AGT-09 | NIC-shaped text is stripped **in the harness, before the graph**; `piiMiddleware` with a custom NIC detector also checks model output (defence in depth) | A third party's NIC typed in chat never reaches the model or a checkpoint | U, G |
 | FR-AGT-10 | **LLM replies are buffered and validated** (FR-AGT-07 check + output PII check) before they're sent; typing and progress events stream meanwhile | No unvalidated LLM text reaches the browser | G, E |
 | FR-AGT-11 | Limits: tool calls 3 per turn and 20 per conversation; model calls 5 per turn and 60 per conversation; recursion 25; output capped at 800 tokens for loan and KYC (about 400 visible plus room for reasoning, TD6) and 400 for triage | A scripted looping model stops at the tool-call limit; the customer sees an apology and a callback offer | G |
@@ -175,7 +180,11 @@ The credit-score policy. The government API itself sits behind the `CreditBureau
 | BR-AGT-02 | **Only for the person here** (B21). A request to act for someone else is declined plainly, with how that person can start for themselves, and the assistant offers to continue for the customer; it never carries on quietly | Prompt rule in the loan and KYC agents. That nothing can be done for another person is code (FR-AGT-04, P0-03, P0-18) | — |
 | FR-AGT-14 | "Talk to a person" creates an idempotent callback request (signed in: from the record; guest: a callback form) | One request per conversation and reason | E (J3) |
 | FR-AGT-15 | A topic change mid-journey hands back to triage with progress kept; a misrouted specialist hands back too | | V |
-| FR-AGT-16 | Tone: one shared tone guide in every specialist prompt (plain, warm, one question at a time, always a next step, no jargon) | Tone eval target ≥ 4/5 average (LLM judge, written rubric) | V |
+| FR-AGT-16 | Tone: one shared tone guide in every specialist prompt (plain, warm, one question at a time, always a next step, no jargon) that also asks the model to write like a person: no stock chatbot phrases, no inflated words, no em dashes. Code guarantees the typography: dashes and curly quotes in model text become plain punctuation before display | Tone eval target ≥ 4/5 average (LLM judge, written rubric) | U, G, V |
+
+**FR-AGT-07 word list:** approve/approved, eligible, decline/declined, reject/rejected, referred, qualify/qualified, granted, sanctioned (negatives such as "not eligible" or "don't qualify" count as not eligible; "check whether you qualify" is allowed). The replacement text: *"I can't give a decision in chat. I can run a proper eligibility check for you. Shall I start?"*
+
+**FR-AGT-08 situation labels:** `NEEDS_SIGN_IN`, `NEEDS_CONSENT`, `CHECK_UNAVAILABLE`, `ELIGIBLE`, `NOT_ELIGIBLE`, `REFERRED`, `APPLICATION_ALREADY_OPEN`, `RESULT_EXPIRED`, `APPLICATION_NOT_SENT`, `SUBMITTED`, `INVALID_INPUT`, `FORM_NOT_SENT`, `HANDED_TO_PERSON`, `CALLBACK_NOT_REQUESTED`.
 
 ### 6.8 `harness` and `web`
 
@@ -213,7 +222,7 @@ The credit-score policy. The government API itself sits behind the `CreditBureau
 
 ## 8. Failure cases
 
-Severity meanings are in ARCHITECTURE §11. **Every P0 is proven by a deterministic test** (U, M, G or E) of the control code enforces; evals add quality evidence but never prove a P0. Where a P0 also has a best-effort check of free text, its row says so.
+Severity meanings are in ARCHITECTURE §11. **Every P0 is proven by a deterministic test** (U, M, G or E) of the code that enforces it; evals add quality evidence but never prove a P0. Where a P0 also has a best-effort check of free text, its row says so.
 
 | ID | Case | Required behaviour | Requirement | Tests |
 |---|---|---|---|---|

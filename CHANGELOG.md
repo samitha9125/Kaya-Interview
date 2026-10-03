@@ -24,7 +24,7 @@ The first release: both journeys, talking to a person, Settings, the audit trail
 
 - Identity only from server-side sessions (hashed tokens, idle and absolute timeouts, revocable sign-out); lockout after five wrong passwords; a password re-entry before the credit check and before submitting.
 - The model never sees the score and never receives a password, a form or a NIC: pauses resume with references only, and NIC-shaped text is stripped before the graph.
-- Replies are validated before display; a claimed outcome that doesn't match the decision, or a leaked instruction, is replaced.
+- Replies are validated before display; a claimed outcome that doesn't match the decision, or a leaked instruction, is replaced. Dashes and curly quotes in model text become plain punctuation, so replies read like a person wrote them.
 - A nonce-based Content Security Policy, origin checks, idempotency keys, and a mock government API that answers only the bank's key.
 - The app refuses to start when a security setting is invalid.
 

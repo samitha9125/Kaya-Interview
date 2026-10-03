@@ -17,7 +17,7 @@ Four parts: **business** decisions (the bank's calls), **technical** decisions (
 | [TD8](#td8-unreliable-government-api-budget-block-and-cool-down) | A shared daily budget, a 429 block and a cool-down instead of a circuit breaker |
 | [TD9](#td9-decision-confidence) | Confidence is a rules heuristic, not the model's opinion |
 | [TD11](#td11-pauses-resume-with-references-only) | Passwords, consent and forms go to the server; the graph only ever gets a reference |
-| [TD28](#td28-a-focused-test-suite-without-stryker) | About 140 focused tests instead of 740, with hand-made mutants as proof |
+| [TD28](#td28-a-focused-test-suite-without-stryker) | A focused test suite instead of 740 tests, with hand-made mutants as proof |
 
 ## 1. Business decisions
 
@@ -30,7 +30,7 @@ Four parts: **business** decisions (the bank's calls), **technical** decisions (
 | B5 | Minimal disclosure: never reveal or guess the next score evaluation date, internal thresholds, or anything about other customers. Two deliberate exceptions, neither in the chat: Settings shows the operator the auto-decision threshold (read-only), and the demo-only panel shows a decision's workings (B10) | Government credit data is strictly controlled |
 | B6 | The 5-a-day government budget is shared by the whole bank. When it's gone, the assistant says so honestly and offers a next-day retry or a callback | 5 calls a day across 50–60 daily users is the binding constraint |
 | B7 | Credit scores are cached for **30 days** | See [TD7](#td7-credit-score-cache-30-days) |
-| B8 | Built for ~500 customers. No scaling work; the growth path is documented only ([ARCHITECTURE §12](ARCHITECTURE.md#12-observability-and-runtime)) | Time to market |
+| B8 | Built for ~500 customers. No scaling work; the growth path is documented only ([ARCHITECTURE §12](ARCHITECTURE.md#12-observability-runtime-and-scaling)) | Time to market |
 | B9 | The credit score and band are **never shown** to the customer, only the outcome and a plain-language reason (the band appears only in the demo-only panel, B10; the score never) | The bank may use bureau data for its decision, not republish it. A raw number invites disputes branch staff can't resolve, and the customer's real question is "can I get the loan?" Side effect: the LLM never sees the score, so it can't leak it |
 | B10 | Audit logs have **no UI** outside demo mode; staff read them with `pnpm audit:trail`. In demo mode a **Behind the scenes** panel shows the visitor their own conversation's trail and the credit-check counters. It deliberately includes each decision's workings (band, band maximum, repayment-to-income, confidence and its reasons, the threshold), never the score. With `DEMO_MODE=false` the panel and its route don't exist | Audit data is for compliance and staff, and a screen would widen access to it. In a demo, seeing why a case was referred is the point, so the trade-off flips there and only there |
 | B11 | English only | Sinhala and Tamil quality differs per model; it needs its own evaluation |
@@ -39,7 +39,7 @@ Four parts: **business** decisions (the bank's calls), **technical** decisions (
 | B14 | **Step-up** (re-enter the password) before the credit check and before a loan submission, valid for 5 minutes. Guests submit KYC unverified, without step-up | Protects a hijacked or unattended session at the two moments that matter. KYC is verified at the branch anyway (B3) |
 | B15 | **One open loan application** per customer. A new attempt shows the existing status | Stops duplicates reaching the officers |
 | B16 | A not-eligible reply doesn't suggest a lower amount | The engine answers the requested terms; quoting amounts would turn the chat into a negotiation. A customer could still find their own rough band by trying amounts; that's their own data, and every attempt is audited |
-| B17 | **No action to please the user.** Emotional pressure, urgency, authority claims and task smuggling never trigger tools or change outcomes; off-topic requests get a polite redirect | A kind tone must never become a lever |
+| B17 | **No action to please the user.** Emotional pressure, urgency, authority claims and task smuggling never trigger tools or change outcomes; off-topic requests get a polite redirect | A kind tone must never be a way to get an outcome |
 | B18 | Demo product and rule values: one personal loan, LKR 50,000–3,000,000 over 6–60 months at 14% a year; bands A–D; repayment-to-income ≤ 40% (SPEC A2, BR-LEND-01…03) | Realistic for a small Sri Lankan bank and easy to demonstrate; all of them are config, not code |
 | B19 | The confidence penalty for a large amount applies only **between 90% and 100% of the band maximum** (BR-LEND-04). An amount over the maximum loses nothing for its size, so a clean over-limit request is a final "not eligible" | The penalty marks borderline uncertainty; an over-limit amount isn't uncertain. As first written, every over-limit request fell below the threshold and went to an officer for an answer the rules already knew (found in T12) |
 | B20 | The bank is hypothetical, so the government credit API is **always the built-in mock**. The operator sets five things only: the OpenRouter key, the encryption key, the auto-decision threshold, the cache lifetime and demo mode | There is no real service to point at, and a setting that changes nothing only confuses whoever deploys or reviews it |
@@ -156,6 +156,8 @@ The same loan traffic on Claude Haiku ($1 / $5) would cost ≈ $47 a month on it
 | Options | Choice | Trade-off |
 |---|---|---|
 | The LLM's self-reported confidence · an ML model on past decisions · **rules-engine margins + data quality** | Rules heuristic, in integer basis points | Deterministic, explainable and testable. It's an **illustrative policy heuristic, not a measured probability**, and the docs say so; it only becomes one once calibrated against officer decisions (D10). Hard referral rules (stale score, no history, missing income or repayments) apply regardless of the threshold, so poor data can never produce a final outcome. Every decision stores the threshold it used |
+
+The threshold test (P0-07) uses a score 32 days old to land exactly on 9,500 bp. At the default 30-day cache lifetime a fresh score is never that old, so the test proves the comparison itself; any lifetime from 32 to 90 days reaches that point for real.
 
 ### TD10. Identity, sessions and step-up
 
@@ -280,7 +282,7 @@ Each dependency added during the build gets one line here.
 
 | Topic | Options | Choice | Trade-off |
 |---|---|---|---|
-| How the app reaches it | Import its functions · **over HTTP, through the `CreditBureau` adapter** | HTTP | Exercises the real adapter, timeouts and status codes. Its route files under `app/api/mock-gov` are the only code that imports it (lint-enforced), and it wires its own database connection instead of using our composition root |
+| How the app reaches it | Import its functions · **over HTTP, through the `CreditBureau` adapter** | HTTP | Exercises the real adapter, timeouts and status codes. Only its route files under `app/api/mock-gov` and the demo seed script import it (lint-enforced for the app), and it wires its own database connection instead of using our composition root |
 | NICs in its tables | Plain text, as a real bureau would hold them · **a SHA-256 of the NIC** | Hash | Its tables share our SQLite file, and no NIC is ever plain text in our database (FR-PLAT-02). Lookups normalise spacing and case first |
 | Which calls count toward its per-IP limit | Only successful ones · **every call that reaches it**; "down" counts nothing | Every call reaching it | Matches a real metered API, and keeps our own "every attempt counts" budget honest (BR-CRED-03) |
 | Who may call it | Anyone · **only a key it issued the bank** (`x-api-key`, an HMAC of a fixed label under `APP_ENCRYPTION_KEY`) | Bank's key | A real government API issues the bank a key. Without one, five anonymous calls would spend the bank's day; a refused call isn't counted, and no extra setting is needed |
@@ -330,7 +332,7 @@ Each dependency added during the build gets one line here.
 | Topic | Options | Choice | Trade-off |
 |---|---|---|---|
 | Mutation testing | Stryker on the decision modules (TD16) · **manual mutants only** | Manual mutants on the P0 and business-rule controls | Stryker removed: a patched test tool is more machinery than a suite this size needs, and manual mutants keep the guarantee that a test fails when its behaviour breaks. Cost: nothing re-checks the boundaries automatically on every change |
-| Suite size | A test for every rule and variant (740 cases, 22 E2E) · **about 100 cases, one E2E per journey** | 91 cases at T21 (137 today), 6 E2E | A reviewer can read the whole suite. Kept: a test per P0 at the lowest level that proves it, the rule boundary tables at their edges, the graph tests where a manipulated model tries to skip a gate, invent an outcome or put secrets in state, and a few module tests for transactions, idempotency and ownership. Cost: plumbing, adapters and secondary rules are covered by review and the journeys, not by their own tests |
+| Suite size | A test for every rule and variant (740 cases, 22 E2E) · **about 100 cases, one E2E per journey** | 91 cases at T21, 6 E2E; it grew again after review (`tasks/plan.md`) | A reviewer can read the whole suite. Kept: a test per P0 at the lowest level that proves it, the rule boundary tables at their edges, the graph tests where a manipulated model tries to skip a gate, invent an outcome or put secrets in state, and a few module tests for transactions, idempotency and ownership. Cost: plumbing, adapters and secondary rules are covered by review and the journeys, not by their own tests |
 
 ## 3. Deferred: right idea, wrong time
 
@@ -349,7 +351,7 @@ Each dependency added during the build gets one line here.
 | D11 | A message collector node | Adds a wait to every turn (TD14) | If the WhatsApp channel shows customers sending fragmented messages |
 | D12 | Operator sign-in for Settings | Outside demo mode Settings is read-only, and in demo mode its controls are for testers; operator accounts and roles would be a second sign-in system for no new insight | Before production: an operator role with its own sign-in, required for every Settings write |
 
-## 4. Rejected: wrong idea, not just wrong time
+## 4. Rejected: the wrong idea
 
 | Item | Why |
 |---|---|
