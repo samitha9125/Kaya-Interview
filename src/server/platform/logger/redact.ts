@@ -1,6 +1,4 @@
-// Old NIC format (9 digits + V/X) and new (12 digits), not inside a longer
-// run, so phone numbers and references stay readable.
-const NIC_PATTERN = /(?<![\dA-Za-z])(?:\d{9}[VvXx]|\d{12})(?![\dA-Za-z])/g;
+import { replaceNics } from "../pii/nic";
 
 // Matched against the end of the key with case and punctuation removed, so
 // "sessionToken", "token_hash" and "set-cookie" are caught but
@@ -20,7 +18,7 @@ const SENSITIVE_KEY_ENDINGS = [
 export const REDACTED = "[REDACTED]";
 
 export function redactText(text: string): string {
-  return text.replace(NIC_PATTERN, "[NIC]");
+  return replaceNics(text, "[NIC]");
 }
 
 function isSensitiveKey(key: string): boolean {
