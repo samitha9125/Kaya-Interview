@@ -23,6 +23,18 @@ export const CONFIRM_DECLINED =
 export const ASSESSMENT_EXPIRED =
   "That result has expired, so I can't submit it. Ask me to check a loan again and I'll run a fresh check.";
 
+// FR-AGT-12, P1-06/07: the model or its provider failed after retries.
+export const ASSISTANT_UNAVAILABLE =
+  "Sorry, the assistant is unavailable right now. Please try again in a little while, or contact your branch and our team will help.";
+
+// FR-AGT-11, P1-10: a call limit was reached.
+export const LIMIT_REACHED =
+  "Sorry, I can't take this conversation any further myself. I can arrange a call from our team, or you can contact your branch.";
+
+// P0-06: a reply that touched scores, bands or the assistant's instructions.
+export const CANT_SHARE =
+  "I can't share that. I can help you check a loan, or arrange a call from our team.";
+
 export const CANT_COMPLETE =
   "Something went wrong on our side and I couldn't finish this. Please try again, or I can arrange a call from our team.";
 

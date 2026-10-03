@@ -5,6 +5,14 @@ import type { ConversationStateValue } from "../state";
 
 type Update = Partial<ConversationStateValue>;
 
+// Code-written replies carry this name, so they are told apart from the
+// model's own replies when calls are counted (FR-AGT-11).
+export const BANK_AUTHOR = "bank";
+
+export function fromBank(text: string, id?: string): AIMessage {
+  return new AIMessage({ id, content: text, name: BANK_AUTHOR });
+}
+
 // FR-AGT-08: the LLM learns what happened from a label on its own
 // request_assessment call, swapped in place by message ID; the customer
 // sees the code-written template (FR-AGT-07).
@@ -22,6 +30,6 @@ export function endWith(
 ) {
   return new Command({
     goto: END,
-    update: { ...update, messages: [...labelled(state, label), new AIMessage(text)] },
+    update: { ...update, messages: [...labelled(state, label), fromBank(text)] },
   });
 }

@@ -3,6 +3,7 @@ import type { BaseChatModel } from "@langchain/core/language_models/chat_models"
 import { HumanMessage } from "langchain";
 import type { ConversationContextValue } from "@/server/agent/context";
 import { buildConversationGraph, runConfig, type ConversationGraph } from "@/server/agent/graph";
+import type { ChatModelProvider } from "@/server/agent/ports";
 import { resumeInterrupt } from "@/server/agent/resume";
 import { recordConsent, type LendingDeps } from "@/server/modules/lending";
 import { DEFAULT_MODELS } from "@/server/modules/settings";
@@ -13,6 +14,7 @@ export type TestGraphOptions = {
   lending?: LendingDeps;
   isStepUpFresh?: (sessionId: string) => boolean;
   checkpointer?: BaseCheckpointSaver;
+  models?: ChatModelProvider;
 };
 
 // The real graph with a scripted model, in-memory checkpoints and real
@@ -20,10 +22,12 @@ export type TestGraphOptions = {
 // decides it; everything else runs for real.
 export function buildTestGraph(loanModel: BaseChatModel, options: TestGraphOptions = {}) {
   return buildConversationGraph({
-    models: { chatModel: () => loanModel },
+    models: options.models ?? { chatModel: () => loanModel },
     lending: options.lending ?? lendingTestSetup(scriptedBureau([]).bureau).deps,
     isStepUpFresh: options.isStepUpFresh ?? (() => true),
     checkpointer: options.checkpointer ?? new MemorySaver(),
+    // Retries without real waiting (TESTING_STANDARDS §5).
+    modelRetry: { initialDelayMs: 0 },
   });
 }
 

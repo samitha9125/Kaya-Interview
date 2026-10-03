@@ -7,3 +7,15 @@ const NIC_PATTERN =
 export function replaceNics(text: string, replacement: string): string {
   return text.replace(NIC_PATTERN, replacement);
 }
+
+export type NicMatch = { text: string; start: number; end: number };
+
+// The same pattern as replaceNics, as positions: the shape LangChain's
+// PII middleware takes from a custom detector (FR-AGT-09).
+export function findNics(text: string): NicMatch[] {
+  return [...text.matchAll(NIC_PATTERN)].map((match) => ({
+    text: match[0],
+    start: match.index,
+    end: match.index + match[0].length,
+  }));
+}
