@@ -34,7 +34,14 @@ const EnvFields = z.object({
       .string()
       .regex(WHOLE_NUMBER, { error: "must be a whole number of days" })
       .transform(Number)
-      .pipe(z.number().min(1, { error: "must be at least 1 day" }))
+      // No longer than the 90-day stale window (BR-CRED-02), or a score
+      // too old to stand in as stale would still be served as fresh.
+      .pipe(
+        z
+          .number()
+          .min(1, { error: "must be at least 1 day" })
+          .max(90, { error: "must be at most 90 days, the stale window" }),
+      )
       .default(30),
   ),
   DEMO_MODE: z.preprocess(

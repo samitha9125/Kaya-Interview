@@ -26,4 +26,13 @@ describe("platform/config: startup validation", () => {
       expect(!result.ok && result.message).toContain("AUTO_DECISION_THRESHOLD");
     },
   );
+
+  it.each([
+    { value: "90", ok: true },
+    { value: "91", ok: false },
+  ])("P0-16: CREDIT_CACHE_TTL_DAYS $value → starts: $ok", ({ value, ok }) => {
+    const result = parseConfig({ ...validEnv, CREDIT_CACHE_TTL_DAYS: value });
+
+    expect(result.ok).toBe(ok);
+  });
 });

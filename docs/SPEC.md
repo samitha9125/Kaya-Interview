@@ -129,7 +129,7 @@ The credit-score policy. The government API itself sits behind the `CreditBureau
 
 | ID | Requirement | Acceptance | Tests |
 |---|---|---|---|
-| BR-CRED-01 | Scores are cached per customer for **30 days** (`CREDIT_CACHE_TTL_DAYS`) | Just under 30 days → cache hit, no call; at 30 days → miss | U |
+| BR-CRED-01 | Scores are cached per customer for **30 days** (`CREDIT_CACHE_TTL_DAYS`, 1–90, never past the stale window) | Just under 30 days → cache hit, no call; at 30 days → miss | U |
 | BR-CRED-02 | **Stale-if-error:** when no fresh call is possible, a score up to **90 days** old may be used, marked `stale` | At 90 days → usable as stale; one ms later → not usable | U |
 | BR-CRED-03 | **Daily budget** = the adapter's `callsPerDay` (5), per window ending at midnight Sri Lanka time. Every attempt counts, including failures and ambiguous timeouts | 5 attempts allowed; the 6th is never sent | U |
 | FR-CRED-01 | Taking a budget slot is one atomic update | Two concurrent requests with one slot left → exactly one call | M |
