@@ -1,9 +1,6 @@
 "use client";
 
-import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { useState, type FormEvent } from "react";
-import { postJson } from "@/components/api";
+import { useEffect, useRef, useState, type FormEvent } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -23,16 +20,17 @@ const STARTERS: { label: string; message: string; starter: Starter }[] = [
 ];
 
 export function ChatShell({ greetingName, restored }: ChatShellProps) {
-  const router = useRouter();
   const chat = useChat(restored);
   const [draft, setDraft] = useState("");
-  const [signOutError, setSignOutError] = useState<string | null>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const cardRef = useRef<HTMLDivElement>(null);
 
-  async function signOut() {
-    const result = await postJson("/api/auth/logout");
-    if (result.ok) router.refresh();
-    else setSignOutError(result.message);
-  }
+  // Follows the newest message, progress line or card. A card is scrolled to
+  // its top, so a tall form opens at its first field rather than its end.
+  useEffect(() => {
+    if (cardRef.current) cardRef.current.scrollIntoView({ block: "start" });
+    else scrollRef.current?.scrollTo({ top: scrollRef.current.scrollHeight });
+  }, [chat.messages.length, chat.progress, chat.isBusy, chat.pause]);
 
   function send(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -42,54 +40,51 @@ export function ChatShell({ greetingName, restored }: ChatShellProps) {
     void chat.sendMessage(text);
   }
 
-  const error = signOutError ?? (chat.pause ? null : chat.error);
+  const error = chat.pause ? null : chat.error;
   return (
-    <section aria-label="Chat" className="flex w-full max-w-2xl flex-1 flex-col gap-4">
-      <header className="flex items-center justify-between border-b pb-3">
-        <h1 className="text-lg font-semibold">Bank Assistant</h1>
-        <div className="flex items-center gap-2">
-          <Link href="/settings" className="text-sm underline underline-offset-4">
-            Settings
-          </Link>
-          <Button variant="ghost" onClick={() => void signOut()}>
-            {greetingName ? "Sign out" : "Leave"}
-          </Button>
-        </div>
-      </header>
-      <p>
-        {greetingName
-          ? `Hello ${greetingName}. How can I help today?`
-          : "Hello. How can I help today?"}
-      </p>
-      {chat.messages.length === 0 && !chat.isBusy && (
-        <div className="flex flex-wrap gap-2">
-          {STARTERS.map((starter) => (
-            <Button
-              key={starter.label}
-              variant="outline"
-              onClick={() => void chat.sendMessage(starter.message, starter.starter)}
-            >
-              {starter.label}
-            </Button>
-          ))}
-        </div>
-      )}
-      <MessageList messages={chat.messages} isBusy={chat.isBusy} progress={chat.progress} />
-      {chat.pause && (
-        <PauseCard
-          pause={chat.pause}
-          isBusy={chat.isBusy}
-          error={chat.error}
-          fieldErrors={chat.fieldErrors}
-          onAnswer={chat.answer}
-        />
-      )}
+    <section aria-label="Chat" className="flex min-h-0 w-full max-w-2xl flex-1 flex-col">
+      <h1 className="sr-only">Chat</h1>
+      <div
+        ref={scrollRef}
+        className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto py-4 motion-safe:scroll-smooth"
+      >
+        <p>
+          {greetingName
+            ? `Hello ${greetingName}. How can I help today?`
+            : "Hello. How can I help today?"}
+        </p>
+        {chat.messages.length === 0 && !chat.isBusy && (
+          <div className="flex flex-wrap gap-2">
+            {STARTERS.map((starter) => (
+              <Button
+                key={starter.label}
+                variant="outline"
+                onClick={() => void chat.sendMessage(starter.message, starter.starter)}
+              >
+                {starter.label}
+              </Button>
+            ))}
+          </div>
+        )}
+        <MessageList messages={chat.messages} isBusy={chat.isBusy} progress={chat.progress} />
+        {chat.pause && (
+          <div ref={cardRef} className="scroll-mt-4">
+            <PauseCard
+              pause={chat.pause}
+              isBusy={chat.isBusy}
+              error={chat.error}
+              fieldErrors={chat.fieldErrors}
+              onAnswer={chat.answer}
+            />
+          </div>
+        )}
+      </div>
       {error && (
-        <p role="alert" className="text-sm text-destructive">
+        <p role="alert" className="pt-2 text-sm text-destructive">
           {error}
         </p>
       )}
-      <form onSubmit={send} className="mt-auto flex gap-2">
+      <form onSubmit={send} className="flex gap-2 border-t py-4">
         <Label htmlFor="chat-message" className="sr-only">
           Message
         </Label>
