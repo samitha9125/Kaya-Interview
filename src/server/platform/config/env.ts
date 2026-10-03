@@ -9,15 +9,6 @@ const MAX_BASIS_POINTS = 10_000;
 // threshold would coerce to 0 and auto-decide every case.
 const unsetIfEmpty = (value: unknown) => (value === "" ? undefined : value);
 
-// ARCHITECTURE §10: the government API is reached over TLS. Plain HTTP is
-// allowed only to this machine, where the demo's mock runs.
-const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
-const isTlsOrLocal = (value: string) => {
-  if (!URL.canParse(value)) return false;
-  const url = new URL(value);
-  return url.protocol === "https:" || (url.protocol === "http:" && LOCAL_HOSTS.has(url.hostname));
-};
-
 const EnvFields = z.object({
   APP_ENCRYPTION_KEY: z
     .string({ error: "missing" })
@@ -54,33 +45,26 @@ const EnvFields = z.object({
       .transform((value) => value === "true"),
   ),
   OPENROUTER_API_KEY: z.preprocess(unsetIfEmpty, z.string().optional()),
+  // Not operator settings (TD27). The browser tests point DATABASE_PATH at
+  // their own file and turn on the rule-played model (TD25); Next.js sets
+  // PORT, which locates the built-in mock government API on this server.
   DATABASE_PATH: z.preprocess(unsetIfEmpty, z.string().default(DEFAULT_DATABASE_PATH)),
-  GOV_API_BASE_URL: z.preprocess(
+  PORT: z.preprocess(unsetIfEmpty, z.coerce.number().int().positive().default(3000)),
+  E2E_SCRIPTED_MODEL: z.preprocess(
     unsetIfEmpty,
     z
-      .url({ error: "must be a URL" })
-      .refine(isTlsOrLocal, { error: "must use https (plain http only to localhost)" })
-      .default("http://localhost:3000/api/mock-gov"),
-  ),
-  // "scripted" plays the loan agent by rule, for browser tests without a
-  // model key (TD25).
-  CHAT_MODEL_PROVIDER: z.preprocess(
-    unsetIfEmpty,
-    z
-      .enum(["openrouter", "scripted"], { error: "must be openrouter or scripted" })
-      .default("openrouter"),
+      .enum(["1"], { error: "must be 1 or unset" })
+      .optional()
+      .transform((value) => value === "1"),
   ),
 });
 
 // The scripted model can't stand in for a real one by accident: it starts
 // only in demo mode.
-const ConfigSchema = EnvFields.refine(
-  (config) => config.CHAT_MODEL_PROVIDER !== "scripted" || config.DEMO_MODE,
-  {
-    path: ["CHAT_MODEL_PROVIDER"],
-    error: "scripted is for tests and demos: it needs DEMO_MODE=true",
-  },
-);
+const ConfigSchema = EnvFields.refine((config) => !config.E2E_SCRIPTED_MODEL || config.DEMO_MODE, {
+  path: ["E2E_SCRIPTED_MODEL"],
+  error: "the scripted model is for the browser tests: it needs DEMO_MODE=true",
+});
 
 export type AppConfig = z.infer<typeof ConfigSchema>;
 

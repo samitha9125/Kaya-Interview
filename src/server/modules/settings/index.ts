@@ -1,5 +1,11 @@
 import "server-only";
-export { AGENT_ROLES, DEFAULT_MODELS, type AgentRole } from "./config";
+export {
+  AGENT_ROLES,
+  DEFAULT_MODELS,
+  MOCK_FAILURE_MODES,
+  type AgentRole,
+  type MockFailureMode,
+} from "./config";
 export {
   apiKeyStatus,
   chooseModel,
@@ -10,4 +16,4 @@ export {
   type ModelSelection,
   type SettingsDeps,
 } from "./models";
-export type { CatalogModel, CatalogResult, ModelCatalog } from "./ports";
+export type { CatalogModel, CatalogResult, MockBureauAdmin, ModelCatalog } from "./ports";

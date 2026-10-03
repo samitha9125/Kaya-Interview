@@ -27,6 +27,7 @@ Four parts: **business** decisions (the bank's calls), **technical** decisions (
 | B17 | **No action to please the user.** Emotional pressure, urgency, authority claims and task smuggling never trigger tools or change outcomes; off-topic requests get a polite redirect | A kind tone must never become a lever |
 | B18 | Demo product and rule values: one personal loan, LKR 50,000–3,000,000 over 6–60 months at 14% a year; bands A–D; repayment-to-income ≤ 40% (SPEC A2, BR-LEND-01…03) | Realistic for a small Sri Lankan bank and easy to demonstrate; all of them are config, not code |
 | B19 | The confidence penalty for a large amount applies only **between 90% and 100% of the band maximum** (BR-LEND-04). An amount over the maximum loses nothing for its size, so a clean over-limit request is a final "not eligible" | The penalty marks borderline uncertainty; an over-limit amount isn't uncertain. As first written, every over-limit request fell below the threshold and went to an officer for an answer the rules already knew (found in T12) |
+| B20 | The bank is hypothetical, so the government credit API is **always the built-in mock**. The operator sets five things only: the OpenRouter key, the encryption key, the auto-decision threshold, the cache lifetime and demo mode | There is no real service to point at, and a setting that changes nothing only confuses whoever deploys or reviews it |
 
 ## 2. Technical decisions
 
@@ -284,7 +285,7 @@ Each dependency added during the build gets one line here.
 | When replies are sent | As each node writes them · **after the run, read back from the checkpoint** | After the run | Only validated text can be sent (FR-AGT-10), and a reload reads the same transcript. Typing and progress (LangGraph's `custom` stream) cover the wait |
 | A dropped connection | Cancel the run · **let it finish** | Finish | Its side effects happen once, the turn lock is released when it ends, and a reload shows the result (P1-11) |
 | What a reload restores | A conversation ID in the URL or browser storage · **the latest conversation started since this sign-in** | Since this sign-in | Nothing to keep in the browser or leak in a URL; the session ID already survives the step-up rotation. A new sign-in starts with an empty chat |
-| A model for E2E without a key | A real key in CI · recorded responses · **a scripted provider that plays the specialists by rule** | Scripted (`CHAT_MODEL_PROVIDER=scripted`) | Browser tests run the real graph, gates and templates on every machine and cost nothing; the model's own behaviour is the evals' job. It is a `ChatModelProvider` adapter built on LangChain's `fakeModel`, so nothing else changes. The app refuses to start with it unless `DEMO_MODE=true`, so it can't replace a real model by accident |
+| A model for E2E without a key | A real key in CI · recorded responses · **a scripted provider that plays the specialists by rule** | Scripted (`E2E_SCRIPTED_MODEL=1`, set only by the browser tests' servers, TD27) | Browser tests run the real graph, gates and templates on every machine and cost nothing; the model's own behaviour is the evals' job. It is a `ChatModelProvider` adapter built on LangChain's `fakeModel`, so nothing else changes. The app refuses to start with it unless `DEMO_MODE=true`, so it can't replace a real model by accident |
 
 ### TD26. Triage, hand-back and callbacks
 
@@ -295,6 +296,15 @@ Each dependency added during the build gets one line here.
 | A misroute that bounces | Trust the classifier · **don't send a message straight back to the specialist that handed it back** | Guard | A loop between triage and one specialist is impossible; the customer gets the redirect instead |
 | Callback "reason" | Free text · **the journey the customer was on (`loan`, `kyc`, or `general`)** | Journey | One request per conversation and reason (FR-AGT-14) needs a fixed set; the team sees what the call is about without anyone reading chat |
 | How long "talk to a person" lasts | Sticky, like the other journeys · **one turn** | One turn | After the request there is nothing more to do there, so the next message meets triage again |
+
+### TD27. Configuration surface
+
+| Topic | Options | Choice | Trade-off |
+|---|---|---|---|
+| What `.env.example` lists | Every variable the code reads · **only what an operator sets** (B20) | Operator settings | Five variables, each with an effect a bank would want. The rest is test wiring, set only in `playwright.config.ts` |
+| The government API's address | A `GOV_API_BASE_URL` setting · **derived: the mock's routes on this server, from the `PORT` Next.js listens on** | Derived | Nothing to set or get wrong. The `CreditBureau` adapter still takes a base URL, so a real service would be a new address in the composition root, not new domain code |
+| Model provider | A `CHAT_MODEL_PROVIDER` setting · **always OpenRouter; the rule-played model only behind the browser tests' `E2E_SCRIPTED_MODEL=1`** | OpenRouter | A deployment can't choose a fake model. The flag is still refused unless `DEMO_MODE=true` |
+| Database file | A setting · **always `bank.db`**; the browser tests point `DATABASE_PATH` at their own file | `bank.db` | One SQLite file is the whole runtime (ARCHITECTURE §12); a test run never touches the demo data |
 
 ## 3. Deferred: right idea, wrong time
 

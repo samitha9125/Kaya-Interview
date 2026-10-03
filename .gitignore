@@ -18,7 +18,7 @@
 /build
 
 # e2e database
-/.e2e.db*
+/.e2e*.db*
 
 # misc
 .DS_Store

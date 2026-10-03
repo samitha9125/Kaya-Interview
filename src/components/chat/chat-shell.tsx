@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
 import { postJson } from "@/components/api";
@@ -46,9 +47,14 @@ export function ChatShell({ greetingName, restored }: ChatShellProps) {
     <section aria-label="Chat" className="flex w-full max-w-2xl flex-1 flex-col gap-4">
       <header className="flex items-center justify-between border-b pb-3">
         <h1 className="text-lg font-semibold">Bank Assistant</h1>
-        <Button variant="ghost" onClick={() => void signOut()}>
-          {greetingName ? "Sign out" : "Leave"}
-        </Button>
+        <div className="flex items-center gap-2">
+          <Link href="/settings" className="text-sm underline underline-offset-4">
+            Settings
+          </Link>
+          <Button variant="ghost" onClick={() => void signOut()}>
+            {greetingName ? "Sign out" : "Leave"}
+          </Button>
+        </div>
       </header>
       <p>
         {greetingName
