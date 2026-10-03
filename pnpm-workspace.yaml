@@ -1,4 +1,12 @@
 # Single-package repo. pnpm 10 blocks dependency build scripts by default;
 # only the ones we need are allowed.
 onlyBuiltDependencies:
+  - "@swc/core"
+  - esbuild
   - unrs-resolver
+ignoredBuiltDependencies:
+  # Browsers are installed explicitly via `pnpm exec playwright install chromium`.
+  - "@playwright/browser-chromium"
+  # promptfoo optional extras we don't use.
+  - onnxruntime-node
+  - protobufjs

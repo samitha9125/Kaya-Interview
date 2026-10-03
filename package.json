@@ -15,7 +15,9 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:coverage": "vitest run --coverage",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "eval": "PROMPTFOO_DISABLE_TELEMETRY=1 PROMPTFOO_CONFIG_DIR=.promptfoo promptfoo eval -c evals/promptfooconfig.yaml",
+    "eval:view": "PROMPTFOO_DISABLE_TELEMETRY=1 PROMPTFOO_CONFIG_DIR=.promptfoo promptfoo view"
   },
   "dependencies": {
     "next": "16.3.8",
@@ -37,6 +39,7 @@
     "husky": "^9.1.7",
     "lint-staged": "^17.6.0",
     "prettier": "^3.9.9",
+    "promptfoo": "^0.123.1",
     "tailwindcss": "^4",
     "typescript": "^5",
     "vitest": "^5.0.3"

@@ -1,0 +1,25 @@
+# yaml-language-server: $schema=https://promptfoo.dev/config-schema.json
+#
+# Eval harness for the banking assistant.
+#
+# Right now this only proves the harness runs (the `echo` provider needs no
+# API key). When the agent exists, a custom provider in evals/providers/ will
+# call the LangGraph app, and the suites below get real cases:
+#   routing, tool gating, refusals, tone, and red-team attacks.
+# Run against any OpenRouter model with OPENROUTER_API_KEY set.
+description: Banking assistant evals (harness smoke test)
+
+prompts:
+  - "Customer says: {{message}}"
+
+providers:
+  - id: echo
+    label: harness-smoke
+
+tests:
+  - description: harness passes variables through to the provider
+    vars:
+      message: I want to apply for a loan
+    assert:
+      - type: contains
+        value: apply for a loan
