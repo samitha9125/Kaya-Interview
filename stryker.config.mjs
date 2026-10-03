@@ -9,6 +9,10 @@ const config = {
   mutate: [
     // BR-AUTH-02
     "src/server/modules/auth/lockout.ts",
+    // BR-CRED-01…05, FR-CRED-01
+    "src/server/modules/gov-credit/policy.ts",
+    "src/server/modules/gov-credit/budget.ts",
+    "src/server/modules/gov-credit/get-score.ts",
   ],
   // perTest runs only the tests that reach each mutant. It needs the patch
   // in patches/ (TD19): Stryker names tests "suite test", Vitest 5 matches
