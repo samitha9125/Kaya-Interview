@@ -47,6 +47,16 @@ describe("lending/decide: hard referral rules (BR-LEND-06)", () => {
       overrides: { credit: { score: null, hasHistory: false, stale: false, fetchedAt: NOW } },
       reason: "no_credit_history",
     },
+    {
+      case: "no income on the bank record",
+      overrides: { monthlyIncomeLkr: null },
+      reason: "missing_bank_record",
+    },
+    {
+      case: "no repayments on the bank record",
+      overrides: { monthlyRepaymentsLkr: null },
+      reason: "missing_bank_record",
+    },
   ])("P0-08: $case → referral even with the threshold at 0", ({ overrides, reason }) => {
     const result = decideLoan(input({ ...overrides, thresholdBp: 0 }));
 
