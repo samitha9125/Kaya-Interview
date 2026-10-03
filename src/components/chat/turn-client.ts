@@ -2,9 +2,20 @@ import { FALLBACK } from "@/components/api";
 
 // The wire format of a turn (FR-WEB-04). It mirrors the harness's events;
 // components never import server code, so the browser keeps its own copy.
+export type KycDetails = {
+  fullName: string;
+  nic: string;
+  dateOfBirth: string;
+  address: string;
+  mobileNumber: string;
+  accountType: "savings" | "current";
+};
+
 export type Pause =
   | { interruptId: string; kind: "step_up" }
-  | { interruptId: string; kind: "consent" | "confirm"; amountLkr: number; termMonths: number };
+  | { interruptId: string; kind: "consent" | "confirm"; amountLkr: number; termMonths: number }
+  | { interruptId: string; kind: "kyc_form" }
+  | { interruptId: string; kind: "kyc_confirm"; draftId: string; details?: KycDetails | null };
 
 export type ChatMessage = { id: string; role: "customer" | "assistant"; text: string };
 

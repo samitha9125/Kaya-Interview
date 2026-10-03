@@ -1,12 +1,15 @@
-import { GraphRecursionError, isGraphBubbleUp } from "@langchain/langgraph";
+import { Command, GraphRecursionError, isGraphBubbleUp } from "@langchain/langgraph";
 import {
+  AIMessage,
   createAgent,
   modelCallLimitMiddleware,
   modelRetryMiddleware,
   piiMiddleware,
   toolCallLimitMiddleware,
   ToolCallLimitExceededError,
+  ToolMessage,
   type StructuredTool,
+  type ToolRuntime,
 } from "langchain";
 import type { AgentRole } from "@/server/modules/settings";
 import { findNics } from "@/server/platform/pii";
@@ -30,6 +33,25 @@ export type Specialist = {
   // Shown to the LLM when its tool arguments are refused (FR-AGT-02).
   invalidInputHint: string;
 };
+
+// The documented handoff: a specialist's tool hands control to a
+// deterministic node in the parent graph. The AI message and its tool
+// result travel together to keep the history valid for the next model
+// call; the code that runs next swaps the result for a situation label.
+export function handOff(
+  runtime: ToolRuntime<ConversationStateValue>,
+  note: string,
+  goto: string,
+  update: Partial<ConversationStateValue>,
+) {
+  const lastAiMessage = [...runtime.state.messages].reverse().find(AIMessage.isInstance);
+  const result = new ToolMessage({ content: note, tool_call_id: runtime.toolCallId });
+  return new Command({
+    goto,
+    graph: Command.PARENT,
+    update: { messages: [lastAiMessage, result].filter(Boolean), ...update },
+  });
+}
 
 // FR-AGT-09, FR-AGT-11, FR-AGT-12, in the order they wrap the model:
 // NIC-shaped text is redacted from what goes in and what comes out (the

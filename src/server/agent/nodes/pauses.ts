@@ -17,14 +17,25 @@ export const ConfirmReference = z.union([
   z.strictObject({ declined: z.literal(true) }),
 ]);
 
-export type PauseKind = "step_up" | "consent" | "confirm";
+// FR-ONB-02: the server validated and stored the form; only its ID comes back.
+export const KycFormReference = z.union([
+  z.strictObject({ draftId: z.string().min(1) }),
+  z.strictObject({ declined: z.literal(true) }),
+]);
+
+export type PauseKind = "step_up" | "consent" | "confirm" | "kyc_form" | "kyc_confirm";
 export type Pause =
-  { kind: "step_up" } | { kind: "consent" | "confirm"; amountLkr: number; termMonths: number };
+  | { kind: "step_up" }
+  | { kind: "consent" | "confirm"; amountLkr: number; termMonths: number }
+  | { kind: "kyc_form" }
+  | { kind: "kyc_confirm"; draftId: string };
 
 export const REFERENCE_SCHEMAS = {
   step_up: StepUpReference,
   consent: ConsentReference,
   confirm: ConfirmReference,
+  kyc_form: KycFormReference,
+  kyc_confirm: ConfirmReference,
 } as const;
 
 function termsOf(state: ConversationStateValue) {

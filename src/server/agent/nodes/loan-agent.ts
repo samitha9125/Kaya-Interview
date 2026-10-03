@@ -1,39 +1,25 @@
-import { Command } from "@langchain/langgraph";
-import { AIMessage, tool, ToolMessage, type ToolRuntime } from "langchain";
+import { tool, type ToolRuntime } from "langchain";
 import { LoanTerms, PRODUCT } from "@/server/modules/lending";
 import type { ChatModelProvider } from "../ports";
 import { LOAN_PROMPT } from "../prompts/loan";
 import type { ConversationStateValue } from "../state";
-import { createSpecialistNode, type ModelRetryOptions } from "./specialist";
+import { createSpecialistNode, handOff, type ModelRetryOptions } from "./specialist";
 
 export const REQUEST_ASSESSMENT = "request_assessment";
 
-// The documented handoff: the tool hands control to a deterministic node in
-// the parent graph, so the LLM can ask for an assessment but never run one.
-// Its arguments are the loan terms only; who the customer is comes from
-// the session (FR-AGT-04). The AI message and its tool result travel
-// together to keep the history valid for the next model call. Earlier
-// journey fields are cleared, so a new request starts from the gate.
+// The LLM can ask for an assessment but never run one. Its arguments are
+// the loan terms only; who the customer is comes from the session
+// (FR-AGT-04). Earlier journey fields are cleared, so a new request starts
+// from the gate.
 export const requestAssessment = tool(
-  (terms: LoanTerms, runtime: ToolRuntime<ConversationStateValue>) => {
-    const lastAiMessage = [...runtime.state.messages].reverse().find(AIMessage.isInstance);
-    const result = new ToolMessage({
-      content: "Assessment requested",
-      tool_call_id: runtime.toolCallId,
-    });
-    return new Command({
-      goto: "loan_gate",
-      graph: Command.PARENT,
-      update: {
-        messages: [lastAiMessage, result].filter(Boolean),
-        loanTerms: { amountLkr: terms.amountLkr, termMonths: terms.termMonths },
-        consentId: null,
-        assessment: null,
-        applicationId: null,
-        decision: null,
-      },
-    });
-  },
+  (terms: LoanTerms, runtime: ToolRuntime<ConversationStateValue>) =>
+    handOff(runtime, "Assessment requested", "loan_gate", {
+      loanTerms: { amountLkr: terms.amountLkr, termMonths: terms.termMonths },
+      consentId: null,
+      assessment: null,
+      applicationId: null,
+      decision: null,
+    }),
   {
     name: REQUEST_ASSESSMENT,
     description:

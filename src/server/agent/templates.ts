@@ -38,6 +38,16 @@ export const CANT_SHARE =
 export const CANT_COMPLETE =
   "Something went wrong on our side and I couldn't finish this. Please try again, or I can arrange a call from our team.";
 
+// B3, A6: the assistant never opens an account; the branch completes it.
+export const KYC_SUBMITTED =
+  "Thanks, your account application is in. To finish opening your account, please visit any of our branches with your original NIC.";
+
+export const KYC_FORM_CANCELLED =
+  "No problem, nothing has been saved. If you'd like to open an account later, just ask.";
+
+export const KYC_NOT_SENT =
+  "Okay, I haven't sent your application. You can start again whenever you're ready.";
+
 // FR-WEB-04: shown while code works on a step that can take a moment.
 export const CHECKING_CREDIT = "Checking your credit record…";
 export const SUBMITTING = "Submitting your application…";

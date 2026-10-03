@@ -9,11 +9,13 @@ import { buildConversationGraph } from "@/server/agent/graph";
 import {
   findBankRecord,
   findCustomerNic,
+  hasCustomerWithNic,
   isStepUpFreshFor,
   LOGIN_RATE_LIMIT,
 } from "@/server/modules/auth";
 import type { GovCreditDeps } from "@/server/modules/gov-credit";
 import type { LendingDeps } from "@/server/modules/lending";
+import type { OnboardingDeps } from "@/server/modules/onboarding";
 import type { SettingsDeps } from "@/server/modules/settings";
 import { createAuditLog } from "@/server/platform/audit";
 import { systemClock } from "@/server/platform/clock";
@@ -57,6 +59,14 @@ function createApp(config: AppConfig) {
     thresholdBp: config.AUTO_DECISION_THRESHOLD,
     loadBankRecord: (customerId) => findBankRecord(db, customerId),
   };
+  const onboarding: OnboardingDeps = {
+    db,
+    audit,
+    clock,
+    ids,
+    encryptionKey: config.APP_ENCRYPTION_KEY,
+    isExistingCustomerNic: (nic) => hasCustomerWithNic(db, nic, config.APP_ENCRYPTION_KEY),
+  };
   const models =
     config.CHAT_MODEL_PROVIDER === "scripted"
       ? new ScriptedChatProvider()
@@ -67,6 +77,7 @@ function createApp(config: AppConfig) {
   const graph = buildConversationGraph({
     models,
     lending,
+    onboarding,
     isStepUpFresh: (sessionId) => isStepUpFreshFor(sessionId, { db, clock }),
     checkpointer: createCheckpointer(sqlite),
   });
@@ -80,6 +91,7 @@ function createApp(config: AppConfig) {
     credit,
     settings,
     lending,
+    onboarding,
     models,
     graph,
     idempotency: createIdempotency({ db, clock }),
