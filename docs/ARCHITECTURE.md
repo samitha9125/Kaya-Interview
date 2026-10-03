@@ -41,7 +41,7 @@ flowchart TB
 
 ## 4. Dependency rules
 
-Enforced by ESLint `no-restricted-imports`.
+Enforced by ESLint (`eslint.boundaries.mjs`): `import/no-restricted-paths` for layers and module privacy, which resolves each import to a file so relative paths and the `@/` alias are caught alike, and `no-restricted-imports` for banned packages.
 
 | Layer | May import | Never imports |
 |---|---|---|

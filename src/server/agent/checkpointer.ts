@@ -1,3 +1,4 @@
+import "server-only";
 import { SqliteSaver } from "@langchain/langgraph-checkpoint-sqlite";
 import type BetterSqlite3 from "better-sqlite3";
 
