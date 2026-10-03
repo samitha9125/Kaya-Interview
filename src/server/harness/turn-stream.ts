@@ -13,7 +13,7 @@ export type TurnEvent =
   | { type: "typing" }
   | { type: "progress"; text: string }
   | { type: "message"; id: string; text: string }
-  | ({ type: "interrupt"; interruptId: string } & Pause)
+  | { type: "interrupt"; pause: { interruptId: string } & Pause }
   | { type: "error"; message: string; reference: string }
   | { type: "done"; conversationId: string };
 
@@ -82,7 +82,8 @@ async function runTurn(
     for (const { id, role, text } of messages) {
       if (role === "assistant") send({ type: "message", id, text });
     }
-    if (pause) send({ type: "interrupt", interruptId: pause.interruptId, ...pause.pause });
+    if (pause)
+      send({ type: "interrupt", pause: { interruptId: pause.interruptId, ...pause.pause } });
   } catch (error) {
     logger.error("turn failed", { correlationId, error });
     const { message, reference } = failureBody("internal", correlationId).error;

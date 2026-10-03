@@ -53,7 +53,7 @@ describe("harness/turn-stream: what the browser hears (FR-WEB-04)", () => {
     ]);
     expect(events[1]?.data).toEqual({ text: CHECKING_CREDIT });
     expect(events[2]?.data).toMatchObject({ text: eligible(TERMS) });
-    expect(events[3]?.data).toMatchObject({ kind: "confirm", ...TERMS });
+    expect(events[3]?.data).toMatchObject({ pause: { kind: "confirm", ...TERMS } });
     expect(events[4]?.data).toEqual({ conversationId: "t1" });
   });
 

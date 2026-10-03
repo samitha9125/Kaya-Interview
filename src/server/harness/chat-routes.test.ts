@@ -101,7 +101,7 @@ async function turnOf(response: Response): Promise<Turn> {
     messages: events
       .filter((event) => event.type === "message")
       .map((event) => ({ text: String(event.data.text) })),
-    pause: pause ? (pause.data as Turn["pause"]) : null,
+    pause: (pause?.data.pause as Turn["pause"] | undefined) ?? null,
   };
 }
 
