@@ -26,6 +26,7 @@ Four parts: **business** decisions (the bank's calls), **technical** decisions (
 | B16 | A not-eligible reply doesn't suggest a lower amount | The engine answers the requested terms; quoting amounts would turn the chat into a negotiation. A customer could still find their own rough band by trying amounts; that's their own data, and every attempt is audited |
 | B17 | **No action to please the user.** Emotional pressure, urgency, authority claims and task smuggling never trigger tools or change outcomes; off-topic requests get a polite redirect | A kind tone must never become a lever |
 | B18 | Demo product and rule values: one personal loan, LKR 50,000–3,000,000 over 6–60 months at 14% a year; bands A–D; repayment-to-income ≤ 40% (SPEC A2, BR-LEND-01…03) | Realistic for a small Sri Lankan bank and easy to demonstrate; all of them are config, not code |
+| B19 | The confidence penalty for a large amount applies only **between 90% and 100% of the band maximum** (BR-LEND-04). An amount over the maximum loses nothing for its size, so a clean over-limit request is a final "not eligible" | The penalty marks borderline uncertainty; an over-limit amount isn't uncertain. As first written, every over-limit request fell below the threshold and went to an officer for an answer the rules already knew (found in T12) |
 
 ## 2. Technical decisions
 
