@@ -11,6 +11,7 @@ Requires Node 24 (`.nvmrc`) and pnpm 10.
 ```bash
 pnpm install
 cp .env.example .env.local        # then fill in the values
+pnpm db:setup                     # create the local database
 pnpm exec playwright install chromium   # once, for e2e tests
 pnpm dev                          # http://localhost:3000
 ```
@@ -20,6 +21,8 @@ pnpm dev                          # http://localhost:3000
 | Command | What it does |
 |---|---|
 | `pnpm dev` / `pnpm build` / `pnpm start` | Run, build, serve |
+| `pnpm db:setup` | Create or migrate the local SQLite database (`bank.db`); safe to re-run |
+| `pnpm db:generate` | Generate a migration after a Drizzle schema change |
 | `pnpm lint` · `pnpm format:check` · `pnpm typecheck` | Static checks |
 | `pnpm test` · `pnpm test:coverage` | Unit tests (Vitest); coverage gate of 80% on `src/` logic |
 | `pnpm test:e2e` | End-to-end tests (Playwright, Chromium) |
