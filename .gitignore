@@ -46,8 +46,6 @@ next-env.d.ts
 /test-results/
 /blob-report/
 /.promptfoo/
-/reports/
-/.stryker-tmp/
 
 # local databases
 *.db
