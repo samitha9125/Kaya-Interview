@@ -12,7 +12,7 @@ We build the system bottom-up along the module dependency order, but **in vertic
 
 - **Branch:** `feat|fix|chore|docs/<module>-<slug>` off `develop`. Atomic Conventional Commits. Merged back with `git merge --no-ff`, so each task stays visible as one unit in the history. No PRs.
 - **Test first** for every business rule (red → green). P0 tests are named with their ID.
-- **Proof a test can fail:** Stryker for the decision modules (tooling in T3; scope added in T5, T10 and T11); a **manual mutant** for P0 controls outside Stryker, written in the task's *Verify* line.
+- **Proof a test can fail:** a **manual mutant** for each P0 control and business-rule boundary, written in the task's *Verify* line (TD28).
 - **Done means:**
   - `pnpm lint && pnpm typecheck && pnpm test` are green;
   - E2E is green if the UI or a route changed;
@@ -28,12 +28,12 @@ Full tasks, acceptance criteria and checkpoints are in [`todo.md`](todo.md).
 | Phase | Tasks | Ends with (checkpoint) |
 |---|---|---|
 | 0 Decisions record | T0 | Every decision the spec cites exists in `DECISIONS.md` |
-| 1 Foundation and risk spikes | T1–T4 | **A:** the riskiest patterns proven (handoff, single-use resume, SQLite on Node 25, Stryker) |
+| 1 Foundation and risk spikes | T1–T4 | **A:** the riskiest patterns proven (handoff, single-use resume, SQLite on Node 25) |
 | 2 Identity | T5–T7b | **B:** a customer can sign in and out securely |
-| 3 Credit | T8–T10 | **C:** credit policy proven by tests and mutation score |
+| 3 Credit | T8–T10 | **C:** credit policy proven by tests |
 | 4 Lending | T11–T12 | Decisions, assessments and applications |
 | 5 Agent and journeys | T13–T19 (T14a–c) | **D:** J1 end to end · **E:** all journeys; every P0 has a test |
-| 6 Evidence and delivery | T20–T23 | **F:** evals, audit, docs, release |
+| 6 Evidence | T20–T21 | **F:** evals and a focused test suite (T22 docs and T23 release are out of scope) |
 
 ## Order and parallel work
 
@@ -42,7 +42,7 @@ T0 → T1 → T2 → T3 ─┬─ T4 → T13 ───────────�
                    ├─ T5 → T6 → T7a → T7b ──────────────┤
                    ├─ T8 → T9 → T10 ─┐                  │
                    ├─ T11 ───────────┴─ T12 (+T5) ──────┴─ T14a → T14b → T14c → T15 ─┐
-                   └─ T16 ───────────────────────────────────────────────────────── T17 → T18 → T19 → T20 → T21 → T22 → T23
+                   └─ T16 ───────────────────────────────────────────────────────── T17 → T18 → T19 → T20 → T21
 ```
 
 Once T3 is done, **the agent skeleton (T4, T13), identity (T5–T7b), credit (T8–T10), rules (T11) and onboarding (T16) are independent** and can run in parallel worktrees. T14a onwards is sequential.
@@ -55,7 +55,6 @@ Once T3 is done, **the agent skeleton (T4, T13), identity (T5–T7b), credit (T8
 | Native SQLite or the checkpointer fails on Node 25 | High | Proven in T2 on Node 24, re-run on Node 25 at Checkpoint A; fallback is pinning Node 24 LTS in `.nvmrc` |
 | Default loan model (GLM-5.3-Flash) is unreliable at tool calls | Medium | Gates are in code, so it's a quality risk only; evals compare it with Claude and GPT, and the default switches if it misses targets |
 | Reasoning tokens eat the 400-token output limit | Medium | **Confirmed in T20** (`pnpm smoke:models`): they count (GLM at `low` used 197 of 400). Loan and KYC now allow 400 extra output tokens for reasoning, so 400 visible tokens remain (TD6) |
-| Stryker doesn't support Vitest 5 yet | Medium | Checked first in T3; fallback is running Stryker with a Vitest 4 runner config for its scope only |
 | The reviewer has no OpenRouter key | Medium | The README explains bring-your-own-key; unit, module and graph tests and E2E use fake models and run without a key |
 | Time: a couple of days | High | Cut line below |
 

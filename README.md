@@ -27,7 +27,6 @@ Demo customers: `C1001` to `C1010`, all with the password `Demo@1234`.
 | `pnpm db:generate` | Generate a migration after a Drizzle schema change |
 | `pnpm lint` · `pnpm format:check` · `pnpm typecheck` | Static checks |
 | `pnpm test` | Unit, module and graph tests (Vitest) |
-| `pnpm test:mutation` | Mutation testing (Stryker) on the decision modules; fails below 80% |
 | `pnpm test:e2e` | End-to-end tests (Playwright, Chromium) |
 | `pnpm eval` · `pnpm eval:view` | Prompt evals (promptfoo) and the results viewer |
 | `pnpm secrets:scan` | Scan all tracked files for secrets |

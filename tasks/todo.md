@@ -144,13 +144,14 @@ The checklist for [`plan.md`](plan.md). Tick a task when its acceptance and veri
 
   Haiku's one miss asked for the amount and the term in one sentence (the rubric's "one question at a time"). Latency is one graph turn, triage included; the defaults' p95 sits at the 5 s target. Judge: GPT-5.6 Terra.
 
-- [ ] **T21 · Security and test audit** (S). Run the `security-auditor` and `test-engineer` personas over the code and tests; fix findings; confirm the manual-mutant log covers every P0 outside Stryker.
-  *Accept:* no open P0 or high findings. *Verify:* full suite + `pnpm test:mutation`. *Deps:* T20.
+- [x] **T21 · Focus the test suite** (S). Cut Vitest to about 100 cases (a test per P0 at the lowest level, the rule boundary tables, the adversarial graph tests, a few module tests), E2E to one spec per journey plus P0-15 and the copied-cookie check, and remove Stryker (TD28). Replaces the planned security and test audit, at the user's request.
+  *Accept:* every P0 still has a deterministic test; docs match. *Verify:* `pnpm lint && pnpm typecheck && pnpm test && pnpm test:e2e`; manual mutants on ownership, the consent gate and the threshold. *Deps:* T20.
+  *Result:* Vitest 740 → 91 cases (77 → 26 files, 6,870 → 1,258 lines); E2E 22 → 6 tests (433 → 204 lines). Mutants (all reverted): dropped the owner condition from the conversation lookup → `P0-04: another customer's conversation is not found` failed; sent the loan gate straight to the credit check → `P0-03: after step-up comes consent …`, `BR-LEND-07: only after consent …` and four resume tests failed; made the threshold `<=` → `P0-07: an eligible case with a score 32 days old → eligible` failed. Stryker, its runner patch and `pnpm test:mutation` are gone.
 
-- [ ] **T22 · Documentation** (M). README (setup, demo credentials, bring your own key, demo script for J1–J4, audit query, eval results), PNG diagrams (plus the agent graph exported from code), `PROCESS.md`, CHANGELOG, final pass over ARCHITECTURE and SPEC.
+- [ ] **T22 · Documentation** (M). **Out of scope:** the user writes the docs separately. README (setup, demo credentials, bring your own key, demo script for J1–J4, audit query, eval results), PNG diagrams (plus the agent graph exported from code), `PROCESS.md`, CHANGELOG, final pass over ARCHITECTURE and SPEC.
   *Accept:* a fresh clone works by following the README alone. *Verify:* clone into a temp folder → follow the README → demo script passes. *Deps:* T21.
 
-- [ ] **T23 · Release** (XS). Merge `develop` → `main` (merge commit), tag `v1.0.0`, push.
+- [ ] **T23 · Release** (XS). **Out of scope:** there is no release. Merge `develop` → `main` (merge commit), tag `v1.0.0`, push.
   *Accept:* CI green on `main`. *Deps:* T22.
 
 ### Checkpoint F: complete. Every SPEC §12 success criterion is ticked.

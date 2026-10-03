@@ -13,9 +13,8 @@ Test at the lowest level that can catch the problem.
 | **Unit** | Vitest | Pure business logic: rules, confidence, cache lifetime, budget, lockout, validation, crypto, failure → template mapping | Next to the source: `foo.ts` → `foo.test.ts` |
 | **Module** | Vitest + real SQLite (in-memory) | A module's public functions against a real database: atomic budget update, idempotency, transactions, encryption at rest | Next to the module's `index.ts` |
 | **Graph** | Vitest + `fakeModel()` + `MemorySaver` | The real LangGraph graph with a **scripted fake model**: gates, pauses, routing, handoffs, middleware. The model is treated as an adversary | `server/agent/**/*.test.ts` |
-| **E2E** | Playwright (Chromium) | Customer journeys and browser-level security: sign-in, step-up, consent, outcome, referral, KYC, session expiry, CSRF, demo-mode lock | `e2e/<journey>.spec.ts` |
+| **E2E** | Playwright (Chromium) | One walk per journey (J1–J4), plus the checks only a browser proves: a copied cookie after sign-out, and the demo routes with demo mode off | `e2e/<journey>.spec.ts` |
 | **Evals** | promptfoo | LLM behaviour on real models: routing accuracy, refusals, tone, red-team attacks, latency | `evals/` |
-| **Mutation** | Stryker | Proves the decision-module tests catch real business bugs (§6) | `stryker.config.*` |
 
 The database is deliberately **real** (SQLite in memory), not mocked. It's fast, and mocking it would hide the very bugs we care about: a non-atomic budget update, or a missing unique constraint.
 
@@ -35,7 +34,7 @@ describe("lending/assess: auto-decision threshold", () => {
 
 - **Named as a specification**, starting with the requirement or failure ID it proves (`BR-LEND-04`, `P0-07`). That's how traceability works: search an ID, find its proof.
 - **One behaviour per test**, in Arrange → Act → Assert order.
-- **Boundaries as tables.** Every numeric rule is tested at, just below, and just above its limit with `it.each`.
+- **Boundaries as tables.** Every numeric rule is tested at its limit and just past it with `it.each`.
 - **No logic in tests:** no loops or conditionals beyond `it.each` tables.
 - **Assert outcomes, not internal calls.** The one exception is security: "the government API was **not** called" is the outcome.
 
@@ -68,8 +67,7 @@ describe("lending/assess: auto-decision threshold", () => {
 
 | Where | How | Why |
 |---|---|---|
-| **Decision modules** | **Stryker**, minimum mutation score **80%**, which breaks the build. Scope: the threshold boundary, eligibility rules, confidence, cache lifetime and stale window, daily budget and 429 block, login lockout | Here, a surviving mutant is a real business bug (`>=` → `>` on the threshold, `<` → `<=` on the 30-day lifetime) that coverage alone can't see |
-| **P0 controls outside Stryker's scope** (ownership, consent, duplicate submit, …) | **Manual mutant**: break the code on purpose, watch the test fail, revert. Recorded in the task's verification line in `tasks/todo.md` (`Mutant: inverted the ownership check → P0-04 test failed`) | These are the controls where a silently passing test would hide a security hole |
+| **P0 controls and business-rule boundaries** (threshold, eligibility, confidence, cache lifetime and stale window, budget and 429 block, lockout, ownership, consent, duplicate submit, …) | **Manual mutant**: break the code on purpose, watch the test fail, revert. Recorded in the task's verification line in `tasks/todo.md` (`Mutant: inverted the ownership check → P0-04 test failed`) | Here a silently passing test hides a security hole or a business bug (`>=` → `>` on the threshold, `<` → `<=` on the 30-day lifetime) that coverage alone can't see |
 | **Everything else** | Normal test-first red → green | Mutation ceremony on UI and glue code is slow and noisy and pins tests to implementation details |
 
 Bugs follow **Prove-It**: first a test that fails because of the bug, then the fix.
@@ -89,7 +87,7 @@ Bugs follow **Prove-It**: first a test that fails because of the bug, then the f
 
 ## 9. Coverage
 
-**No coverage gate.** Coverage rewards lines run, not behaviour proven: a line executed by a test with no meaningful assertion counts as covered. We rely instead on requirement-traced tests (§2: every test names the ID it proves), a deterministic test for every P0 (§7) and targeted mutation testing (§6), which shows the tests actually fail when the behaviour breaks.
+**No coverage gate.** Coverage rewards lines run, not behaviour proven: a line executed by a test with no meaningful assertion counts as covered. We rely instead on requirement-traced tests (§2: every test names the ID it proves), a deterministic test for every P0 (§7) and manual mutants (§6), which show the tests actually fail when the behaviour breaks.
 
 ## 10. Review
 

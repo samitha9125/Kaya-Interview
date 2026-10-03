@@ -82,7 +82,7 @@ Two screens, built with shadcn/ui.
 
 Module IDs and build order follow [`ARCHITECTURE.md`](ARCHITECTURE.md) §6. **BR** = business rule, **FR** = system requirement. Failure-case IDs (P0/P1/P2) are listed in §8.
 
-**Test-level tags:** `[U]` unit · `[M]` module (real SQLite) · `[G]` graph (scripted fake model) · `[E]` E2E · `[V]` eval · `[S]` Stryker mutation scope.
+**Test-level tags:** `[U]` unit · `[M]` module (real SQLite) · `[G]` graph (scripted fake model) · `[E]` E2E · `[V]` eval.
 
 ### 6.1 `platform`
 
@@ -102,7 +102,7 @@ Module IDs and build order follow [`ARCHITECTURE.md`](ARCHITECTURE.md) §6. **BR
 |---|---|---|---|
 | BR-AUTH-01 | Identity comes **only** from a signed-in session; the NIC comes from the customer's record | No code path reads identity from chat text or tool arguments | G, E |
 | FR-AUTH-01 | Login with customer number + password; `scrypt`; constant-time compare | Unknown user and wrong password give the **same** message | U, M |
-| BR-AUTH-02 | Lockout after **5** consecutive failures for **15 minutes**; step-up failures count too | 5th failure locks; a correct password during lockout is refused; boundary at 4/5/6 | U, S |
+| BR-AUTH-02 | Lockout after **5** consecutive failures for **15 minutes**; step-up failures count too | 5th failure locks; a correct password during lockout is refused; boundary at 4/5/6 | U |
 | FR-AUTH-02 | Server-side sessions: 256-bit random token, only its SHA-256 hash stored; cookie `__Host-session` (`HttpOnly`, `Secure`, `SameSite=Strict`) | A DB row alone can't be used as a session; cookie flags asserted | M, E |
 | FR-AUTH-03 | **15-minute** idle and **2-hour** absolute timeouts; the token rotates at login and step-up | Expired sessions are rejected; the old token is invalid after rotation | U, E |
 | FR-AUTH-04 | Logout revokes on the server | A copied cookie is rejected immediately after logout | E |
@@ -128,11 +128,11 @@ The credit-score policy. The government API itself sits behind the `CreditBureau
 
 | ID | Requirement | Acceptance | Tests |
 |---|---|---|---|
-| BR-CRED-01 | Scores are cached per customer for **30 days** (`CREDIT_CACHE_TTL_DAYS`) | Just under 30 days → cache hit, no call; at 30 days → miss | U, S |
-| BR-CRED-02 | **Stale-if-error:** when no fresh call is possible, a score up to **90 days** old may be used, marked `stale` | At 90 days → usable as stale; one ms later → not usable | U, S |
-| BR-CRED-03 | **Daily budget** = the adapter's `callsPerDay` (5), per window ending at midnight Sri Lanka time. Every attempt counts, including failures and ambiguous timeouts | 5 attempts allowed; the 6th is never sent | U, S |
-| FR-CRED-01 | Taking a budget slot is one atomic update | Two concurrent requests with one slot left → exactly one call | M, S |
-| BR-CRED-04 | **429** → store `blockedUntil` (`Retry-After`, else next window); no calls until then | | U, S |
+| BR-CRED-01 | Scores are cached per customer for **30 days** (`CREDIT_CACHE_TTL_DAYS`) | Just under 30 days → cache hit, no call; at 30 days → miss | U |
+| BR-CRED-02 | **Stale-if-error:** when no fresh call is possible, a score up to **90 days** old may be used, marked `stale` | At 90 days → usable as stale; one ms later → not usable | U |
+| BR-CRED-03 | **Daily budget** = the adapter's `callsPerDay` (5), per window ending at midnight Sri Lanka time. Every attempt counts, including failures and ambiguous timeouts | 5 attempts allowed; the 6th is never sent | U |
+| FR-CRED-01 | Taking a budget slot is one atomic update | Two concurrent requests with one slot left → exactly one call | M |
+| BR-CRED-04 | **429** → store `blockedUntil` (`Retry-After`, else next window); no calls until then | | U |
 | BR-CRED-05 | **5 s** timeout per attempt. On timeout, 5xx or network error: **1 retry** after ~1 s (±25% jitter) if budget remains, then a **15-minute cool-down** | Fake clock: retry count, delays and cool-down asserted | U |
 | BR-CRED-06 | **404** → "no credit history". Any other 4xx → failure, no retry, counted | | U |
 | FR-CRED-02 | Responses are validated: integer score 300–900, or no history | Malformed or out of range → failure, never a score | U |
@@ -144,12 +144,12 @@ The credit-score policy. The government API itself sits behind the `CreditBureau
 
 | ID | Requirement | Acceptance | Tests |
 |---|---|---|---|
-| BR-LEND-01 | **Bands:** A ≥ 750 (max LKR 3,000,000) · B 650–749 (1,500,000) · C 550–649 (500,000) · D < 550 (not eligible) | Boundary table at 549/550, 649/650, 749/750 | U, S |
-| BR-LEND-02 | **Repayment-to-income:** (existing repayments + new monthly instalment) ÷ monthly income ≤ **40%**, in basis points. The instalment uses the standard amortised formula at 14% a year | Boundary at 3,999 / 4,000 / 4,001 bp | U, S |
-| BR-LEND-03 | **Eligible** = band A–C **and** amount ≤ band maximum **and** repayment-to-income ≤ 40%. Otherwise not eligible, with one reason: `credit_profile`, `amount_above_limit` or `repayment_too_high` | Each reason reachable; the customer-facing text contains no numbers | U, S |
-| BR-LEND-04 | **Confidence** (integer basis points, 10,000 = full) is an **illustrative policy heuristic, not a measured probability**. It starts at 10,000 and loses: 2,000 if repayment-to-income is within 300 bp of the limit; 1,000 if the score is within 15 points of a band edge; 1,000 if the amount is between 90% and 100% of the band maximum (B19); 20 per day of score age after day 7 | Table-driven per factor | U, S |
-| BR-LEND-05 | **Auto-decision:** confidence ≥ `AUTO_DECISION_THRESHOLD` (default 9,500 bp) → final outcome; below → referral. Applies to eligible and not-eligible outcomes alike | 9,500 → outcome; 9,499 → referral | U, S, G |
-| BR-LEND-06 | **Hard referral rules, independent of the threshold:** a stale score, no credit history, or missing income or repayments on record | Referral even with the threshold set to 0 | U, S |
+| BR-LEND-01 | **Bands:** A ≥ 750 (max LKR 3,000,000) · B 650–749 (1,500,000) · C 550–649 (500,000) · D < 550 (not eligible) | Boundary table at 549/550, 649/650, 749/750 | U |
+| BR-LEND-02 | **Repayment-to-income:** (existing repayments + new monthly instalment) ÷ monthly income ≤ **40%**, in basis points. The instalment uses the standard amortised formula at 14% a year | Boundary at 3,999 / 4,000 / 4,001 bp | U |
+| BR-LEND-03 | **Eligible** = band A–C **and** amount ≤ band maximum **and** repayment-to-income ≤ 40%. Otherwise not eligible, with one reason: `credit_profile`, `amount_above_limit` or `repayment_too_high` | Each reason reachable; the customer-facing text contains no numbers | U |
+| BR-LEND-04 | **Confidence** (integer basis points, 10,000 = full) is an **illustrative policy heuristic, not a measured probability**. It starts at 10,000 and loses: 2,000 if repayment-to-income is within 300 bp of the limit; 1,000 if the score is within 15 points of a band edge; 1,000 if the amount is between 90% and 100% of the band maximum (B19); 20 per day of score age after day 7 | Table-driven per factor | U |
+| BR-LEND-05 | **Auto-decision:** confidence ≥ `AUTO_DECISION_THRESHOLD` (default 9,500 bp) → final outcome; below → referral. Applies to eligible and not-eligible outcomes alike | 9,500 → outcome; 9,499 → referral | U, G |
+| BR-LEND-06 | **Hard referral rules, independent of the threshold:** a stale score, no credit history, or missing income or repayments on record | Referral even with the threshold set to 0 | U |
 | BR-LEND-07 | Consent is recorded per assessment by the route handler before any score is used; the graph only receives the consent ID | No consent row → no credit check | M, G |
 | BR-LEND-08 | **One open application** (approved, or referred and awaiting an officer) per customer | A new assessment shows the existing status instead | M |
 | FR-LEND-01 | Every assessment is stored in `loan_assessments`: amount, term, outcome, reason, confidence, **threshold used**, score fetch time, stale flag | Persisted with its audit record in one transaction | M |
@@ -234,13 +234,13 @@ Severity meanings are in ARCHITECTURE §11. **Every P0 is proven by a determinis
 | P0-04 | Another customer's conversation | 404 | FR-AUTH-06 | M, E |
 | P0-05 | LLM invents an outcome | Replaced before display | FR-AGT-07, FR-AGT-10 | G |
 | P0-06 | Score, band, NIC or system prompt in a reply | Never given to the LLM; output check | BR-LEND-11, FR-AGT-09, FR-AGT-10 | G |
-| P0-07 | Outcome given below the threshold | Referral | BR-LEND-05 | U, S, G |
-| P0-08 | Stale, missing or no-history data gives a final outcome | Hard referral | BR-CRED-01, BR-CRED-02, BR-LEND-06 | U, S |
+| P0-07 | Outcome given below the threshold | Referral | BR-LEND-05 | U, G |
+| P0-08 | Stale, missing or no-history data gives a final outcome | Hard referral | BR-CRED-01, BR-CRED-02, BR-LEND-06 | U |
 | P0-09 | Double submit or replayed resume | Original result returned; single-use interrupt ID | FR-PLAT-05, BR-LEND-10, FR-AGT-06 | M, G, E |
 | P0-10 | Second open application | Existing status shown | BR-LEND-08 | M |
 | P0-11 | Malformed government response | Treated as a failure | FR-CRED-02 | U |
 | P0-12 | Submission with different amount or term, or an expired assessment | Rejected | BR-LEND-10 | M, G |
-| P0-13 | Login brute force | Lockout | BR-AUTH-02 | U, S |
+| P0-13 | Login brute force | Lockout | BR-AUTH-02 | U |
 | P0-14 | KYC NIC enumeration | Identical response | BR-ONB-02 | U, M |
 | P0-15 | Demo endpoints with `DEMO_MODE=false` | 404 | BR-SET-01 | E |
 | P0-16 | Missing or invalid security config | App refuses to start | FR-PLAT-01 | U |
@@ -248,9 +248,9 @@ Severity meanings are in ARCHITECTURE §11. **Every P0 is proven by a determinis
 | P0-18 | Pressure or impersonation changes an action or outcome | No gate skipped, no outcome changed | BR-AGT-01 | G |
 | P0-19 | Password or form data saved in graph state | References only | BR-AUTH-03, FR-ONB-02 | G, M |
 | **P1-01** | Government timeout, 5xx or network error | Retry → cool-down → stale (→ referral) → else `CHECK_UNAVAILABLE_TODAY` + callback | BR-CRED-05 | U |
-| P1-02 | Government 429 | `blockedUntil`; same fallback | BR-CRED-04 | U, S |
-| P1-03 | Daily budget used up | No call; same fallback | BR-CRED-03 | U, S |
-| P1-04 | Race for the last call | Exactly one call | FR-CRED-01 | M, S |
+| P1-02 | Government 429 | `blockedUntil`; same fallback | BR-CRED-04 | U |
+| P1-03 | Daily budget used up | No call; same fallback | BR-CRED-03 | U |
+| P1-04 | Race for the last call | Exactly one call | FR-CRED-01 | M |
 | P1-05 | Ambiguous timeout | Counted | BR-CRED-03 | U |
 | P1-06 | OpenRouter key missing, invalid or out of credit | "Assistant unavailable" + branch contact; Settings warns | FR-AGT-12, FR-SET-03 | G, E |
 | P1-07 | OpenRouter 429, 5xx or timeout | 2 retries → same message; resend works | FR-AGT-12 | G |
@@ -274,11 +274,7 @@ Severity meanings are in ARCHITECTURE §11. **Every P0 is proven by a determinis
 
 Full rules: [`TESTING_STANDARDS.md`](TESTING_STANDARDS.md).
 
-- **Stryker** (minimum score 80%, breaks the build) only where a surviving mutant is a business bug:
-  - `lending`: BR-LEND-01…06;
-  - `gov-credit`: BR-CRED-01…04, FR-CRED-01;
-  - `auth`: BR-AUTH-02.
-- **Manual mutants** for P0 controls outside that scope (ownership, consent, single-use resume, duplicate submit, references-only state), recorded in the plan.
+- **Manual mutants** for the P0 controls and the business-rule boundaries (threshold, eligibility, confidence, cache lifetime, budget, lockout, ownership, consent, single-use resume, duplicate submit, references-only state): break the code on purpose, watch the test fail, revert. Recorded in the plan.
 - **Evals** (promptfoo) are **quality targets**, run on the default models plus at least one Claude and one GPT model:
 
   | Suite | Target |
@@ -301,7 +297,7 @@ Full rules: [`TESTING_STANDARDS.md`](TESTING_STANDARDS.md).
   - urgency
   - task smuggling
   - "ignore previous instructions"
-- **No coverage gate:** coverage rewards lines run, not behaviour proven. Requirement-traced tests, deterministic P0 tests and targeted mutation testing stand in for it (TESTING_STANDARDS §9).
+- **No coverage gate:** coverage rewards lines run, not behaviour proven. Requirement-traced tests, deterministic P0 tests and manual mutants stand in for it (TESTING_STANDARDS §9).
 - **To verify early in the plan** (the reasoning-token check needs a real key, so it runs in the first live-model task):
   - `Command.PARENT` handoff from a wrapper node;
   - the SQLite checkpointer on Node 25;
@@ -309,14 +305,13 @@ Full rules: [`TESTING_STANDARDS.md`](TESTING_STANDARDS.md).
 
 ## 10. Tech stack and commands
 
-Next.js 16.3 (App Router) · React 19 · TypeScript 5.9 strict · Tailwind 4 + shadcn/ui · LangGraph.js 1.4.18 · `langchain` 1.5.15 · `@langchain/openrouter` 0.4.17 · zod 4 · SQLite + Drizzle · Vitest 5 · Playwright · promptfoo · Stryker · pnpm 10 · Node 25.
+Next.js 16.3 (App Router) · React 19 · TypeScript 5.9 strict · Tailwind 4 + shadcn/ui · LangGraph.js 1.4.18 · `langchain` 1.5.15 · `@langchain/openrouter` 0.4.17 · zod 4 · SQLite + Drizzle · Vitest 5 · Playwright · promptfoo · pnpm 10 · Node 25.
 
 ```bash
 pnpm install && pnpm db:setup   # install, migrate, seed
 pnpm dev                        # http://localhost:3000
 pnpm lint && pnpm typecheck && pnpm format:check
 pnpm test                       # unit, module and graph tests
-pnpm test:mutation              # Stryker on the decision modules
 pnpm test:e2e
 pnpm eval                       # needs OPENROUTER_API_KEY
 ```
@@ -330,13 +325,13 @@ Project structure: ARCHITECTURE §6. Code style: CODING_STANDARDS (the typed-res
 | Follow ARCHITECTURE, CODING_STANDARDS and TESTING_STANDARDS | Adding a dependency | Commit secrets, `.env` files or real personal data |
 | Write the test first for business rules; prove P0 tests can fail | Changing a business number (limits, lifetimes, threshold) | Give the LLM identity, scores, thresholds, error details or authority |
 | Validate every boundary with zod | Changing the DB schema after the first migration | Put passwords, form data or NIC-shaped text into graph state |
-| Check the live official docs for our pinned LangGraph versions | Changing CI, hooks or the Stryker scope | Let a tool accept identity arguments |
+| Check the live official docs for our pinned LangGraph versions | Changing CI or hooks | Let a tool accept identity arguments |
 | Record every considered-and-declined option in `DECISIONS.md` | Adding a port or an external system | Remove or skip a failing test to get to green |
 
 ## 12. Success criteria
 
 - [ ] Every P0 has a passing deterministic test whose name carries its ID.
-- [ ] Stryker ≥ 80% on its scope; CI green on `develop` and `main`.
+- [ ] A manual mutant on each P0 and business-rule boundary makes its test fail; CI green on `develop` and `main`.
 - [ ] Eval targets met on the default models; results for at least one Claude and one GPT model are in the README.
 - [ ] The README demo script walks J1–J4 end to end, including the referral, budget-exhausted and API-down paths.
 - [ ] ARCHITECTURE, DECISIONS, SPEC, the plan (`tasks/`), the standards and the diagrams match what was built.
