@@ -5,7 +5,8 @@ import { logger } from "@/server/platform/logger";
 import { contextOf, type NodeConfig } from "../context";
 import { modelRequestFor } from "../models";
 import type { ChatModelProvider } from "../ports";
-import { TRIAGE_PROMPT } from "../prompts/triage";
+import type { RecordAudit } from "../middleware/audit-trail";
+import { TRIAGE_PROMPT, TRIAGE_PROMPT_VERSION } from "../prompts/triage";
 import type { ConversationStateValue } from "../state";
 import { ASSISTANT_UNAVAILABLE, OTHER_TOPIC } from "../templates";
 import { fromBank } from "./endings";
@@ -43,9 +44,9 @@ async function classify(models: ChatModelProvider, modelId: string, messages: Ba
 // the label. A route sets the journey, so the next message goes straight
 // to the specialist. FR-AGT-15: a message a specialist has just handed
 // back isn't sent straight back to it; it gets the redirect instead.
-export function createTriageNode(models: ChatModelProvider) {
+export function createTriageNode(models: ChatModelProvider, record: RecordAudit) {
   return async (state: ConversationStateValue, config: NodeConfig) => {
-    const { models: selection, correlationId } = contextOf(config);
+    const { models: selection, correlationId, conversationId } = contextOf(config);
     let route: Route;
     try {
       route = await classify(models, selection.triage, state.messages);
@@ -54,6 +55,16 @@ export function createTriageNode(models: ChatModelProvider) {
       logger.error("triage failed", { correlationId, error });
       return new Command({ goto: END, update: { messages: [fromBank(ASSISTANT_UNAVAILABLE)] } });
     }
+    // ARCHITECTURE §12: triage's one reply is its route.
+    record({
+      type: "agent.reply",
+      correlationId,
+      conversationId,
+      actor: "agent:triage",
+      model: selection.triage,
+      promptVersion: TRIAGE_PROMPT_VERSION,
+      payload: { role: "triage", route },
+    });
     const update = { handedBackFrom: null };
     if (route === state.handedBackFrom || route === "other") {
       return new Command({ goto: END, update: { ...update, messages: [fromBank(OTHER_TOPIC)] } });

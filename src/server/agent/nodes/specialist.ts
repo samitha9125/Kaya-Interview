@@ -18,6 +18,7 @@ import { findNics } from "@/server/platform/pii";
 import { logger } from "@/server/platform/logger";
 import { contextOf, type NodeConfig } from "../context";
 import { CALL_LIMITS, turnLimits } from "../limits";
+import { auditTrail, type RecordAudit } from "../middleware/audit-trail";
 import { situationLabels } from "../middleware/situation-labels";
 import { modelRequestFor } from "../models";
 import type { ChatModelProvider } from "../ports";
@@ -32,6 +33,7 @@ export type Specialist = {
   role: Exclude<AgentRole, "triage">;
   tools: StructuredTool[];
   systemPrompt: string;
+  promptVersion: string;
   // Shown to the LLM when its tool arguments are refused (FR-AGT-02).
   invalidInputHint: string;
 };
@@ -120,20 +122,31 @@ export function createSpecialistNode(
   specialist: Specialist,
   models: ChatModelProvider,
   retry: ModelRetryOptions,
+  record: RecordAudit,
 ) {
   const tools: StructuredTool[] = [...specialist.tools, handBackTool(specialist.role)];
   return async (state: ConversationStateValue, config: NodeConfig) => {
-    const { models: selection, correlationId } = contextOf(config);
+    const { models: selection, correlationId, conversationId } = contextOf(config);
+    const model = selection[specialist.role];
     const limits = turnLimits(state.messages);
     if (limits.modelCalls <= 0 || limits.toolCalls <= 0) {
       return { messages: [fromBank(LIMIT_REACHED)] };
     }
     try {
       const agent = createAgent({
-        model: models.chatModel(modelRequestFor(specialist.role, selection[specialist.role])),
+        model: models.chatModel(modelRequestFor(specialist.role, model)),
         tools,
         systemPrompt: specialist.systemPrompt,
-        middleware: middlewareFor(limits, retry, specialist.invalidInputHint),
+        middleware: [
+          auditTrail(record, {
+            role: specialist.role,
+            model,
+            promptVersion: specialist.promptVersion,
+            correlationId,
+            conversationId,
+          }),
+          ...middlewareFor(limits, retry, specialist.invalidInputHint),
+        ],
       });
       const result = await agent.invoke(
         { messages: state.messages },

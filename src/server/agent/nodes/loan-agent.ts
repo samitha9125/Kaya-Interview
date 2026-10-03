@@ -1,7 +1,8 @@
 import { tool, type ToolRuntime } from "langchain";
 import { LoanTerms, PRODUCT } from "@/server/modules/lending";
 import type { ChatModelProvider } from "../ports";
-import { LOAN_PROMPT } from "../prompts/loan";
+import type { RecordAudit } from "../middleware/audit-trail";
+import { LOAN_PROMPT, LOAN_PROMPT_VERSION } from "../prompts/loan";
 import type { ConversationStateValue } from "../state";
 import { createSpecialistNode, handOff, type ModelRetryOptions } from "./specialist";
 
@@ -32,15 +33,21 @@ const INVALID_TERMS_HINT = `The amount must be a whole number of rupees from LKR
 
 // FR-AGT-02: the loan specialist collects the terms and asks for an
 // assessment; everything after that is code.
-export function createLoanAgentNode(models: ChatModelProvider, retry: ModelRetryOptions) {
+export function createLoanAgentNode(
+  models: ChatModelProvider,
+  retry: ModelRetryOptions,
+  record: RecordAudit,
+) {
   return createSpecialistNode(
     {
       role: "loan",
       tools: [requestAssessment],
       systemPrompt: LOAN_PROMPT,
+      promptVersion: LOAN_PROMPT_VERSION,
       invalidInputHint: INVALID_TERMS_HINT,
     },
     models,
     retry,
+    record,
   );
 }

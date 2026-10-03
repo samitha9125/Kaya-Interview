@@ -11,6 +11,7 @@ import {
   testContext,
 } from "@/test/graph";
 import { lendingTestSetup, TERMS } from "@/test/lending-setup";
+import { LOAN_PROMPT_VERSION } from "./prompts/loan";
 import { NEEDS_SIGN_IN } from "./templates";
 
 // A model that asks for an assessment straight away, every time: the
@@ -97,5 +98,33 @@ describe("agent/loan flow: fixed order (FR-AGT-05, P0-03)", () => {
       .pluck()
       .all();
     expect(customers).toEqual(["customer-a"]);
+  });
+});
+
+describe("agent/loan flow: the audit trail (ARCHITECTURE §12)", () => {
+  it("FR-PLAT-03: a model reply and its tool call are audited with the model and prompt version, not the text", async () => {
+    const { graph, lending } = setup();
+
+    await sendMessage(graph, "t1", "Please check 500,000 over 36 months");
+
+    const rows = lending.handle.sqlite
+      .prepare(
+        "SELECT type, model, prompt_version AS promptVersion, payload FROM audit_events WHERE type LIKE 'agent.%' ORDER BY at, id",
+      )
+      .all();
+    expect(rows).toEqual([
+      {
+        type: "agent.reply",
+        model: "z-ai/glm-5.3-flash",
+        promptVersion: LOAN_PROMPT_VERSION,
+        payload: JSON.stringify({ role: "loan", toolCalls: ["request_assessment"] }),
+      },
+      {
+        type: "agent.tool_call",
+        model: null,
+        promptVersion: null,
+        payload: JSON.stringify({ role: "loan", tool: "request_assessment", label: "HANDED_OFF" }),
+      },
+    ]);
   });
 });

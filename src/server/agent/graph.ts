@@ -2,6 +2,7 @@ import { END, START, StateGraph, type BaseCheckpointSaver } from "@langchain/lan
 import { AIMessage } from "langchain";
 import { ConversationContext, type ConversationContextValue } from "./context";
 import { CALL_LIMITS } from "./limits";
+import type { RecordAudit } from "./middleware/audit-trail";
 import type { OnboardingDeps } from "@/server/modules/onboarding";
 import type { CallbackDeps } from "./callbacks/requests";
 import { callbackFormNode, callbackNode } from "./nodes/callback";
@@ -52,14 +53,17 @@ function routeAfterSpecialist(state: ConversationStateValue) {
 // ARCHITECTURE §7. Triage and the specialists are LLMs; every other node is
 // code, and each routes itself with a Command.
 export function buildConversationGraph(deps: GraphDeps) {
+  const { db, audit } = deps.lending;
+  const record: RecordAudit = (event) => audit.record(db, event);
+  const retry = deps.modelRetry ?? MODEL_RETRY;
   return new StateGraph(ConversationState, ConversationContext)
-    .addNode("triage", createTriageNode(deps.models), {
+    .addNode("triage", createTriageNode(deps.models, record), {
       ends: ["loan_agent", "kyc_agent", "callback", END],
     })
-    .addNode("loan_agent", createLoanAgentNode(deps.models, deps.modelRetry ?? MODEL_RETRY), {
+    .addNode("loan_agent", createLoanAgentNode(deps.models, retry, record), {
       ends: ["loan_gate", "triage"],
     })
-    .addNode("kyc_agent", createKycAgentNode(deps.models, deps.modelRetry ?? MODEL_RETRY), {
+    .addNode("kyc_agent", createKycAgentNode(deps.models, retry, record), {
       ends: ["kyc_form", "triage"],
     })
     .addNode("validate_reply", validateReplyNode)

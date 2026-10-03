@@ -1,7 +1,8 @@
 import { tool, type ToolRuntime } from "langchain";
 import { z } from "zod";
 import type { ChatModelProvider } from "../ports";
-import { KYC_PROMPT } from "../prompts/kyc";
+import type { RecordAudit } from "../middleware/audit-trail";
+import { KYC_PROMPT, KYC_PROMPT_VERSION } from "../prompts/kyc";
 import type { ConversationStateValue } from "../state";
 import { createSpecialistNode, handOff, type ModelRetryOptions } from "./specialist";
 
@@ -21,15 +22,21 @@ export const startAccountOpening = tool(
   },
 );
 
-export function createKycAgentNode(models: ChatModelProvider, retry: ModelRetryOptions) {
+export function createKycAgentNode(
+  models: ChatModelProvider,
+  retry: ModelRetryOptions,
+  record: RecordAudit,
+) {
   return createSpecialistNode(
     {
       role: "kyc",
       tools: [startAccountOpening],
       systemPrompt: KYC_PROMPT,
+      promptVersion: KYC_PROMPT_VERSION,
       invalidInputHint: "start_account_opening takes no arguments.",
     },
     models,
     retry,
+    record,
   );
 }
