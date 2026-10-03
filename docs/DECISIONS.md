@@ -244,6 +244,17 @@ Each dependency added during the build gets one line here.
 |---|---|---|
 | A PR per task, squash-merged · **a branch per task, merged into `develop` with `--no-ff`** | Branch + `--no-ff` merge, permanently (the user's call at Checkpoint A) | One developer and no second reviewer, so a PR would be ceremony. `--no-ff` keeps each task one visible unit in the history while keeping its atomic commits, which a squash would flatten. commitlint checks every commit in the `commit-msg` hook, so the CI PR-title job and the PR template went. Cost: no PR page to review a task on; the merge commit and `tasks/todo.md` stand in for it |
 
+### TD22. The request pipeline
+
+| Topic | Options | Choice | Trade-off |
+|---|---|---|---|
+| Where the checks live | Each route checks for itself · **one `handleRoute` every state-changing route goes through** | One pipeline | Origin, rate limit, session, body and idempotency key run in a fixed order, so no route can forget one. Ownership and the turn lock are a second wrapper for routes that run a turn |
+| NIC typed in chat | Refuse the message · **replace it with `[NIC removed]` and carry on** | Replace | The customer isn't blocked for an honest mistake, and the model can explain that it doesn't need a NIC. Detection allows spaces and dashes, and is shared with the logger's redaction |
+| Replayed idempotency key | Return the original response · **409** | 409 | A chat turn streams, so there's no single response to replay. A resend is a new key, so a genuine retry still works |
+| Which error text may reach the browser | Zod's messages · **only the messages of fields a person typed** | Typed fields only | Schema messages for typed fields are written for people; anything else failing is a client bug and gets the generic template |
+| Caller IP for rate limits | The socket address · **the first `X-Forwarded-For` entry** | `X-Forwarded-For` | Route handlers don't see the socket, and the reverse proxy (ARCHITECTURE §12) sets the header. Without that proxy the header could be forged, so it's trusted only in that deployment |
+| CSP | Static headers in `next.config` · **a per-request nonce set in Next.js Proxy** | Nonce | The Next.js CSP guide's approach: the framework's inline scripts run without `'unsafe-inline'`. Costs dynamic rendering for pages. `upgrade-insecure-requests` is left out: HSTS covers production and it would break plain-HTTP localhost tests |
+
 ## 3. Deferred: right idea, wrong time
 
 | ID | Item | Why not now | When / how to add |
