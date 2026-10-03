@@ -179,6 +179,8 @@ The same loan traffic on Claude Haiku ($1 / $5) would cost ≈ $47 a month on it
 |---|---|---|
 | A message collector node that merges rapid messages · **one turn at a time** (the UI locks input; the server rejects a concurrent turn with 409) | One turn at a time | A collector adds a wait to every turn, so everything feels slower (D11). A customer who sends two quick messages has to wait for the reply to the first |
 
+**A pending pause counts as an unfinished turn** (the user's call at Checkpoint A). The T4 spike showed that a chat message sent while an `interrupt()` is pending starts a new run from START and silently drops the pause (documented LangGraph behaviour). Options were: let the message through and drop the pause · resume the pause with the chat text · **refuse the message with 409 and keep input locked until the pause is answered through its card**. Dropping it loses the customer's place without telling them; resuming with chat text breaks the references-only rule (TD11). Cost: a customer who wants to move on has to answer the card first (declining is an answer)
+
 ### TD15. Audit log separate from checkpoints
 
 | Options | Choice | Trade-off |

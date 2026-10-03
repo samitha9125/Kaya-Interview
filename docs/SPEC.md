@@ -195,7 +195,7 @@ The credit-score policy. The government API itself sits behind the `CreditBureau
 |---|---|---|---|
 | FR-WEB-01 | Every state-changing route checks the `Origin` header, session, zod body, idempotency key and conversation ownership | Missing or foreign origin → 403 | U, E |
 | FR-WEB-02 | Chat messages ≤ 1,000 characters; per-IP limit of 20 chat requests per minute | 1,001 characters → rejected with a human message; 21st request → "slow down" | U |
-| FR-WEB-03 | One turn at a time per conversation | A concurrent turn → 409; the UI locks input during a turn | M, E |
+| FR-WEB-03 | One turn at a time per conversation. While a pause is pending, the conversation waits for its answer: a chat message is refused until the pause is answered through its card | A concurrent turn → 409; a chat message while a pause is pending → 409 and the pause is kept; the UI locks input during a turn and while a pause is pending | M, E |
 | FR-WEB-04 | Server-sent events: `typing`, `progress`, `message` (whole, validated), `interrupt`, `error` (message + reference), `done` | | E |
 | FR-WEB-05 | Raw errors never reach the browser. Hard failures show: *"Something went wrong on our side. Reference: K7Q2. You can give this to our support team if they ask."* The reference is the correlation-ID prefix | | U, E |
 | FR-WEB-06 | Security headers: CSP (`default-src 'self'`), `frame-ancestors 'none'`, `nosniff`, `Referrer-Policy: no-referrer`; HSTS in production | Asserted on responses | E |
@@ -261,7 +261,7 @@ Severity meanings are in ARCHITECTURE §11. **Every P0 is proven by a determinis
 | P1-12 | Oversized or spammy input | Rejected / rate-limited | FR-WEB-02 | U |
 | P1-13 | Checkpoint write fails after a side effect | Retry returns the earlier result | FR-AGT-13 | G, M |
 | P1-14 | Off-topic tasks or task smuggling | Polite redirect, no tool calls | BR-AGT-01 | G, V |
-| P1-15 | Second message during a turn | 409; input locked | FR-WEB-03 | M, E |
+| P1-15 | Second message during a turn, or a chat message while a pause is pending | 409; input locked until the turn ends or the pause is answered; the pause is kept | FR-WEB-03 | M, E |
 | **P2-01** | Triage misroutes | Specialist hands back | FR-AGT-15 | G |
 | P2-02 | Topic change mid-journey | Back to triage; progress kept | FR-AGT-15 | G |
 | P2-03 | A pause is abandoned | Resumes on return (within session limits) | FR-AGT-06 | G |

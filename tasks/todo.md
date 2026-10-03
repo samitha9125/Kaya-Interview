@@ -77,7 +77,7 @@ The checklist for [`plan.md`](plan.md). Tick a task when its acceptance and veri
   *Accept:* only tool-capable models listed; key status without the value. *Verify:* `pnpm test`; one live smoke call per default model. *Deps:* T4.
 
 - [ ] **T14a · Loan flow (deterministic part)** (M). Step-up / consent / confirm pauses resolved by the route handler (references only), credit node with retry/timeout/errorHandler, decide routing, endings and templates (BR-AUTH-01, BR-AUTH-03, FR-AGT-05/06/13, BR-LEND-09/10 wiring).
-  *Accept:* graph tests for P0-01, P0-03, P0-09, P0-19 with an adversarial fake model; a step-up older than 5 minutes re-prompts and a failed step-up counts toward lockout; nothing can force a fetch while a fresh cache entry exists (BR-CRED-07). *Verify:* `pnpm test`; manual mutants: let the model's tool call bypass consent → P0-03 fails; accept a used interrupt ID → P0-09 fails; write the raw password into state → P0-19 fails. *Deps:* T7b, T12, T13.
+  *Accept:* graph tests for P0-01, P0-03, P0-09, P0-19 with an adversarial fake model; a step-up older than 5 minutes re-prompts and a failed step-up counts toward lockout; a chat message while a pause is pending → 409 and the pause is kept (P1-15); nothing can force a fetch while a fresh cache entry exists (BR-CRED-07). *Verify:* `pnpm test`; manual mutants: let the model's tool call bypass consent → P0-03 fails; accept a used interrupt ID → P0-09 fails; write the raw password into state → P0-19 fails. *Deps:* T7b, T12, T13.
 
 - [ ] **T14b · Loan agent** (M). Loan agent prompt and tone guide, `request_assessment` (no identity arguments), situation-label middleware (FR-AGT-02/04/08).
   *Accept:* P1-09; tool schemas contain no identity fields; each failure reason maps to its label. *Verify:* `pnpm test`. *Deps:* T14a.
@@ -86,7 +86,7 @@ The checklist for [`plan.md`](plan.md). Tick a task when its acceptance and veri
   *Accept:* graph tests for P0-05, P0-06, P0-18; P1-06/07/10. *Verify:* `pnpm test`. *Deps:* T14b.
 
 - [ ] **T15 · Chat transport and loan UI** (M). Server-sent events (typing, progress, message, interrupt, error, done; FR-WEB-04), starter buttons, step-up / consent / confirm cards, reference code display.
-  *Accept:* J1 E2E: eligible → approved, not eligible, referral, unavailable today; input locked during a turn (P1-15); reload restores the conversation (P1-11); keyboard-only and labelled inputs (FR-WEB-07). *Verify:* `pnpm test:e2e`. *Deps:* T7b, T14c.
+  *Accept:* J1 E2E: eligible → approved, not eligible, referral, unavailable today; input locked during a turn and while a pause is pending (P1-15); reload restores the conversation (P1-11); keyboard-only and labelled inputs (FR-WEB-07). *Verify:* `pnpm test:e2e`. *Deps:* T7b, T14c.
 
 ### Checkpoint D: J1 works end to end. Review with the user.
 
