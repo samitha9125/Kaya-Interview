@@ -275,6 +275,17 @@ Each dependency added during the build gets one line here.
 | Parallel first checks for one customer | Merge in-flight requests · **let them both call** | Both call (D3) | Two tabs at once is rare at this scale; the worst case is one extra call, and the budget still caps the total |
 | No NIC on the record | Throw · **`unavailable`, with no call** | `unavailable` | Shouldn't happen for a seeded customer, and the customer still gets the honest fallback |
 
+### TD25. Chat transport and browser tests
+
+| Topic | Options | Choice | Trade-off |
+|---|---|---|---|
+| Transport | WebSocket · `EventSource` · **SSE read from the `fetch` response of the POST** | SSE over the POST | One-way events are all a turn needs, and the POST carries the body and its idempotency key, which `EventSource` can't send. No socket server to run |
+| A refused turn | An `error` event inside the stream · **an HTTP status before any stream starts** | HTTP status | Origin, session, ownership, a running turn and a pending card answer exactly as before (403, 401, 404, 409), so FR-WEB-03's 409 stays testable without reading a stream |
+| When replies are sent | As each node writes them · **after the run, read back from the checkpoint** | After the run | Only validated text can be sent (FR-AGT-10), and a reload reads the same transcript. Typing and progress (LangGraph's `custom` stream) cover the wait |
+| A dropped connection | Cancel the run · **let it finish** | Finish | Its side effects happen once, the turn lock is released when it ends, and a reload shows the result (P1-11) |
+| What a reload restores | A conversation ID in the URL or browser storage · **the latest conversation started since this sign-in** | Since this sign-in | Nothing to keep in the browser or leak in a URL; the session ID already survives the step-up rotation. A new sign-in starts with an empty chat |
+| A model for E2E without a key | A real key in CI · recorded responses · **a scripted provider that plays the loan agent by rule** | Scripted (`CHAT_MODEL_PROVIDER=scripted`) | Browser tests run the real graph, gates and templates on every machine and cost nothing; the model's own behaviour is the evals' job. It is a `ChatModelProvider` adapter built on LangChain's `fakeModel`, so nothing else changes. The app refuses to start with it unless `DEMO_MODE=true`, so it can't replace a real model by accident |
+
 ## 3. Deferred: right idea, wrong time
 
 | ID | Item | Why not now | When / how to add |

@@ -119,7 +119,7 @@ flowchart LR
 | `createAgent` middleware | Call limits, model retry, personal-data redaction, tool failure → situation label |
 | Node `retryPolicy` / `timeout` / `errorHandler` | The credit-check node |
 | SQLite checkpointer, `durability: "sync"` | Conversations survive restarts; a replayed step is safe because its side effects are idempotent |
-| `stream()` with `updates` and `custom` | Typing and progress events. LLM replies are buffered, validated, then sent whole |
+| `stream()` with `custom` | Progress events written by code nodes through `config.writer`. LLM replies are buffered, validated, then read back from the checkpoint and sent whole (TD25) |
 | `validate_reply` node | After a specialist's text reply: decision wording with no decision in state is replaced by the template, keeping the message ID so the reducer swaps it in place |
 
 ## 8. Request lifecycle

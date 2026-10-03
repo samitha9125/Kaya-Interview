@@ -38,6 +38,10 @@ export const CANT_SHARE =
 export const CANT_COMPLETE =
   "Something went wrong on our side and I couldn't finish this. Please try again, or I can arrange a call from our team.";
 
+// FR-WEB-04: shown while code works on a step that can take a moment.
+export const CHECKING_CREDIT = "Checking your credit record…";
+export const SUBMITTING = "Submitting your application…";
+
 const NOT_ELIGIBLE_REASON: Record<IneligibleReason, string> = {
   credit_profile: "based on your credit record, we can't offer this loan right now.",
   amount_above_limit: "this amount is more than we can offer you right now.",

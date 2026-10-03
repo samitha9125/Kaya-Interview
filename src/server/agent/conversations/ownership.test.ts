@@ -1,16 +1,24 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import type { Session } from "@/server/modules/auth";
 import { DEFAULT_MODELS } from "@/server/modules/settings";
 import type { DatabaseHandle } from "@/server/platform/db";
 import { createTestDatabase } from "@/test/database";
 import { fixedClock, sequentialIds } from "@/test/fakes";
-import { findOwnedConversation, startConversation, type ConversationDeps } from "./ownership";
+import {
+  findCurrentConversation,
+  findOwnedConversation,
+  startConversation,
+  type ConversationDeps,
+} from "./ownership";
+import { aSession } from "@/test/builders/session";
 
-const customerA: Session = { id: "session-a1", customerId: "customer-a", stepUpAt: null };
-const customerAOtherTab: Session = { id: "session-a2", customerId: "customer-a", stepUpAt: null };
-const customerB: Session = { id: "session-b", customerId: "customer-b", stepUpAt: null };
-const guest: Session = { id: "session-g1", customerId: null, stepUpAt: null };
-const otherGuest: Session = { id: "session-g2", customerId: null, stepUpAt: null };
+const customerA = aSession({ id: "session-a1", customerId: "customer-a" });
+const customerAOtherTab = aSession({ id: "session-a2", customerId: "customer-a" });
+const customerB = aSession({ id: "session-b", customerId: "customer-b" });
+const guest = aSession({ id: "session-g1", customerId: null });
+const otherGuest = aSession({ id: "session-g2", customerId: null });
+
+// Sessions in this file started at 09:00 (aSession).
+const withClockAt = (iso: string): ConversationDeps => ({ ...deps, clock: fixedClock(iso) });
 
 let handle: DatabaseHandle;
 let deps: ConversationDeps;
@@ -51,5 +59,30 @@ describe("agent/conversations: ownership (FR-AUTH-06)", () => {
 
   it("P0-04: an invented conversation ID is not found", () => {
     expect(findOwnedConversation("no-such-conversation", customerA, deps)).toBeUndefined();
+  });
+});
+
+describe("agent/conversations: the conversation a reload restores (P1-11)", () => {
+  it("P1-11: a reload finds the latest conversation this sign-in started", () => {
+    startConversation(customerA, DEFAULT_MODELS, withClockAt("2026-10-03T09:10:00.000Z"));
+    const latest = startConversation(
+      customerA,
+      DEFAULT_MODELS,
+      withClockAt("2026-10-03T09:20:00.000Z"),
+    );
+
+    expect(findCurrentConversation(customerA, deps)?.id).toBe(latest);
+  });
+
+  it("P1-11: a new sign-in starts fresh, without the last sign-in's conversation", () => {
+    startConversation(customerA, DEFAULT_MODELS, withClockAt("2026-10-03T08:30:00.000Z"));
+
+    expect(findCurrentConversation(customerA, deps)).toBeUndefined();
+  });
+
+  it("P0-04: another customer's conversation is never restored", () => {
+    startConversation(customerB, DEFAULT_MODELS, withClockAt("2026-10-03T09:30:00.000Z"));
+
+    expect(findCurrentConversation(customerA, deps)).toBeUndefined();
   });
 });

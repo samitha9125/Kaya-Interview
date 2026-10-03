@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import type { Session } from "@/server/modules/auth";
 import { chooseModel, currentModels, DEFAULT_MODELS } from "@/server/modules/settings";
 import { createAuditLog } from "@/server/platform/audit";
 import { createTestDatabase } from "@/test/database";
 import { fixedClock, sequentialIds } from "@/test/fakes";
 import { findOwnedConversation, startConversation } from "./ownership";
+import { aSession } from "@/test/builders/session";
 
-const customer: Session = { id: "session-a", customerId: "customer-a", stepUpAt: null };
+const customer = aSession({ id: "session-a", customerId: "customer-a" });
 const NEW_MODEL = "anthropic/claude-haiku";
 
 describe("agent/conversations: models are fixed when a conversation starts", () => {

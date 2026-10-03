@@ -22,6 +22,8 @@ rather than generated from commits. The format follows
 - Every page and API response carries security headers: a nonce-based Content Security Policy that forbids framing, `nosniff`, no referrer, and HSTS in production.
 - Loan assessments are recorded with the customer's consent, outcome, confidence and the threshold used; a referral creates an application for a loan officer, and a customer can have only one open application. `pnpm db:setup` also gives each demo customer a government credit record designed for one demo ending, and C1005 starts with an open application.
 
+- The chat runs the loan journey: a "Check a loan" button, replies that appear whole after they're checked, a typing or progress line while the bank works, and secure cards to re-enter the password, give consent and confirm the application. The chat input is locked while the assistant works or a card is waiting, and reloading the page brings the conversation back where it was.
+
 ### Changed
 
 - A loan amount over the customer's band maximum, with otherwise clear data, is a final "not eligible" instead of a referral to an officer. Demo customer C1009 shows it.

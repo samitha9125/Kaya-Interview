@@ -1,14 +1,15 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { startConversation, type ConversationDeps } from "@/server/agent/conversations/ownership";
-import type { Session } from "@/server/modules/auth";
 import { DEFAULT_MODELS } from "@/server/modules/settings";
 import { createTestDatabase } from "@/test/database";
 import { fixedClock, sequentialIds } from "@/test/fakes";
 import { withConversationTurn } from "./conversation-turn";
 import { createTurnLock, type TurnLock } from "./turn-lock";
+import type { Session } from "@/server/modules/auth";
+import { aSession } from "@/test/builders/session";
 
-const owner: Session = { id: "session-a", customerId: "customer-a", stepUpAt: null };
-const stranger: Session = { id: "session-b", customerId: "customer-b", stepUpAt: null };
+const owner = aSession({ id: "session-a", customerId: "customer-a" });
+const stranger = aSession({ id: "session-b", customerId: "customer-b" });
 
 let deps: ConversationDeps & { turnLock: TurnLock };
 let conversationId: string;
@@ -25,7 +26,7 @@ beforeEach(() => {
 });
 
 const ok = async () => Response.json({ ok: true });
-const turnFor = (session: Session, turn = ok) =>
+const turnFor = (session: Session, turn: Parameters<typeof withConversationTurn>[2] = ok) =>
   withConversationTurn({ conversationId, session, correlationId: "K7Q2XXXXXXXXXXXX" }, deps, turn);
 
 // A turn that keeps running until the test lets it finish.
@@ -65,5 +66,20 @@ describe("harness/conversation-turn: ownership and one turn at a time", () => {
     await turnFor(owner, () => Promise.reject(new Error("model down"))).catch(() => undefined);
 
     expect((await turnFor(owner)).status).toBe(200);
+  });
+
+  it("P1-15: a streamed turn keeps the lock after its handler returns, until it releases it", async () => {
+    let releaseStream = () => {};
+    await turnFor(owner, async (_conversation, keepLock) => {
+      releaseStream = keepLock();
+      return Response.json({ ok: true });
+    });
+
+    const whileStreaming = await turnFor(owner);
+    releaseStream();
+    const afterwards = await turnFor(owner);
+
+    expect(whileStreaming.status).toBe(409);
+    expect(afterwards.status).toBe(200);
   });
 });

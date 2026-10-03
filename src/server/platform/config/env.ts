@@ -18,7 +18,7 @@ const isTlsOrLocal = (value: string) => {
   return url.protocol === "https:" || (url.protocol === "http:" && LOCAL_HOSTS.has(url.hostname));
 };
 
-const ConfigSchema = z.object({
+const EnvFields = z.object({
   APP_ENCRYPTION_KEY: z
     .string({ error: "missing" })
     .regex(BASE64_32_BYTES, { error: "must be 32 bytes, base64-encoded" })
@@ -62,7 +62,25 @@ const ConfigSchema = z.object({
       .refine(isTlsOrLocal, { error: "must use https (plain http only to localhost)" })
       .default("http://localhost:3000/api/mock-gov"),
   ),
+  // "scripted" plays the loan agent by rule, for browser tests without a
+  // model key (TD25).
+  CHAT_MODEL_PROVIDER: z.preprocess(
+    unsetIfEmpty,
+    z
+      .enum(["openrouter", "scripted"], { error: "must be openrouter or scripted" })
+      .default("openrouter"),
+  ),
 });
+
+// The scripted model can't stand in for a real one by accident: it starts
+// only in demo mode.
+const ConfigSchema = EnvFields.refine(
+  (config) => config.CHAT_MODEL_PROVIDER !== "scripted" || config.DEMO_MODE,
+  {
+    path: ["CHAT_MODEL_PROVIDER"],
+    error: "scripted is for tests and demos: it needs DEMO_MODE=true",
+  },
+);
 
 export type AppConfig = z.infer<typeof ConfigSchema>;
 

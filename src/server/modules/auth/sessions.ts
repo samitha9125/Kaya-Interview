@@ -12,7 +12,12 @@ import { sessions } from "./schema";
 
 export type SessionDeps = { db: AppDatabase; audit: AuditLog; clock: Clock; ids: IdGenerator };
 
-export type Session = { id: string; customerId: string | null; stepUpAt: Date | null };
+export type Session = {
+  id: string;
+  customerId: string | null;
+  stepUpAt: Date | null;
+  startedAt: Date;
+};
 
 export type SessionResult =
   { ok: true; session: Session } | { ok: false; reason: "invalid" | "expired" };
@@ -35,10 +40,16 @@ export function startSession(
 ): { token: string; session: Session } {
   const token = generateToken();
   const now = deps.clock.now();
-  const session: Session = { id: deps.ids.newId(), customerId, stepUpAt: null };
+  const session: Session = { id: deps.ids.newId(), customerId, stepUpAt: null, startedAt: now };
   deps.db
     .insert(sessions)
-    .values({ ...session, tokenHash: hashToken(token), createdAt: now, lastSeenAt: now })
+    .values({
+      id: session.id,
+      customerId,
+      tokenHash: hashToken(token),
+      createdAt: now,
+      lastSeenAt: now,
+    })
     .run();
   deps.audit.record(deps.db, {
     type: customerId ? "auth.session_started" : "auth.guest_session_started",
@@ -55,7 +66,8 @@ export function resolveSession(token: string, deps: SessionDeps): SessionResult 
   const now = deps.clock.now();
   if (!isSessionActive(row, now, SESSION_POLICY)) return { ok: false, reason: "expired" };
   deps.db.update(sessions).set({ lastSeenAt: now }).where(eq(sessions.id, row.id)).run();
-  return { ok: true, session: { id: row.id, customerId: row.customerId, stepUpAt: row.stepUpAt } };
+  const { id, customerId, stepUpAt, createdAt: startedAt } = row;
+  return { ok: true, session: { id, customerId, stepUpAt, startedAt } };
 }
 
 // FR-AUTH-04: revoked on the server, so a copied cookie stops working

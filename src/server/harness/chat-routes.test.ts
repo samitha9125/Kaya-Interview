@@ -11,6 +11,7 @@ import { createRateLimiter } from "@/server/platform/rate-limit";
 import { aCustomer, CUSTOMER_PASSWORD } from "@/test/builders/customer";
 import { CUSTOMER_NIC } from "@/test/credit-setup";
 import { createTestDatabase } from "@/test/database";
+import { readEvents } from "@/test/sse";
 import { aScore, scriptedBureau } from "@/test/fake-bureau";
 import { movableClock, sequentialIds, TEST_ENCRYPTION_KEY } from "@/test/fakes";
 import { ASSESSMENT_CALL, buildTestGraph } from "@/test/graph";
@@ -89,9 +90,24 @@ function post(body: Record<string, unknown>) {
   });
 }
 
+// The streamed turn, gathered into what the customer ends up seeing.
+async function turnOf(response: Response): Promise<Turn> {
+  if (!response.ok) return { conversationId: "", messages: [], pause: null };
+  const events = await readEvents(response.clone());
+  const done = events.find((event) => event.type === "done");
+  const pause = events.find((event) => event.type === "interrupt");
+  return {
+    conversationId: String(done?.data.conversationId),
+    messages: events
+      .filter((event) => event.type === "message")
+      .map((event) => ({ text: String(event.data.text) })),
+    pause: (pause?.data.pause as Turn["pause"] | undefined) ?? null,
+  };
+}
+
 async function chat(message: string, conversationId?: string) {
   const response = await postChatMessage(post({ message, conversationId }), deps);
-  return { response, turn: (await response.clone().json()) as Turn };
+  return { response, turn: await turnOf(response) };
 }
 
 async function answer(turn: Turn, reply: Record<string, unknown>) {
@@ -99,7 +115,7 @@ async function answer(turn: Turn, reply: Record<string, unknown>) {
   const response = await postResume(post({ ...body, answer: reply }), deps);
   const setCookie = /__Host-session=([^;]*)/.exec(response.headers.get("set-cookie") ?? "");
   if (setCookie?.[1]) token = setCookie[1];
-  return { response, turn: (await response.clone().json()) as Turn };
+  return { response, turn: await turnOf(response) };
 }
 
 // Every row of every table as text: what a reader of the database file

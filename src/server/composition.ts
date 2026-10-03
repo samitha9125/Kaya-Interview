@@ -3,6 +3,7 @@ import { setTimeout as sleep } from "node:timers/promises";
 import { HttpGovBureau } from "@/server/adapters/http-gov-bureau";
 import { OpenRouterCatalog } from "@/server/adapters/openrouter-catalog";
 import { OpenRouterProvider } from "@/server/adapters/openrouter-provider";
+import { ScriptedChatProvider } from "@/server/adapters/scripted-chat-provider";
 import { createCheckpointer } from "@/server/agent/checkpointer";
 import { buildConversationGraph } from "@/server/agent/graph";
 import {
@@ -56,7 +57,13 @@ function createApp(config: AppConfig) {
     thresholdBp: config.AUTO_DECISION_THRESHOLD,
     loadBankRecord: (customerId) => findBankRecord(db, customerId),
   };
-  const models = new OpenRouterProvider({ apiKey: config.OPENROUTER_API_KEY });
+  const models =
+    config.CHAT_MODEL_PROVIDER === "scripted"
+      ? new ScriptedChatProvider()
+      : new OpenRouterProvider({ apiKey: config.OPENROUTER_API_KEY });
+  if (config.CHAT_MODEL_PROVIDER === "scripted") {
+    logger.warn("the scripted chat model is in use; replies are rule-played (TD25)");
+  }
   const graph = buildConversationGraph({
     models,
     lending,

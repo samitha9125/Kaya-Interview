@@ -1,3 +1,4 @@
+import { Command } from "@langchain/langgraph";
 import { HumanMessage } from "langchain";
 import { z } from "zod";
 import type { ConversationContextValue } from "@/server/agent/context";
@@ -6,8 +7,8 @@ import {
   type Conversation,
   type ConversationDeps,
 } from "@/server/agent/conversations/ownership";
-import { runConfig, type ConversationGraph } from "@/server/agent/graph";
-import { findPendingPause, resumeInterrupt, type PendingPause } from "@/server/agent/resume";
+import type { ConversationGraph } from "@/server/agent/graph";
+import { findPendingPause, prepareResume, type PendingPause } from "@/server/agent/resume";
 import { stepUp, type Session } from "@/server/modules/auth";
 import { recordConsent } from "@/server/modules/lending";
 import { currentModels } from "@/server/modules/settings";
@@ -17,7 +18,7 @@ import { withConversationTurn } from "./conversation-turn";
 import { failureResponse } from "./failures";
 import { sessionCookie } from "./http/session-cookie";
 import { handleRoute, type HarnessDeps, type RouteContext } from "./pipeline";
-import { turnResponse } from "./turn-response";
+import { streamTurn } from "./turn-stream";
 import type { TurnLock } from "./turn-lock";
 
 export type ChatRouteDeps = HarnessDeps &
@@ -69,17 +70,17 @@ export function postChatMessage(request: Request, deps: ChatRouteDeps): Promise<
     const conversationId =
       body.conversationId ?? startConversation(session, currentModels(deps.db), deps);
     const turn = { conversationId, session, correlationId };
-    return withConversationTurn(turn, deps, async (conversation) => {
+    return withConversationTurn(turn, deps, async (conversation, keepLock) => {
       if (await findPendingPause(deps.graph, conversationId)) {
         return failureResponse("pause_pending", correlationId);
       }
-      const context = contextFor(session, conversation, correlationId);
-      const before = (await deps.graph.getState(runConfig(conversationId))).values.messages ?? [];
-      await deps.graph.invoke(
-        { messages: [new HumanMessage(stripNics(body.message))] },
-        runConfig(conversationId, context),
-      );
-      return turnResponse(deps.graph, conversationId, before.length);
+      return streamTurn({
+        graph: deps.graph,
+        input: { messages: [new HumanMessage(stripNics(body.message))] },
+        context: contextFor(session, conversation, correlationId),
+        logger: deps.logger,
+        release: keepLock(),
+      });
     });
   });
 }
@@ -93,24 +94,29 @@ export function postResume(request: Request, deps: ChatRouteDeps): Promise<Respo
     const { body, session, correlationId } = route;
     if (!session) return failureResponse("not_signed_in", correlationId);
     const turn = { conversationId: body.conversationId, session, correlationId };
-    return withConversationTurn(turn, deps, async (conversation) => {
+    return withConversationTurn(turn, deps, async (conversation, keepLock) => {
       const pending = await findPendingPause(deps.graph, conversation.id);
       if (pending?.interruptId !== body.interruptId || pending.pause.kind !== body.answer.kind) {
         return failureResponse("pause_not_pending", correlationId);
       }
       const reference = await referenceFor(body, pending, route, deps);
       if (!reference.ok) return failureResponse(reference.failure, correlationId);
-      const context = contextFor(session, conversation, correlationId);
-      const before = (await deps.graph.getState(runConfig(conversation.id))).values.messages ?? [];
-      const resumed = await resumeInterrupt(deps.graph, {
-        context,
+      const resumed = await prepareResume(deps.graph, {
+        threadId: conversation.id,
         interruptId: body.interruptId,
         reference: reference.value,
       });
       if (!resumed.ok) return failureResponse("pause_not_pending", correlationId);
-      const response = await turnResponse(deps.graph, conversation.id, before.length);
-      if (reference.token) response.headers.set("Set-Cookie", sessionCookie(reference.token));
-      return response;
+      // BR-AUTH-03: a step-up rotated the session, so the new cookie
+      // leaves with the stream's headers.
+      return streamTurn({
+        graph: deps.graph,
+        input: new Command({ resume: resumed.resume }),
+        context: contextFor(session, conversation, correlationId),
+        logger: deps.logger,
+        release: keepLock(),
+        headers: reference.token ? { "Set-Cookie": sessionCookie(reference.token) } : undefined,
+      });
     });
   });
 }

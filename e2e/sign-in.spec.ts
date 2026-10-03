@@ -1,14 +1,5 @@
-import { expect, test, type Page } from "@playwright/test";
-
-// Demo credentials from the README. secret-scan:ignore
-const DEMO_PASSWORD = "Demo@1234";
-
-async function signIn(page: Page, customerNumber: string, password = DEMO_PASSWORD) {
-  await page.goto("/");
-  await page.getByLabel("Customer number").fill(customerNumber);
-  await page.getByLabel("Password").fill(password);
-  await page.getByRole("button", { name: "Sign in" }).click();
-}
+import { expect, test } from "@playwright/test";
+import { DEMO_PASSWORD, signIn } from "./support";
 
 test("FR-AUTH-01: a customer signs in and sees their name", async ({ page }) => {
   await signIn(page, "C1009");
