@@ -304,12 +304,12 @@ Full rules: [`TESTING_STANDARDS.md`](TESTING_STANDARDS.md).
 - **Coverage:** 80% lines and branches on `src/server/**`.
 - **To verify early in the plan** (the reasoning-token check needs a real key, so it runs in the first live-model task):
   - `Command.PARENT` handoff from a wrapper node;
-  - the SQLite checkpointer on Node 24;
+  - the SQLite checkpointer on Node 25;
   - whether the output-token limit counts reasoning tokens on the default models.
 
 ## 10. Tech stack and commands
 
-Next.js 16.3 (App Router) · React 19 · TypeScript 5.9 strict · Tailwind 4 + shadcn/ui · LangGraph.js 1.4.18 · `langchain` 1.5.15 · `@langchain/openrouter` 0.4.17 · zod 4 · SQLite + Drizzle · Vitest 5 · Playwright · promptfoo · Stryker · pnpm 10 · Node 24.
+Next.js 16.3 (App Router) · React 19 · TypeScript 5.9 strict · Tailwind 4 + shadcn/ui · LangGraph.js 1.4.18 · `langchain` 1.5.15 · `@langchain/openrouter` 0.4.17 · zod 4 · SQLite + Drizzle · Vitest 5 · Playwright · promptfoo · Stryker · pnpm 10 · Node 25.
 
 ```bash
 pnpm install && pnpm db:setup   # install, migrate, seed

@@ -28,7 +28,7 @@ Full tasks, acceptance criteria and checkpoints are in [`todo.md`](todo.md).
 | Phase | Tasks | Ends with (checkpoint) |
 |---|---|---|
 | 0 Decisions record | T0 | Every decision the spec cites exists in `DECISIONS.md` |
-| 1 Foundation and risk spikes | T1–T4 | **A:** the riskiest patterns proven (handoff, single-use resume, SQLite on Node 24, Stryker) |
+| 1 Foundation and risk spikes | T1–T4 | **A:** the riskiest patterns proven (handoff, single-use resume, SQLite on Node 25, Stryker) |
 | 2 Identity | T5–T7b | **B:** a customer can sign in and out securely |
 | 3 Credit | T8–T10 | **C:** credit policy proven by tests and mutation score |
 | 4 Lending | T11–T12 | Decisions, assessments and applications |
@@ -52,7 +52,7 @@ Once T3 is done, **the agent skeleton (T4, T13), identity (T5–T7b), credit (T8
 | Risk | Impact | Mitigation |
 |---|---|---|
 | `Command.PARENT` doesn't hand off from a wrapper node as documented | High | Proven in T4; fallback is a parent conditional edge reading a "next step" written by the tool |
-| Native SQLite or the checkpointer fails on Node 24 | High | Proven in T2; fallback is pinning Node 22 LTS in `.nvmrc` |
+| Native SQLite or the checkpointer fails on Node 25 | High | Proven in T2 on Node 24, re-run on Node 25 at Checkpoint A; fallback is pinning Node 24 LTS in `.nvmrc` |
 | Default loan model (GLM-5.3-Flash) is unreliable at tool calls | Medium | Gates are in code, so it's a quality risk only; evals compare it with Claude and GPT, and the default switches if it misses targets |
 | Reasoning tokens eat the 400-token output limit | Medium | Checked in T13, the first task with live models (a real key is needed); raise the limit or set reasoning to none |
 | Stryker doesn't support Vitest 5 yet | Medium | Checked first in T3; fallback is running Stryker with a Vitest 4 runner config for its scope only |

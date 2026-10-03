@@ -6,7 +6,7 @@ An AI chat assistant for a small local bank. It helps customers check loan eligi
 
 ## Quick start
 
-Requires Node 24 (`.nvmrc`) and pnpm 10.
+Requires Node 25 (`.nvmrc`) and pnpm 10.
 
 ```bash
 pnpm install

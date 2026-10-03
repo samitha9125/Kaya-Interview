@@ -19,7 +19,7 @@ Banking assistant: a LangGraph.js chatbot for a small local bank (loan eligibili
 | Evals | `pnpm eval` (needs `OPENROUTER_API_KEY` once the agent provider exists) |
 | Secret scan | `pnpm secrets:scan` |
 
-Use pnpm only. Node 24 (`.nvmrc`).
+Use pnpm only. Node 25 (`.nvmrc`).
 
 ## Architecture and standards (always apply)
 

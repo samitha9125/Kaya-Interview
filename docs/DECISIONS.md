@@ -225,6 +225,12 @@ Each dependency added during the build gets one line here.
 | `server-only` | Makes a client bundle fail to build if it imports server code, as the Next.js docs recommend. Tests map it to its empty build |
 | `@stryker-mutator/core`, `@stryker-mutator/vitest-runner` (dev) | Mutation testing on the decision modules (TD16). Version 10 runs on Vitest 5 |
 
+### TD20. Runtime: Node 25
+
+| Options | Choice | Trade-off |
+|---|---|---|
+| Node 24 LTS · **Node 25** | Node 25 (`.nvmrc`, `engines`, `@types/node` 25) | The user's call at Checkpoint A: it's the Node the project is developed on. The T2 spike was re-run on it: better-sqlite3 rebuilds, and the checkpointer and the full suite pass. Cost: 25 is a current release, not LTS, so its support window is shorter; moving back to 24 LTS is a one-line `.nvmrc` change plus a native rebuild |
+
 ## 3. Deferred: right idea, wrong time
 
 | ID | Item | Why not now | When / how to add |
