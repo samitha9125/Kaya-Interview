@@ -46,7 +46,7 @@ export function ChatShell({ greetingName, restored }: ChatShellProps) {
       <h1 className="sr-only">Chat</h1>
       <div
         ref={scrollRef}
-        className="flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto py-4 motion-safe:scroll-smooth"
+        className="no-scrollbar flex min-h-0 flex-1 flex-col gap-4 overflow-y-auto py-4 motion-safe:scroll-smooth"
       >
         <p>
           {greetingName
