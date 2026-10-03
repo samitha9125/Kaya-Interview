@@ -1,5 +1,6 @@
 import {
   findOwnedConversation,
+  type Conversation,
   type ConversationDeps,
 } from "@/server/agent/conversations/ownership";
 import type { Session } from "@/server/modules/auth";
@@ -14,15 +15,14 @@ type TurnRequest = { conversationId: string; session: Session; correlationId: st
 export async function withConversationTurn(
   { conversationId, session, correlationId }: TurnRequest,
   deps: ConversationDeps & { turnLock: TurnLock },
-  turn: () => Promise<Response>,
+  turn: (conversation: Conversation) => Promise<Response>,
 ): Promise<Response> {
-  if (!findOwnedConversation(conversationId, session, deps)) {
-    return failureResponse("not_found", correlationId);
-  }
+  const conversation = findOwnedConversation(conversationId, session, deps);
+  if (!conversation) return failureResponse("not_found", correlationId);
   const release = deps.turnLock.acquire(conversationId);
   if (!release) return failureResponse("turn_in_progress", correlationId);
   try {
-    return await turn();
+    return await turn(conversation);
   } finally {
     release();
   }
