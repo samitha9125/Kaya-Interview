@@ -32,7 +32,8 @@ The checklist for [`plan.md`](plan.md). Tick a task when its acceptance and veri
   *Result:* every pattern worked as documented, so no fallback was needed; ARCHITECTURE §7 records how each is used. Mutants (all reverted): removed `graph: Command.PARENT` → 8 tests failed, including the FR-AGT-05 handoff tests; skipped the pending-ID check → `P0-09: a replayed resume is refused` failed; skipped the reference check → the four P0-19 resume tests failed; skipped the wording check → `P0-05` failed. Finding for T14a/T15: a chat message sent while a pause is pending starts a new run from START and drops the pause (documented LangGraph behaviour), so the harness needs a rule for it.
 
 ### Checkpoint A: foundation
-- [ ] All green; the three spike results are recorded; review with the user before Phase 2.
+- [x] All green; the three spike results are recorded; review with the user before Phase 2.
+  *Result:* reviewed. The user's decisions: Node 25 (TD20), no PRs (TD21), no coverage gate (TD16), and a pending pause refuses chat messages (TD14, FR-WEB-03).
 
 ## Phase 2: Identity (sign in → chat shell)
 
