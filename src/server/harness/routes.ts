@@ -8,8 +8,9 @@ import {
   postModelChoice,
   postResetLimit,
 } from "./settings-routes";
+import { readSettingsView } from "./settings-view";
 
-// Entry points for app/ route files: each takes its dependencies from the
+// Entry points for app/ route files and pages: each takes its dependencies from the
 // composition root, so app/ never sees them (ARCHITECTURE §4).
 export const loginRoute = (request: Request) => postLogin(request, app());
 export const logoutRoute = (request: Request) => postLogout(request, app());
@@ -20,3 +21,4 @@ export const modelChoiceRoute = (request: Request) => postModelChoice(request, a
 export const resetLimitRoute = (request: Request) => postResetLimit(request, app());
 export const clearCacheRoute = (request: Request) => postClearCache(request, app());
 export const failureModeRoute = (request: Request) => postFailureMode(request, app());
+export const settingsView = () => readSettingsView(app());
