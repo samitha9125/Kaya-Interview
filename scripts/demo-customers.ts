@@ -8,9 +8,9 @@ export const DEMO_PASSWORD = "Demo@1234";
 
 type DemoCustomer = Omit<NewCustomer, "passwordHash">;
 
-// Made-up people and NICs. Each record is shaped for one demo ending once
-// the government mock has their scores (T12); income and repayments are
-// the bank's own record (SPEC A3).
+// Made-up people and NICs. Each record is shaped, with the score in
+// demo-lending.ts, for one demo ending; income and repayments are the
+// bank's own record (SPEC A3).
 export const DEMO_CUSTOMERS: DemoCustomer[] = [
   customer("C1001", "Nimal Perera", "198512300011", 250_000, 20_000),
   customer("C1002", "Kamala Silva", "197845600022", 120_000, 10_000),
