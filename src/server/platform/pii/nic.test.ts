@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { replaceNics } from "./nic";
+import { findNics, replaceNics } from "./nic";
 
 // Made-up NICs in both formats; not real people's. secret-scan:ignore
 describe("platform/pii: NIC-shaped text", () => {
@@ -23,5 +23,17 @@ describe("platform/pii: NIC-shaped text", () => {
     { case: "a longer run of digits", text: "ref 12345678901234" },
   ])("P0-02: $case is left alone", ({ text }) => {
     expect(replaceNics(text, "[NIC]")).toBe(text);
+  });
+});
+
+describe("platform/pii: findNics", () => {
+  it("FR-AGT-09: reports each NIC with its position, both formats; other numbers are left alone", () => {
+    // Made-up NICs. secret-scan:ignore
+    const text = "Mine is 199012345678, hers 901234567V, call 0771234567";
+
+    expect(findNics(text)).toEqual([
+      { text: "199012345678", start: 8, end: 20 },
+      { text: "901234567V", start: 27, end: 37 },
+    ]);
   });
 });

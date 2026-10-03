@@ -1,2 +1,2 @@
 import "server-only";
-export { replaceNics } from "./nic";
+export { findNics, replaceNics, type NicMatch } from "./nic";
