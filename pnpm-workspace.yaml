@@ -1,0 +1,4 @@
+# Single-package repo. pnpm 10 blocks dependency build scripts by default;
+# only the ones we need are allowed.
+onlyBuiltDependencies:
+  - unrs-resolver
