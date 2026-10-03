@@ -7,6 +7,9 @@ export type ModelRequest = {
   // null leaves the model's own default in place.
   reasoningEffort: ReasoningEffort | null;
   maxOutputTokens: number;
+  // Triage's answer is a schema; only a provider that honours every
+  // request parameter can be relied on to keep to it.
+  needsStructuredOutput: boolean;
 };
 
 // ARCHITECTURE §5: the agent's only way to a model. The adapter owns the

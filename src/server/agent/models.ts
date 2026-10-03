@@ -19,5 +19,10 @@ const REASONING: Record<AgentRole, ReasoningEffort | null> = {
 export function modelRequestFor(role: AgentRole, modelId: string): ModelRequest {
   const reasoningEffort = REASONING[role];
   const headroom = reasoningEffort ? REASONING_HEADROOM_TOKENS : 0;
-  return { modelId, reasoningEffort, maxOutputTokens: MAX_REPLY_TOKENS + headroom };
+  return {
+    modelId,
+    reasoningEffort,
+    maxOutputTokens: MAX_REPLY_TOKENS + headroom,
+    needsStructuredOutput: role === "triage",
+  };
 }

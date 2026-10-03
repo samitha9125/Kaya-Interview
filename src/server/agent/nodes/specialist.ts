@@ -91,6 +91,7 @@ function middlewareFor(
       strategy: "redact",
       applyToInput: true,
       applyToOutput: true,
+      applyToToolResults: true,
     }),
     modelRetryMiddleware({
       maxRetries: 2,
