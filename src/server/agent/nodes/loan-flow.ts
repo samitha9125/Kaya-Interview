@@ -1,5 +1,4 @@
 import { Command, type LangGraphRunnableConfig, type NodeError } from "@langchain/langgraph";
-import { AIMessage } from "langchain";
 import {
   assessLoan,
   findOpenApplication,
@@ -22,7 +21,7 @@ import {
   NEEDS_SIGN_IN,
 } from "../templates";
 import { assessFailureLabel, submitFailureLabel } from "../labels";
-import { endWith, labelled } from "./endings";
+import { endWith, fromBank, labelled } from "./endings";
 
 export type LoanFlowDeps = {
   lending: LendingDeps;
@@ -80,7 +79,7 @@ export function creditCheckNode({ lending, isStepUpFresh }: LoanFlowDeps) {
       goto: "confirm",
       update: {
         ...update,
-        messages: [...labelled(state, "OUTCOME_SHOWN"), new AIMessage(eligible(assessment))],
+        messages: [...labelled(state, "OUTCOME_SHOWN"), fromBank(eligible(assessment))],
       },
     });
   };
