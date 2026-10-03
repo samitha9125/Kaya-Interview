@@ -29,7 +29,7 @@ export type TurnRun = {
   headers?: HeadersInit;
 };
 
-export function encodeEvent({ type, ...data }: TurnEvent): string {
+function encodeEvent({ type, ...data }: TurnEvent): string {
   return `event: ${type}\ndata: ${JSON.stringify(data)}\n\n`;
 }
 

@@ -110,10 +110,6 @@ export async function stepUp(request: StepUpRequest, deps: SessionDeps): Promise
   return { ok: true, token };
 }
 
-export function hasFreshStepUp(session: Session, now: Date): boolean {
-  return isStepUpFresh(session.stepUpAt, now, STEP_UP_VALID_MS);
-}
-
 // The graph asks by session ID, so it never holds the token. A revoked
 // session's step-up counts for nothing.
 export function isStepUpFreshFor(

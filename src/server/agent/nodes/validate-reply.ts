@@ -19,10 +19,6 @@ export function claimedOutcomes(text: string): Outcome[] {
   return CLAIMS.filter(([pattern]) => pattern.test(text)).map(([, outcome]) => outcome);
 }
 
-export function claimsDecision(text: string): boolean {
-  return claimedOutcomes(text).length > 0;
-}
-
 // BR-LEND-11, P0-06: the model is never given a score, a band or its
 // instructions, so a reply that talks about them is invented or leaked.
 const SCORE_OR_BAND = /\b(credit )?score (is|of|was|=)\b|\bband [A-D]\b/i;
