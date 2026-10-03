@@ -21,7 +21,8 @@ import {
   submitted,
   NEEDS_SIGN_IN,
 } from "../templates";
-import { endWith } from "./endings";
+import { assessFailureLabel, submitFailureLabel } from "../labels";
+import { endWith, labelled } from "./endings";
 
 export type LoanFlowDeps = {
   lending: LendingDeps;
@@ -35,9 +36,9 @@ export type LoanFlowDeps = {
 export function loanGateNode({ lending, isStepUpFresh }: LoanFlowDeps) {
   return (state: ConversationStateValue, config: NodeConfig) => {
     const { customerId, sessionId } = contextOf(config);
-    if (!customerId) return endWith(NEEDS_SIGN_IN);
+    if (!customerId) return endWith(state, "NEEDS_SIGN_IN", NEEDS_SIGN_IN);
     const open = findOpenApplication(lending.db, customerId);
-    if (open) return endWith(openApplication(open.status));
+    if (open) return endWith(state, "OUTCOME_SHOWN", openApplication(open.status));
     if (!isStepUpFresh(sessionId)) return new Command({ goto: "step_up_check" });
     return new Command({ goto: state.consentId ? "credit_check" : "consent" });
   };
@@ -48,25 +49,39 @@ export function loanGateNode({ lending, isStepUpFresh }: LoanFlowDeps) {
 export function creditCheckNode({ lending, isStepUpFresh }: LoanFlowDeps) {
   return async (state: ConversationStateValue, config: NodeConfig) => {
     const context = contextOf(config);
-    if (!context.customerId || !state.consentId) return endWith(CANT_COMPLETE);
+    if (!context.customerId || !state.consentId) {
+      return endWith(state, "CHECK_UNAVAILABLE_TODAY", CANT_COMPLETE);
+    }
     if (!isStepUpFresh(context.sessionId)) return new Command({ goto: "step_up_check" });
     const result = await assessLoan(
       { ...context, customerId: context.customerId, consentId: state.consentId },
       lending,
     );
     if (!result.ok) {
-      if (result.reason === "open_application") return endWith(openApplication(result.status));
-      return endWith(result.reason === "no_consent" ? CANT_COMPLETE : CHECK_UNAVAILABLE_TODAY);
+      const label = assessFailureLabel(result.reason);
+      if (result.reason === "open_application") {
+        return endWith(state, label, openApplication(result.status));
+      }
+      return endWith(
+        state,
+        label,
+        result.reason === "no_consent" ? CANT_COMPLETE : CHECK_UNAVAILABLE_TODAY,
+      );
     }
     const { assessment } = result;
     const update = { assessment, decision: assessment.outcome };
-    if (assessment.outcome === "referred") return endWith(REFERRED_TO_OFFICER, update);
+    if (assessment.outcome === "referred") {
+      return endWith(state, "REFERRED", REFERRED_TO_OFFICER, update);
+    }
     if (assessment.outcome === "not_eligible" && assessment.ineligibleReason) {
-      return endWith(notEligible(assessment.ineligibleReason), update);
+      return endWith(state, "OUTCOME_SHOWN", notEligible(assessment.ineligibleReason), update);
     }
     return new Command({
       goto: "confirm",
-      update: { ...update, messages: [new AIMessage(eligible(assessment))] },
+      update: {
+        ...update,
+        messages: [...labelled(state, "OUTCOME_SHOWN"), new AIMessage(eligible(assessment))],
+      },
     });
   };
 }
@@ -78,12 +93,16 @@ export const CREDIT_CHECK_POLICY = {
   retryPolicy: { maxAttempts: 3, retryOn: isBusyError },
   // Two 5-second attempts and the 1-second pause between them fit easily.
   timeout: { runTimeout: 20_000 },
-  errorHandler: (_state: unknown, error: NodeError, config?: LangGraphRunnableConfig) => {
+  errorHandler: (
+    state: ConversationStateValue,
+    error: NodeError,
+    config?: LangGraphRunnableConfig,
+  ) => {
     logger.error("credit check failed", {
       correlationId: ConversationContext.safeParse(config?.context).data?.correlationId,
       error: error.error,
     });
-    return endWith(CHECK_UNAVAILABLE_TODAY);
+    return endWith(state, "CHECK_UNAVAILABLE_TODAY", CHECK_UNAVAILABLE_TODAY);
   },
 };
 
@@ -93,7 +112,9 @@ export function submitNode({ lending, isStepUpFresh }: LoanFlowDeps) {
   return (state: ConversationStateValue, config: NodeConfig) => {
     const context = contextOf(config);
     const { assessment } = state;
-    if (!context.customerId || !assessment) return endWith(CANT_COMPLETE);
+    if (!context.customerId || !assessment) {
+      return endWith(state, "CHECK_UNAVAILABLE_TODAY", CANT_COMPLETE);
+    }
     if (!isStepUpFresh(context.sessionId)) return new Command({ goto: "step_up_submit" });
     const result = submitApplication(
       {
@@ -105,8 +126,15 @@ export function submitNode({ lending, isStepUpFresh }: LoanFlowDeps) {
       },
       lending,
     );
-    if (result.ok) return endWith(submitted(assessment), { applicationId: result.applicationId });
-    if (result.reason === "open_application") return endWith(openApplication(result.status));
-    return endWith(result.reason === "expired" ? ASSESSMENT_EXPIRED : CANT_COMPLETE);
+    if (result.ok) {
+      return endWith(state, "SUBMITTED", submitted(assessment), {
+        applicationId: result.applicationId,
+      });
+    }
+    const label = submitFailureLabel(result.reason);
+    if (result.reason === "open_application") {
+      return endWith(state, label, openApplication(result.status));
+    }
+    return endWith(state, label, result.reason === "expired" ? ASSESSMENT_EXPIRED : CANT_COMPLETE);
   };
 }

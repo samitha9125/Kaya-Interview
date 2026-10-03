@@ -1,6 +1,7 @@
 import { Command } from "@langchain/langgraph";
 import { AIMessage, createAgent, tool, ToolMessage, type ToolRuntime } from "langchain";
-import { LoanTerms } from "@/server/modules/lending";
+import { LoanTerms, PRODUCT } from "@/server/modules/lending";
+import { situationLabels } from "../middleware/situation-labels";
 import { contextOf, type NodeConfig } from "../context";
 import { modelRequestFor } from "../models";
 import type { ChatModelProvider } from "../ports";
@@ -15,7 +16,7 @@ export const REQUEST_ASSESSMENT = "request_assessment";
 // the session (FR-AGT-04). The AI message and its tool result travel
 // together to keep the history valid for the next model call. Earlier
 // journey fields are cleared, so a new request starts from the gate.
-const requestAssessment = tool(
+export const requestAssessment = tool(
   (terms: LoanTerms, runtime: ToolRuntime<ConversationStateValue>) => {
     const lastAiMessage = [...runtime.state.messages].reverse().find(AIMessage.isInstance);
     const result = new ToolMessage({
@@ -43,6 +44,8 @@ const requestAssessment = tool(
   },
 );
 
+const INVALID_TERMS_HINT = `The amount must be a whole number of rupees from LKR ${PRODUCT.minAmountLkr.toLocaleString("en-US")} to LKR ${PRODUCT.maxAmountLkr.toLocaleString("en-US")}, and the term ${PRODUCT.minTermMonths} to ${PRODUCT.maxTermMonths} whole months.`;
+
 // A wrapper node calling agent.invoke is the documented way to place a
 // createAgent specialist in a parent graph. It passes messages only. The
 // model is the one this conversation started with (FR-SET-01).
@@ -50,7 +53,12 @@ export function createLoanAgentNode(models: ChatModelProvider) {
   return async (state: ConversationStateValue, config: NodeConfig) => {
     const { models: selection } = contextOf(config);
     const model = models.chatModel(modelRequestFor("loan", selection.loan));
-    const agent = createAgent({ model, tools: [requestAssessment], systemPrompt: LOAN_PROMPT });
+    const agent = createAgent({
+      model,
+      tools: [requestAssessment],
+      systemPrompt: LOAN_PROMPT,
+      middleware: [situationLabels(INVALID_TERMS_HINT)],
+    });
     const result = await agent.invoke({ messages: state.messages });
     return { messages: result.messages };
   };
