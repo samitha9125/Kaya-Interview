@@ -30,7 +30,7 @@ For a human or AI reviewer. Read in this order: `docs/ARCHITECTURE.md` (structur
 | To check | Do |
 |---|---|
 | The system runs | `.env.local` from `.env.example`, then `pnpm install`, `pnpm db:setup`, `pnpm dev`. Sign in as `C1001`–`C1010`, password `Demo@1234` |
-| Each ending | Eligible: C1001, C1008, C1010. Not eligible: C1002 (credit profile), C1007 (repayments), C1009 (amount over limit). Referred: C1003 (borderline), C1004 (no history), C1006 (no income). Open application already: C1005 |
+| Each ending | Eligible: C1001, C1008, C1010. Not eligible: C1002 (credit profile), C1007 (repayments), C1009 (amount over limit). Referred: C1003 (borderline), C1004 (no history), C1006 (no income). Open application already: C1005. To retry a customer: Settings → Reset my demo data |
 | Why a case ended as it did | `pnpm audit:trail <customer number, conversation id or reference code>`: the timeline of consent, government call, rules, confidence and its reasons, threshold and outcome. The customer sees only the template; the detail is the bank's |
 | The guarantees | Search a P0 ID (e.g. `P0-04`) to find its test; `pnpm test` runs them all with no API key |
 | What the LLM may do | `src/server/agent/` (graph, prompts, tools); everything in `src/server/modules/` runs without a model |
