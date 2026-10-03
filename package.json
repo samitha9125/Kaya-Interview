@@ -13,7 +13,7 @@
     "prepare": "husky",
     "secrets:scan": "node scripts/secret-scan.mjs",
     "db:generate": "drizzle-kit generate",
-    "db:setup": "drizzle-kit migrate",
+    "db:setup": "drizzle-kit migrate && node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/seed.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:mutation": "stryker run",
@@ -55,6 +55,7 @@
     "prettier": "^3.9.9",
     "promptfoo": "^0.123.1",
     "tailwindcss": "^4",
+    "tsx": "^4.23.15",
     "typescript": "^5",
     "vitest": "^5.0.3"
   },

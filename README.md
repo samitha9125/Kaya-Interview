@@ -11,17 +11,19 @@ Requires Node 25 (`.nvmrc`) and pnpm 10.
 ```bash
 pnpm install
 cp .env.example .env.local        # then fill in the values
-pnpm db:setup                     # create the local database
+pnpm db:setup                     # create the local database and demo customers
 pnpm exec playwright install chromium   # once, for e2e tests
 pnpm dev                          # http://localhost:3000
 ```
+
+Demo customers: `C1001` to `C1010`, all with the password `Demo@1234`.
 
 ## Scripts
 
 | Command | What it does |
 |---|---|
 | `pnpm dev` / `pnpm build` / `pnpm start` | Run, build, serve |
-| `pnpm db:setup` | Create or migrate the local SQLite database (`bank.db`); safe to re-run |
+| `pnpm db:setup` | Create or migrate the local SQLite database (`bank.db`) and add the demo customers; safe to re-run |
 | `pnpm db:generate` | Generate a migration after a Drizzle schema change |
 | `pnpm lint` · `pnpm format:check` · `pnpm typecheck` | Static checks |
 | `pnpm test` | Unit, module and graph tests (Vitest) |
