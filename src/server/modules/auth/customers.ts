@@ -47,3 +47,12 @@ export function findCustomerByNumber(executor: DbExecutor, customerNumber: strin
 export function findCustomerById(executor: DbExecutor, customerId: string) {
   return executor.select().from(customers).where(eq(customers.id, customerId)).get();
 }
+
+// Data minimisation: the chat screen needs the name and nothing else.
+export function findCustomerName(executor: DbExecutor, customerId: string): string | undefined {
+  return executor
+    .select({ fullName: customers.fullName })
+    .from(customers)
+    .where(eq(customers.id, customerId))
+    .get()?.fullName;
+}
