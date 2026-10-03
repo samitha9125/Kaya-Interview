@@ -53,7 +53,7 @@ describe("agent graph: SQLite checkpoints with sync durability", () => {
     const { values } = await second.graph.getState(runConfig("t1"));
     second.stop();
 
-    expect(result).toEqual({ ok: true });
+    expect(result.ok).toBe(true);
     expect(values.messages.at(-1)?.text).toBe(eligible(TERMS));
   });
 });

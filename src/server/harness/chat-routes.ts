@@ -1,3 +1,4 @@
+import { Command } from "@langchain/langgraph";
 import { HumanMessage } from "langchain";
 import { z } from "zod";
 import type { ConversationContextValue } from "@/server/agent/context";
@@ -7,7 +8,7 @@ import {
   type ConversationDeps,
 } from "@/server/agent/conversations/ownership";
 import { runConfig, type ConversationGraph } from "@/server/agent/graph";
-import { findPendingPause, resumeInterrupt, type PendingPause } from "@/server/agent/resume";
+import { findPendingPause, prepareResume, type PendingPause } from "@/server/agent/resume";
 import { stepUp, type Session } from "@/server/modules/auth";
 import { recordConsent } from "@/server/modules/lending";
 import { currentModels } from "@/server/modules/settings";
@@ -102,12 +103,16 @@ export function postResume(request: Request, deps: ChatRouteDeps): Promise<Respo
       if (!reference.ok) return failureResponse(reference.failure, correlationId);
       const context = contextFor(session, conversation, correlationId);
       const before = (await deps.graph.getState(runConfig(conversation.id))).values.messages ?? [];
-      const resumed = await resumeInterrupt(deps.graph, {
-        context,
+      const resumed = await prepareResume(deps.graph, {
+        threadId: conversation.id,
         interruptId: body.interruptId,
         reference: reference.value,
       });
       if (!resumed.ok) return failureResponse("pause_not_pending", correlationId);
+      await deps.graph.invoke(
+        new Command({ resume: resumed.resume }),
+        runConfig(conversation.id, context),
+      );
       const response = await turnResponse(deps.graph, conversation.id, before.length);
       if (reference.token) response.headers.set("Set-Cookie", sessionCookie(reference.token));
       return response;

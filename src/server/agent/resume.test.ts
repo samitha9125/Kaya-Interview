@@ -38,7 +38,7 @@ describe("agent/resume: pauses resume once, with a reference", () => {
     const result = await resume(graph, "t1", interruptId, { consentId });
 
     const values = await stateOf("t1");
-    expect(result).toEqual({ ok: true });
+    expect(result.ok).toBe(true);
     expect(values.consentId).toBe(consentId);
     expect(values.messages.at(-1)?.text).toBe(eligible(TERMS));
   });

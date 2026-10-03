@@ -1,10 +1,10 @@
-import { MemorySaver, type BaseCheckpointSaver } from "@langchain/langgraph";
+import { Command, MemorySaver, type BaseCheckpointSaver } from "@langchain/langgraph";
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import { HumanMessage } from "langchain";
 import type { ConversationContextValue } from "@/server/agent/context";
 import { buildConversationGraph, runConfig, type ConversationGraph } from "@/server/agent/graph";
 import type { ChatModelProvider } from "@/server/agent/ports";
-import { resumeInterrupt } from "@/server/agent/resume";
+import { prepareResume } from "@/server/agent/resume";
 import { recordConsent, type LendingDeps } from "@/server/modules/lending";
 import { DEFAULT_MODELS } from "@/server/modules/settings";
 import { scriptedBureau } from "@/test/fake-bureau";
@@ -54,14 +54,18 @@ export function sendMessage(
   return graph.invoke({ messages: [new HumanMessage(text)] }, runConfig(threadId, context));
 }
 
-export function resume(
+export async function resume(
   graph: ConversationGraph,
   threadId: string,
   interruptId: string,
   reference: unknown,
   context = testContext(threadId),
 ) {
-  return resumeInterrupt(graph, { context, interruptId, reference });
+  const prepared = await prepareResume(graph, { threadId, interruptId, reference });
+  if (prepared.ok) {
+    await graph.invoke(new Command({ resume: prepared.resume }), runConfig(threadId, context));
+  }
+  return prepared;
 }
 
 export async function pendingInterrupts(graph: ConversationGraph, threadId: string) {
