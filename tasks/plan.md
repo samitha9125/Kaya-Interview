@@ -14,7 +14,7 @@ We build the system bottom-up along the module dependency order, but **in vertic
 - **Test first** for every business rule (red → green). P0 tests are named with their ID.
 - **Proof a test can fail:** Stryker for the decision modules (tooling in T3; scope added in T5, T10 and T11); a **manual mutant** for P0 controls outside Stryker, written in the task's *Verify* line.
 - **Done means:**
-  - `pnpm lint && pnpm typecheck && pnpm test:coverage` are green;
+  - `pnpm lint && pnpm typecheck && pnpm test` are green;
   - E2E is green if the UI or a route changed;
   - `CHANGELOG.md` is updated if the change is user-visible;
   - the docs are updated if a decision changed.

@@ -89,7 +89,7 @@ Bugs follow **Prove-It**: first a test that fails because of the bug, then the f
 
 ## 9. Coverage
 
-An 80% line and branch gate on `src/server/**` logic. Coverage is a floor that flags untested code, **not** a goal: a covered line with no meaningful assertion counts for nothing. That's what §6 is for.
+**No coverage gate.** Coverage rewards lines run, not behaviour proven: a line executed by a test with no meaningful assertion counts as covered. We rely instead on requirement-traced tests (§2: every test names the ID it proves), a deterministic test for every P0 (§7) and targeted mutation testing (§6), which shows the tests actually fail when the behaviour breaks.
 
 ## 10. Review
 

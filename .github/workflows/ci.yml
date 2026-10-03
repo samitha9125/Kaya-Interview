@@ -30,8 +30,7 @@ jobs:
       - run: pnpm format:check
       - run: pnpm lint
       - run: pnpm typecheck
-      - name: Unit tests with coverage gate
-        run: pnpm test:coverage
+      - run: pnpm test
       - run: pnpm build
 
   e2e:

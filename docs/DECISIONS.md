@@ -191,6 +191,7 @@ The same loan traffic on Claude Haiku ($1 / $5) would cost ≈ $47 a month on it
 |---|---|---|---|
 | Mutation testing scope | Everywhere · none · **decision modules only** | Stryker (≥ 80%) on the threshold, eligibility, confidence, cache lifetime, budget and lockout | There, a surviving mutant is a real business bug. Elsewhere it's slow and noisy, so P0 controls outside that scope get a **manual mutant** (break it on purpose, watch the test fail, revert) |
 | What proves a P0 | Evals · **deterministic tests** | Deterministic tests | Evals on real models vary run to run, so they measure quality targets, never guarantees |
+| Coverage gate | 80% lines and branches · **no gate** | No gate (the user's call at Checkpoint A) | Coverage rewards lines run, not behaviour proven, and a gate invites tests written to touch lines. Requirement-traced test names, a deterministic test per P0 and mutation testing on the decision modules show what's actually proven. Cost: an untested file no longer fails the build by itself, so review and the traceability search (an ID with no test) have to catch it |
 | Database in tests | Mocked · **real in-memory SQLite** | Real | A mock would hide the bugs we care about most: a non-atomic budget update or a missing unique constraint |
 
 ### TD17. Money and ratios as integers

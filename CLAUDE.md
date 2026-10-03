@@ -14,7 +14,7 @@ Banking assistant: a LangGraph.js chatbot for a small local bank (loan eligibili
 |---|---|
 | Dev server | `pnpm dev` |
 | Lint / format / types | `pnpm lint` · `pnpm format:check` · `pnpm typecheck` |
-| Unit tests (+ coverage gate) | `pnpm test` · `pnpm test:coverage` |
+| Unit, module and graph tests | `pnpm test` |
 | E2E | `pnpm test:e2e` |
 | Evals | `pnpm eval` (needs `OPENROUTER_API_KEY` once the agent provider exists) |
 | Secret scan | `pnpm secrets:scan` |
