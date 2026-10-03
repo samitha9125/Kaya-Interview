@@ -1,5 +1,7 @@
 import { AIMessage } from "langchain";
+import { KYC_PROMPT } from "../prompts/kyc";
 import { LOAN_PROMPT } from "../prompts/loan";
+import { TONE_GUIDE } from "../prompts/tone";
 import type { ConversationStateValue } from "../state";
 import { CANT_SHARE, NO_DECISION_IN_CHAT } from "../templates";
 import { fromBank } from "./endings";
@@ -22,9 +24,17 @@ export function claimedOutcomes(text: string): Outcome[] {
 // BR-LEND-11, P0-06: the model is never given a score, a band or its
 // instructions, so a reply that talks about them is invented or leaked.
 const SCORE_OR_BAND = /\b(credit )?score (is|of|was|=)\b|\bband [A-D]\b/i;
-const PROMPT_LINES = LOAN_PROMPT.split("\n")
-  .map((line) => line.replace(/^- /, "").trim())
-  .filter((line) => line.length >= 30);
+const linesOf = (prompt: string) =>
+  prompt
+    .split("\n")
+    .map((line) => line.replace(/^- /, "").trim())
+    .filter((line) => line.length >= 30);
+// The shared tone guide is left out, so each role's own instructions are
+// what a leak is matched on.
+const TONE_LINES = new Set(linesOf(TONE_GUIDE));
+const PROMPT_LINES = [LOAN_PROMPT, KYC_PROMPT]
+  .flatMap(linesOf)
+  .filter((line) => !TONE_LINES.has(line));
 
 export function leaksSomething(text: string): boolean {
   return SCORE_OR_BAND.test(text) || PROMPT_LINES.some((line) => text.includes(line));

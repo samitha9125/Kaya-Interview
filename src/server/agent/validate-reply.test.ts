@@ -12,6 +12,7 @@ import {
 import { lendingTestSetup } from "@/test/lending-setup";
 import { runConfig } from "./graph";
 import { leaksSomething } from "./nodes/validate-reply";
+import { KYC_PROMPT } from "./prompts/kyc";
 import { LOAN_PROMPT } from "./prompts/loan";
 import { CANT_SHARE, NO_DECISION_IN_CHAT } from "./templates";
 
@@ -61,8 +62,11 @@ describe("agent/validate-reply: nothing secret in a reply (P0-06)", () => {
     },
   );
 
-  it("P0-06: a reply repeating the system prompt is replaced before display", async () => {
-    const graph = buildTestGraph(fakeModel().respond(new AIMessage(LOAN_PROMPT)));
+  it.each([
+    { role: "loan", prompt: LOAN_PROMPT },
+    { role: "KYC", prompt: KYC_PROMPT },
+  ])("P0-06: a reply repeating the $role prompt is replaced before display", async ({ prompt }) => {
+    const graph = buildTestGraph(fakeModel().respond(new AIMessage(prompt)));
 
     const result = await sendMessage(
       graph,
