@@ -20,6 +20,7 @@ rather than generated from commits. The format follows
 - Sign-in with a customer number and password. Five wrong passwords in a row pause sign-in for that account for 15 minutes, and one address can try at most 10 times in 15 minutes. A refused sign-in never says whether the customer number exists.
 - A sign-in screen with an "I'm new" option for guests, and an empty chat screen with sign-out. Signing out ends the session on the server, so a copied cookie stops working.
 - Every page and API response carries security headers: a nonce-based Content Security Policy that forbids framing, `nosniff`, no referrer, and HSTS in production.
+- Loan assessments are recorded with the customer's consent, outcome, confidence and the threshold used; a referral creates an application for a loan officer, and a customer can have only one open application. `pnpm db:setup` also gives each demo customer a government credit record designed for one demo ending, and C1005 starts with an open application.
 
 ### Changed
 
