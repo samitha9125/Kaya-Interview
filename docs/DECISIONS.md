@@ -1,0 +1,251 @@
+# Decisions
+
+**Why** the bank assistant is built the way it is. What it does is in [`SPEC.md`](SPEC.md); its structure is in [`ARCHITECTURE.md`](ARCHITECTURE.md).
+
+Four parts: **business** decisions (the bank's calls), **technical** decisions (options → choice → trade-off), **deferred** items (right idea, wrong time) and **rejected** items (wrong idea).
+
+## 1. Business decisions
+
+| ID | Decision | Reason |
+|---|---|---|
+| B1 | Scope is two journeys: **loan** (eligibility → application) and **account opening** (KYC). Anything else gets a short answer or a callback | It's the first-line work the branch staff want taken off them, and a small scope is a small attack surface |
+| B2 | A deterministic rules engine decides. The customer sees one of three endings: **eligible** (confirm → approved application), **not eligible** (ends), or **referred** to a loan officer | The AI is never the accountable party for a lending decision |
+| B3 | The assistant never opens an account. It collects validated KYC details and creates an **unverified pending application**; the branch completes it when the applicant brings their original NIC | Identity proofing needs documents and a physical check |
+| B4 | A credit check needs explicit, recorded consent for that assessment | Banking practice, and it leaves an audit record |
+| B5 | Minimal disclosure: never reveal or guess the next score evaluation date, internal thresholds, or anything about other customers | Government credit data is strictly controlled |
+| B6 | The 5-a-day government budget is shared by the whole bank. When it's gone, the assistant says so honestly and offers a next-day retry or a callback | 5 calls a day across 50–60 daily users is the binding constraint |
+| B7 | Credit scores are cached for **30 days** | See [TD7](#td7-credit-score-cache-30-days) |
+| B8 | Built for ~500 customers. No scaling work; the growth path is documented only | Time to market |
+| B9 | The credit score and band are **never shown** to the customer, only the outcome and a plain-language reason | The bank may use bureau data for its decision, not republish it. A raw number invites disputes branch staff can't resolve, and the customer's real question is "can I get the loan?" Side effect: the LLM never sees the score, so it can't leak it |
+| B10 | Audit logs are **not exposed in any UI**. Reviewers query them as the README shows | Audit data is for compliance and staff; a screen would widen access to personal data |
+| B11 | English only | Sinhala and Tamil quality differs per model; it needs its own evaluation |
+| B12 | "Talk to a person" creates a **callback request**. No live-agent console | A small team; it matches how the branch already works |
+| B13 | **Auto-decision threshold: 95% confidence by default**, set by the bank in config (`AUTO_DECISION_THRESHOLD`). At or above it the outcome is final; below it an officer decides. Only a person changes it | The threshold is the bank's risk appetite: higher means fewer wrong instant answers, lower means more customers get one. That's a business call |
+| B14 | **Step-up** (re-enter the password) before the credit check and before a loan submission, valid for 5 minutes. Guests submit KYC unverified, without step-up | Protects a hijacked or unattended session at the two moments that matter. KYC is verified at the branch anyway (B3) |
+| B15 | **One open loan application** per customer. A new attempt shows the existing status | Stops duplicates reaching the officers |
+| B16 | A not-eligible reply doesn't suggest a lower amount | The engine answers the requested terms; quoting amounts would turn the chat into a negotiation. A customer could still find their own rough band by trying amounts; that's their own data, and every attempt is audited |
+| B17 | **No action to please the user.** Emotional pressure, urgency, authority claims and task smuggling never trigger tools or change outcomes; off-topic requests get a polite redirect | A kind tone must never become a lever |
+| B18 | Demo product and rule values: one personal loan, LKR 50,000–3,000,000 over 6–60 months at 14% a year; bands A–D; repayment-to-income ≤ 40% (SPEC A2, BR-LEND-01…03) | Realistic for a small Sri Lankan bank and easy to demonstrate; all of them are config, not code |
+
+## 2. Technical decisions
+
+### TD1. Next.js instead of a plain HTML page
+
+| Options | Choice | Trade-off |
+|---|---|---|
+| Plain HTML page + separate API · **Next.js (App Router)** | Next.js | A delivery-speed decision: it's the candidate's strongest stack and gives UI and API in one codebase. The interviewer suggested plain HTML and agreed to the change. Cost: a heavier framework than the UI strictly needs |
+
+### TD2. Agent pattern: router
+
+LangChain's docs list five multi-agent patterns. Three are real alternatives here; they differ in **who decides what happens next**.
+
+| Criterion | Single agent | Supervisor (subagents) | **Router + specialists** |
+|---|---|---|---|
+| Who decides the next step | One LLM | A central LLM | Code + a cheap classifier |
+| LLM calls per turn | 1 | 2–3 | 1 once a journey is active |
+| Can the KYC chat reach the credit tool? | Yes | No | No |
+| Where the verification gate lives | The prompt | A worker | A graph edge (code) |
+| What each LLM sees | Everything | The supervisor sees everything | Only its own journey |
+| Model per agent | No | Yes | Yes |
+
+**Choice:** router with **sticky routing**. Triage runs only when no journey is active or the topic changes; starter buttons skip it. The safety-critical steps inside a journey are graph nodes, not LLM choices.
+
+**Dropped:** *handoffs/swarm* (no single place to enforce the verification gate), *skills* (one agent can still reach every capability), *custom workflow* (not an alternative; we use it inside each specialist).
+
+**Trade-off:** triage can misroute, so specialists hand back (FR-AGT-15) and routing is measured by evals. Upgrade path: a supervisor, if a future journey needs to combine specialists.
+
+### TD3. No humanizer agent
+
+| Options | Choice | Trade-off |
+|---|---|---|
+| A final LLM that rewrites every reply for tone · **a shared tone guide in every prompt + code-written templates for critical messages + tone evals** | Tone guide, templates, evals | A humanizer doubles model cost and latency on every turn, can rewrite facts ("referred" → "approved"), and sees every reply, which widens data exposure. Without it, tone depends on each specialist following the guide, so tone is scored by evals (FR-AGT-16) |
+
+### TD4. Replies are buffered and validated, not token-streamed
+
+| Options | Choice | Trade-off |
+|---|---|---|
+| Stream LLM tokens · release sentence by sentence after checking each · **buffer the whole reply, validate it, send it whole** | Buffer and validate | A streamed token can't be taken back, so an invented outcome or a leaked NIC would reach the screen before any check. Sentence-by-sentence release was declined as too complex for the gain. The cost is perceived speed, recovered with typing and progress events that do stream (FR-WEB-04) and short replies (400 visible tokens) |
+
+### TD5. Streaming API
+
+| Options | Choice | Trade-off |
+|---|---|---|
+| `streamEvents` v3 · **`stream()` with `updates` and `custom` modes** | `stream()` | The docs recommend `streamEvents` v3 for new apps, but our installed version marks it experimental. `stream()` is stable and enough, because we don't stream LLM tokens (TD4) |
+
+### TD6. Models per role and cost
+
+The bank brings its own OpenRouter key and can change any model in Settings. Defaults (OpenRouter list prices per 1M tokens, 2026-10-03; all tool-capable with zero-data-retention endpoints):
+
+| Role | Default | In / out | Why |
+|---|---|---|---|
+| Triage | `google/gemini-3.1-flash-lite` | $0.25 / $1.50 | Classification only: cheap, fast, structured output |
+| Loan | `z-ai/glm-5.3-flash`, reasoning `low` | $0.15 / $0.50 | The strongest published agentic score among cheap models. Every gate is in code, so the loan agent doesn't need an expensive model to be safe. Claude Haiku was considered and declined on cost (below). Runner-up: `deepseek/deepseek-v4.1-flash` with reasoning off |
+| KYC | `openai/gpt-5.6-luna`, reasoning `low` | $0.20 / $1.20 | Cheap mid-tier with reliable tool calls |
+
+**Cost working** (an upper bound: 55 daily users × 30 days, and every user is assumed to run a full loan conversation *and* a full KYC conversation):
+
+| Role | Calls per user per day | Tokens per call (in / out) | Monthly tokens (in / out) | Monthly cost |
+|---|---|---|---|---|
+| Triage | 2 | 1,500 / 50 | 4.95M / 0.17M | $1.49 |
+| Loan | 6 | 3,500 / 240 | 34.65M / 2.38M | $6.39 |
+| KYC | 6 | 3,500 / 240 | 34.65M / 2.38M | $9.78 |
+| Reasoning tokens (`low`), assumed to double loan and KYC output | | | +4.75M out | $4.04 |
+| **Total** | | | | **≈ $22 a month** |
+
+The same loan traffic on Claude Haiku ($1 / $5) would cost ≈ $47 a month on its own. Real token counts per turn are measured by the evals.
+
+**Provider settings:** every request sends `provider: { zdr: true, data_collection: "deny" }` (only providers that keep no data) and ignores China-hosted first-party endpoints (`z-ai`, `siliconflow`) for the GLM model. Reasoning is set explicitly because GLM defaults to its maximum. OpenRouter publishes no latency or tool-error data, so our evals measure both on at least two models.
+
+### TD7. Credit-score cache: 30 days
+
+**The trade:** every cache miss uses one of only 5 calls a day for the whole bank; every hit risks a score that changed since we fetched it. So the right lifetime is **the shortest one that serves a customer's whole loan journey with one call**.
+
+**Assumptions** (stated so they can be challenged):
+
+| Assumption | Value |
+|---|---|
+| A loan journey is several visits: check, think and gather documents, come back to apply | Days to ~2 weeks |
+| Demand: 1 in 10 of 50–60 daily users starts a loan conversation | 5–6 first-time checks a day: already the whole budget |
+| Score re-evaluation cycle, at an unknown point | ~180 days |
+| Chance a cached score has changed when read | ≈ age ÷ 180 days |
+
+**Worked example:** a customer checks on day 0, asks a follow-up on day 3 and applies on day 14.
+
+| Lifetime | Government calls | Worst-case chance the score is stale | Verdict |
+|---|---|---|---|
+| 12 h | 3 | 0.3% | Every return visit costs a call, for a score that's ~99% unchanged |
+| 24 h | 3 | 0.6% | Same as 12 h: the extra freshness benefits nobody |
+| 7 days | 2 | 3.9% | Still pays twice for one journey |
+| **30 days** | **1** | **≤ 17%** | **The shortest lifetime that covers the journey with one call** |
+| 90 days | 1 | ≤ 50% | Saves nothing over 30 days, but staleness triples |
+
+**Choice:** 30 days, which is the optimum **under these assumptions**:
+1. Below 30 days, freshness is paid for with calls taken from new customers. A first-time customer who can't be checked has no score at all, which is worse than a slightly old one.
+2. Above 30 days, nothing is saved, and staleness keeps rising in a straight line.
+
+**Capacity:** at most ~150 fresh checks per 30 days, on demand only; the cache is what lets 500 customers live within that.
+
+**Trade-off and re-tuning:** if the real re-evaluation cycle or journey length differs, so does the optimum. Each fetch records whether the score changed (FR-CRED-03), so the lifetime can be re-tuned from data (D6). It's configurable (`CREDIT_CACHE_TTL_DAYS`). Supporting rules: keyed by internal customer ID (never the NIC); no customer-triggered refresh.
+
+### TD8. Unreliable government API: budget, block and cool-down
+
+| Options | Choice | Trade-off |
+|---|---|---|
+| Retry freely · full circuit breaker · **persisted daily budget + 429 block + one retry + 15-minute cool-down + stale-if-error** | Budget, block, cool-down | A 6th call is impossible because taking a slot is one atomic update, and every attempt counts, including ambiguous timeouts. A circuit breaker adds state and tuning for no gain: the budget already caps calls to a failing API (D2). Stale-if-error (≤ 90 days) keeps customers moving, but a stale score always leads to a referral (TD9) |
+
+### TD9. Decision confidence
+
+| Options | Choice | Trade-off |
+|---|---|---|
+| The LLM's self-reported confidence · an ML model on past decisions · **rules-engine margins + data quality** | Rules heuristic, in integer basis points | Deterministic, explainable and testable. It's an **illustrative policy heuristic, not a measured probability**, and the docs say so; it only becomes one once calibrated against officer decisions (D10). Hard referral rules (stale score, no history, missing income or repayments) apply regardless of the threshold, so poor data can never produce a final outcome. Every decision stores the threshold it used |
+
+### TD10. Identity, sessions and step-up
+
+| Topic | Options | Choice | Trade-off |
+|---|---|---|---|
+| Where identity comes from | Chat · tool arguments · **the signed-in session** | Session; the NIC comes from the customer's record | Tools take no identity arguments, so the LLM can't choose whose score is checked |
+| Session type | Stateless JWT · **server-side sessions** | Server-side, hashed tokens | Logout revokes immediately, so a copied cookie dies. Costs a DB lookup per request, which is nothing at this scale |
+| Session binding | **No binding** · IP or device binding | No binding | Binding breaks mobile users on changing networks; short timeouts, rotation and step-up cover a stolen cookie instead |
+| Re-authentication | None · OTP/TOTP · **password re-entry** | Password step-up now | Protects hijacked or unattended sessions. Only a second factor stops a stolen password, so it's the production control (D1) |
+| Password hashing | bcrypt or argon2 (native packages) · **Node's built-in `scrypt`** | `scrypt` | No native dependency; a memory-hard hash |
+| BYOK key storage | Typed into a UI form and stored encrypted · **server environment only** | Env | No key ever crosses the network from a browser, and there's no key-storage code to get wrong. Changing the key means a restart. Production uses a secret manager |
+
+### TD11. Pauses resume with references only
+
+| Options | Choice | Trade-off |
+|---|---|---|
+| Resume the graph with the raw input (password, consent text, form) · **the route handler verifies or stores it and resumes with a reference** (`{ verified: true }`, a consent ID, a draft ID) | References | Saved state and checkpoints never hold secrets or form data, and the LLM never sees them. Each resume uses a **single-use interrupt ID** bound to the session and conversation, so a replay is rejected. Costs one dedicated resume route and a pending-interrupt record |
+
+### TD12. Structure: modular monolith, ports and adapters
+
+| Topic | Options | Choice | Trade-off |
+|---|---|---|---|
+| Deployment shape | Microservices · **modular monolith** | One Next.js app, modules with lint-enforced boundaries | Suits one small team and ~500 customers (D9) |
+| External systems | Call SDKs from domain code · **ports and adapters** | Ports | Swapping the government endpoint or the model provider is a new adapter; cache, budget and rules code doesn't change. Costs a port type and a composition root |
+| Database | Behind a repository port · **Drizzle directly** | Drizzle | Drizzle already isolates the SQL dialect, so Postgres is a dialect change. A repository layer would add files, not options |
+| Engine | Postgres · **SQLite** | SQLite | Zero setup for the demo, same schema later (D5). One writer at a time, handled with `busy_timeout` and retry |
+| Domain code and LangChain | Shared · **domain modules never import LangChain or LangGraph** | Separated | Business rules run and test with no model at all |
+
+### TD13. Reliability inside the graph
+
+| Options | Choice | Trade-off |
+|---|---|---|
+| Exactly-once side effects · **at-least-once, made safe by idempotency** | At-least-once + idempotency keys from business identity (conversation + assessment) | Exactly-once isn't achievable across a crash between a side effect and a checkpoint write. A replayed step finds its earlier result instead. Checkpoints use `durability: "sync"`, because the default `"async"` can lose the last step on a crash, at the cost of a little latency per step |
+
+### TD14. One turn at a time per conversation
+
+| Options | Choice | Trade-off |
+|---|---|---|
+| A message collector node that merges rapid messages · **one turn at a time** (the UI locks input; the server rejects a concurrent turn with 409) | One turn at a time | A collector adds a wait to every turn, so everything feels slower (D11). A customer who sends two quick messages has to wait for the reply to the first |
+
+### TD15. Audit log separate from checkpoints
+
+| Options | Choice | Trade-off |
+|---|---|---|
+| Use LangGraph checkpoints as the record · **an append-only `audit_events` table** | Separate audit table | Checkpoints are internal and can be pruned; audit records must never change. A decision and its audit record are written in one transaction. Costs a second write path |
+
+### TD16. Proving the tests
+
+| Topic | Options | Choice | Trade-off |
+|---|---|---|---|
+| Mutation testing scope | Everywhere · none · **decision modules only** | Stryker (≥ 80%) on the threshold, eligibility, confidence, cache lifetime, budget and lockout | There, a surviving mutant is a real business bug. Elsewhere it's slow and noisy, so P0 controls outside that scope get a **manual mutant** (break it on purpose, watch the test fail, revert) |
+| What proves a P0 | Evals · **deterministic tests** | Deterministic tests | Evals on real models vary run to run, so they measure quality targets, never guarantees |
+| Database in tests | Mocked · **real in-memory SQLite** | Real | A mock would hide the bugs we care about most: a non-atomic budget update or a missing unique constraint |
+
+### TD17. Money and ratios as integers
+
+| Options | Choice | Trade-off |
+|---|---|---|
+| Floats · **integer LKR and integer basis points** | Integers | No rounding surprises at a rule boundary (`9_500` bp is exactly 95%). Costs a conversion at the display edge |
+
+### TD18. LangGraph and LangChain features declined
+
+| Feature | Why not |
+|---|---|
+| Node `cachePolicy` for the credit score | In-memory; our cache must persist and follow TD7 |
+| `@langchain/langgraph-supervisor` / `-swarm` | Not the chosen pattern (TD2), and no longer featured in the JS docs |
+| `modelFallbackMiddleware` | It would pick a model on the bank's behalf (D4) |
+| `toolErrorMiddleware` | Its JS docs section is empty; a documented `createMiddleware({ wrapToolCall })` maps tool failures to situation labels instead |
+| A compiled agent's `.graph` used as a node | Undocumented; the documented wrapper node that calls the agent is used instead |
+| `streamEvents` v3 | Experimental in our installed version (TD5) |
+
+### TD19. Dependencies
+
+Each dependency added during the build gets one line here.
+
+| Package | Why |
+|---|---|
+| `@langchain/langgraph`, `langchain`, `@langchain/core` | The required agent framework (LangGraph) and `createAgent` with its middleware |
+| `@langchain/openrouter` | The OpenRouter chat model. It's still 0.x, so it sits behind our own `ChatModelProvider` adapter |
+| `zod` | Validation at every boundary, and the schema type for LangGraph state and interrupts |
+
+## 3. Deferred: right idea, wrong time
+
+| ID | Item | Why not now | When / how to add |
+|---|---|---|---|
+| D1 | A second factor (OTP/TOTP) | Step-up re-authentication is built now. A second factor needs an SMS or authenticator setup and adds no new insight for the demo | Before production; it's the control for stolen passwords. It slots into the same pause as step-up |
+| D2 | Circuit breaker | The 5-a-day budget already caps calls to a failing API; a cool-down timestamp does the job | When the call limit or the number of upstream APIs grows |
+| D3 | Merging duplicate in-flight requests | Two simultaneous checks for one customer are rare at 60 daily users; the worst case is one extra call | When concurrency grows |
+| D4 | A fallback model | A hard-coded fallback picks a model on the bank's behalf, which breaks the bring-your-own-model promise. Retries cover transient errors | As a configurable fallback per agent |
+| D5 | Postgres | SQLite runs with zero setup; same schema | When there's more than one app instance |
+| D6 | Automatic cache-lifetime tuning | Each fetch already records whether the score changed, but tuning needs months of real data | After go-live, as a periodic review of that data |
+| D7 | WhatsApp and mobile channels | The backend is channel-agnostic | Add a channel adapter |
+| D8 | Sentry, LangSmith, Langfuse | Structured logs and the audit log cover the demo | Drop-in; no restructuring needed |
+| D9 | Microservices | A modular monolith suits one small team and ~500 customers | Only if team size or load demands it |
+| D10 | Learning the threshold from officer decisions | Needs months of officer outcomes. Every decision already stores its confidence, threshold and provisional outcome, and referrals have an `officer_decision` field | After go-live: a periodic risk-team review, later an ML model if the data supports it |
+| D11 | A message collector node | Adds a wait to every turn (TD14) | If the WhatsApp channel shows customers sending fragmented messages |
+
+## 4. Rejected: wrong idea, not just wrong time
+
+| Item | Why |
+|---|---|
+| LLM-reported confidence for decisions | Uncalibrated, model-dependent, and a customer can talk it up (TD9) |
+| A threshold that moves automatically | A governance risk in lending; a person changes it, with the data in front of them (B13) |
+| Customer-triggered credit refresh | Lets anyone drain the bank-wide budget (BR-CRED-07) |
+| Spreading calls across IPs to get round the rate limit | Breaks the government API's terms |
+| Showing the credit score | B9 |
+| Audit logs in the UI | B10 |
+| A per-customer daily cap on assessments, against amount probing | It only reveals the customer's own band, every attempt is audited, and it would frustrate real customers (B16) |
+| IP or device binding for sessions | Breaks mobile users on changing networks (TD10) |
+| A humanizer agent | TD3 |
+| Sentence-by-sentence release of replies | Too complex for the gain (TD4) |

@@ -4,7 +4,7 @@ The checklist for [`plan.md`](plan.md). Tick a task when its acceptance and veri
 
 ## Phase 0: Decisions record
 
-- [ ] **T0 · Write `DECISIONS.md`** (S). Business decisions (B), technical decisions (options → choice → trade-off), deferred items (D1–D11) and rejected items, from the recorded discussion. Includes the 30-day cache reasoning, router vs supervisor, models and cost, buffered replies, and no humanizer agent.
+- [x] **T0 · Write `DECISIONS.md`** (S). Business decisions (B), technical decisions (options → choice → trade-off), deferred items (D1–D11) and rejected items, from the recorded discussion. Includes the 30-day cache reasoning, router vs supervisor, models and cost, buffered replies, and no humanizer agent.
   *Accept:* every D-ID and decision cited by the SPEC and ARCHITECTURE exists; business and technical decisions are in separate sections. *Verify:* search each cited ID. *Deps:* none.
 
 ## Phase 1: Foundation and risk spikes
