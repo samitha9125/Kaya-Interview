@@ -4,25 +4,31 @@ import { join } from "node:path";
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import { HumanMessage, fakeModel } from "langchain";
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import type { LendingDeps } from "@/server/modules/lending";
 import { openDatabase } from "@/server/platform/db";
+import { aScore, scriptedBureau } from "@/test/fake-bureau";
+import { ASSESSMENT_CALL, buildTestGraph, consentFor, resume, testContext } from "@/test/graph";
+import { lendingTestSetup, TERMS } from "@/test/lending-setup";
 import { createCheckpointer } from "./checkpointer";
-import { buildConversationGraph, runConfig } from "./graph";
-import { REQUEST_ASSESSMENT } from "./nodes/loan-agent";
-import { resumeInterrupt } from "./resume";
-import { REFERRED_TO_OFFICER } from "./templates";
+import { runConfig } from "./graph";
+import { eligible } from "./templates";
 
 let dir: string;
 let path: string;
+let lending: LendingDeps;
 
+// Checkpoints in a real SQLite file that is closed and reopened, as a
+// restart would; lending's own records live on regardless.
 function startServer(loanModel: BaseChatModel) {
   const { sqlite } = openDatabase(path);
-  const graph = buildConversationGraph({ loanModel, checkpointer: createCheckpointer(sqlite) });
+  const graph = buildTestGraph(loanModel, { lending, checkpointer: createCheckpointer(sqlite) });
   return { graph, stop: () => sqlite.close() };
 }
 
 beforeEach(() => {
   dir = mkdtempSync(join(tmpdir(), "bank-graph-"));
   path = join(dir, "bank.db");
+  lending = lendingTestSetup(scriptedBureau([aScore(800)]).bureau).deps;
 });
 
 afterEach(() => {
@@ -31,24 +37,23 @@ afterEach(() => {
 
 describe("agent graph: SQLite checkpoints with sync durability", () => {
   it("P2-03: a pause survives a restart and resumes with its reference", async () => {
-    const first = startServer(
-      fakeModel().respondWithTools([{ name: REQUEST_ASSESSMENT, args: {} }]),
+    const first = startServer(fakeModel().respondWithTools([ASSESSMENT_CALL]));
+    await first.graph.invoke(
+      { messages: [new HumanMessage("Check my loan")] },
+      runConfig("t1", testContext("t1")),
     );
-    await first.graph.invoke({ messages: [new HumanMessage("Check my loan")] }, runConfig("t1"));
     first.stop();
 
     const second = startServer(fakeModel());
     const snapshot = await second.graph.getState(runConfig("t1"));
     const interruptId = snapshot.tasks[0]?.interrupts[0]?.id ?? "";
-    const result = await resumeInterrupt(second.graph, {
-      threadId: "t1",
-      interruptId,
-      reference: { consentId: "consent-1" },
+    const result = await resume(second.graph, "t1", interruptId, {
+      consentId: consentFor(lending, "t1"),
     });
     const { values } = await second.graph.getState(runConfig("t1"));
     second.stop();
 
     expect(result).toEqual({ ok: true });
-    expect(values.messages.at(-1)?.text).toBe(REFERRED_TO_OFFICER);
+    expect(values.messages.at(-1)?.text).toBe(eligible(TERMS));
   });
 });

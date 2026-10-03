@@ -1,13 +1,23 @@
 import { END, START, StateGraph, type BaseCheckpointSaver } from "@langchain/langgraph";
-import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import { AIMessage } from "langchain";
-import { consentNode } from "./nodes/consent";
-import { decideNode } from "./nodes/decide";
+import { ConversationContext, type ConversationContextValue } from "./context";
 import { createLoanAgentNode } from "./nodes/loan-agent";
+import {
+  CREDIT_CHECK_POLICY,
+  creditCheckNode,
+  loanGateNode,
+  submitNode,
+  type LoanFlowDeps,
+} from "./nodes/loan-flow";
+import { confirmNode, consentNode, stepUpNode } from "./nodes/pauses";
 import { validateReplyNode } from "./nodes/validate-reply";
+import type { ChatModelProvider } from "./ports";
 import { ConversationState, type ConversationStateValue } from "./state";
 
-type GraphDeps = { loanModel: BaseChatModel; checkpointer: BaseCheckpointSaver };
+export type GraphDeps = LoanFlowDeps & {
+  models: ChatModelProvider;
+  checkpointer: BaseCheckpointSaver;
+};
 
 // A text reply goes to validation; a handoff has already set its own next
 // node through Command.PARENT, so this edge adds nothing.
@@ -16,23 +26,34 @@ function routeAfterLoanAgent(state: ConversationStateValue) {
   return AIMessage.isInstance(last) && !last.tool_calls?.length ? "validate_reply" : END;
 }
 
-export function buildConversationGraph({ loanModel, checkpointer }: GraphDeps) {
-  return new StateGraph(ConversationState)
-    .addNode("loan_agent", createLoanAgentNode(loanModel), { ends: ["consent"] })
+// ARCHITECTURE §7. Only loan_agent is an LLM; every other node is code,
+// and each routes itself with a Command.
+export function buildConversationGraph(deps: GraphDeps) {
+  return new StateGraph(ConversationState, ConversationContext)
+    .addNode("loan_agent", createLoanAgentNode(deps.models), { ends: ["loan_gate"] })
     .addNode("validate_reply", validateReplyNode)
-    .addNode("consent", consentNode)
-    .addNode("decide", decideNode)
+    .addNode("loan_gate", loanGateNode(deps), {
+      ends: ["step_up_check", "consent", "credit_check", END],
+    })
+    .addNode("step_up_check", stepUpNode("loan_gate"), { ends: ["loan_gate"] })
+    .addNode("consent", consentNode, { ends: ["credit_check", END] })
+    .addNode("credit_check", creditCheckNode(deps), {
+      ends: ["step_up_check", "confirm", END],
+      ...CREDIT_CHECK_POLICY,
+    })
+    .addNode("confirm", confirmNode, { ends: ["submit", END] })
+    .addNode("step_up_submit", stepUpNode("submit"), { ends: ["submit"] })
+    .addNode("submit", submitNode(deps), { ends: ["step_up_submit", END] })
     .addEdge(START, "loan_agent")
     .addConditionalEdges("loan_agent", routeAfterLoanAgent, ["validate_reply", END])
     .addEdge("validate_reply", END)
-    .addEdge("consent", "decide")
-    .addEdge("decide", END)
-    .compile({ checkpointer });
+    .compile({ checkpointer: deps.checkpointer });
 }
 
 export type ConversationGraph = ReturnType<typeof buildConversationGraph>;
 
-// The default "async" durability can lose the last step in a crash.
-export function runConfig(threadId: string) {
-  return { configurable: { thread_id: threadId }, durability: "sync" as const };
+// The default "async" durability can lose the last step in a crash. The
+// context is passed on every run, resumes included; it is never saved.
+export function runConfig(threadId: string, context?: ConversationContextValue) {
+  return { configurable: { thread_id: threadId }, context, durability: "sync" as const };
 }

@@ -16,7 +16,7 @@ export function claimsDecision(text: string): boolean {
 // and the next model call never sees the invented outcome.
 export function validateReplyNode(state: ConversationStateValue) {
   const reply = state.messages.at(-1);
-  if (!AIMessage.isInstance(reply) || state.decision !== undefined) return {};
+  if (!AIMessage.isInstance(reply) || state.decision) return {};
   if (!claimsDecision(reply.text)) return {};
   return { messages: [new AIMessage({ id: reply.id, content: NO_DECISION_IN_CHAT })] };
 }

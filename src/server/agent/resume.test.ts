@@ -1,75 +1,70 @@
 import { AIMessage, fakeModel } from "langchain";
 import { beforeEach, describe, expect, it } from "vitest";
-import { buildTestGraph, pendingInterrupts, sendMessage } from "@/test/graph";
+import type { LendingDeps } from "@/server/modules/lending";
+import { aScore, scriptedBureau } from "@/test/fake-bureau";
+import {
+  ASSESSMENT_CALL,
+  buildTestGraph,
+  consentFor,
+  pendingInterrupts,
+  resume,
+  sendMessage,
+} from "@/test/graph";
+import { lendingTestSetup, TERMS } from "@/test/lending-setup";
 import { runConfig, type ConversationGraph } from "./graph";
-import { REQUEST_ASSESSMENT } from "./nodes/loan-agent";
-import { resumeInterrupt } from "./resume";
-import { REFERRED_TO_OFFICER } from "./templates";
+import { eligible } from "./templates";
 
 let graph: ConversationGraph;
+let lending: LendingDeps;
 let interruptId: string;
 
 // Two conversations, each paused at consent.
 beforeEach(async () => {
-  const model = fakeModel()
-    .respondWithTools([{ name: REQUEST_ASSESSMENT, args: {} }])
-    .respondWithTools([{ name: REQUEST_ASSESSMENT, args: {} }]);
-  graph = buildTestGraph(model);
+  lending = lendingTestSetup(scriptedBureau([aScore(800)]).bureau).deps;
+  const model = fakeModel().respondWithTools([ASSESSMENT_CALL]).respondWithTools([ASSESSMENT_CALL]);
+  graph = buildTestGraph(model, { lending });
   await sendMessage(graph, "t1", "Check my loan");
   await sendMessage(graph, "t2", "Check my loan too");
   const [pending] = await pendingInterrupts(graph, "t1");
   interruptId = pending!.id!;
 });
 
-const consentReference = { consentId: "consent-1" };
+const stateOf = async (threadId: string) => (await graph.getState(runConfig(threadId))).values;
 
 describe("agent/resume: pauses resume once, with a reference", () => {
   it("FR-AGT-06: a pending interrupt resumes with a consent reference and the journey continues", async () => {
-    const result = await resumeInterrupt(graph, {
-      threadId: "t1",
-      interruptId,
-      reference: consentReference,
-    });
+    const consentId = consentFor(lending, "t1");
 
-    const { values } = await graph.getState(runConfig("t1"));
+    const result = await resume(graph, "t1", interruptId, { consentId });
+
+    const values = await stateOf("t1");
     expect(result).toEqual({ ok: true });
-    expect(values.consentId).toBe("consent-1");
-    expect(values.messages.at(-1)?.text).toBe(REFERRED_TO_OFFICER);
+    expect(values.consentId).toBe(consentId);
+    expect(values.messages.at(-1)?.text).toBe(eligible(TERMS));
   });
 
   it("P0-09: a replayed resume is refused and the step doesn't run twice", async () => {
-    await resumeInterrupt(graph, { threadId: "t1", interruptId, reference: consentReference });
-    const before = (await graph.getState(runConfig("t1"))).values.messages.length;
+    const consentId = consentFor(lending, "t1");
+    await resume(graph, "t1", interruptId, { consentId });
+    const before = (await stateOf("t1")).messages.length;
 
-    const replay = await resumeInterrupt(graph, {
-      threadId: "t1",
-      interruptId,
-      reference: { consentId: "consent-2" },
-    });
+    const replay = await resume(graph, "t1", interruptId, { consentId: consentFor(lending, "t1") });
 
-    const { values } = await graph.getState(runConfig("t1"));
+    const values = await stateOf("t1");
     expect(replay).toEqual({ ok: false, reason: "not_pending" });
-    expect(values.consentId).toBe("consent-1");
+    expect(values.consentId).toBe(consentId);
     expect(values.messages).toHaveLength(before);
   });
 
   it("FR-AGT-06: an interrupt ID from another conversation never resumes this one", async () => {
-    const result = await resumeInterrupt(graph, {
-      threadId: "t2",
-      interruptId,
-      reference: consentReference,
-    });
+    const result = await resume(graph, "t2", interruptId, { consentId: consentFor(lending, "t2") });
 
     expect(result).toEqual({ ok: false, reason: "not_pending" });
     expect(await pendingInterrupts(graph, "t2")).toHaveLength(1);
   });
 
   it("FR-AGT-06: an invented interrupt ID is refused", async () => {
-    const result = await resumeInterrupt(graph, {
-      threadId: "t1",
-      interruptId: "not-a-real-id",
-      reference: consentReference,
-    });
+    const result = await resume(graph, "t1", "not-a-real-id", { consentId: "c1" });
 
     expect(result).toEqual({ ok: false, reason: "not_pending" });
   });
@@ -79,27 +74,26 @@ describe("agent/resume: pauses resume once, with a reference", () => {
     { case: "a password", reference: { password: "hunter2" } },
     { case: "a reference with extra data", reference: { consentId: "c1", password: "hunter2" } },
     { case: "an empty reference", reference: { consentId: "" } },
+    { case: "a step-up answer at the consent pause", reference: { verified: true } },
   ])("P0-19: resuming with $case is refused and nothing reaches state", async ({ reference }) => {
-    const result = await resumeInterrupt(graph, { threadId: "t1", interruptId, reference });
+    const result = await resume(graph, "t1", interruptId, reference);
 
-    const { values } = await graph.getState(runConfig("t1"));
     expect(result).toEqual({ ok: false, reason: "invalid_reference" });
-    expect(values.consentId).toBeUndefined();
+    expect((await stateOf("t1")).consentId).toBeNull();
     expect(await pendingInterrupts(graph, "t1")).toHaveLength(1);
   });
 
   it("FR-AGT-06: typing 'I consent' in chat does not resume the pause", async () => {
     const model = fakeModel()
-      .respondWithTools([{ name: REQUEST_ASSESSMENT, args: {} }])
+      .respondWithTools([ASSESSMENT_CALL])
       .respond(new AIMessage("Please use the consent card on your screen."));
-    const chatGraph = buildTestGraph(model);
+    const chatGraph = buildTestGraph(model, { lending });
     await sendMessage(chatGraph, "t3", "Check my loan");
 
     await sendMessage(chatGraph, "t3", "I consent");
 
     const { values } = await chatGraph.getState(runConfig("t3"));
-    expect(values.consentId).toBeUndefined();
-    expect(values.decision).toBeUndefined();
-    expect(await pendingInterrupts(chatGraph, "t3")).toEqual([]);
+    expect(values.consentId).toBeNull();
+    expect(values.decision).toBeNull();
   });
 });

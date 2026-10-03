@@ -1,15 +1,33 @@
 import { Command } from "@langchain/langgraph";
-import { ConsentReference } from "./nodes/consent";
+import type { ConversationContextValue } from "./context";
 import { runConfig, type ConversationGraph } from "./graph";
+import { REFERENCE_SCHEMAS, type Pause, type PauseKind } from "./nodes/pauses";
 
-export type ResumeRequest = { threadId: string; interruptId: string; reference: unknown };
+export type PendingPause = { interruptId: string; pause: Pause };
+
+export type ResumeRequest = {
+  context: ConversationContextValue;
+  interruptId: string;
+  reference: unknown;
+};
 export type ResumeResult =
   { ok: true } | { ok: false; reason: "not_pending" | "invalid_reference" };
 
-const REFERENCE_SCHEMAS = { consent: ConsentReference };
+function isPause(value: unknown): value is Pause {
+  if (typeof value !== "object" || value === null || !("kind" in value)) return false;
+  return typeof value.kind === "string" && value.kind in REFERENCE_SCHEMAS;
+}
 
-function isKnownKind(value: unknown): value is { kind: keyof typeof REFERENCE_SCHEMAS } {
-  return typeof value === "object" && value !== null && "kind" in value && value.kind === "consent";
+// The pause this conversation is waiting on, if any. The harness reads its
+// kind and terms from here, never from the browser.
+export async function findPendingPause(
+  graph: ConversationGraph,
+  threadId: string,
+): Promise<PendingPause | undefined> {
+  const snapshot = await graph.getState(runConfig(threadId));
+  const pending = snapshot.tasks.flatMap((task) => task.interrupts).find((item) => item.id);
+  if (!pending?.id || !isPause(pending.value)) return undefined;
+  return { interruptId: pending.id, pause: pending.value };
 }
 
 // FR-AGT-06: an interrupt ID is usable only while that thread's checkpoint
@@ -18,17 +36,17 @@ function isKnownKind(value: unknown): value is { kind: keyof typeof REFERENCE_SC
 // (FR-WEB-03) keeps two resumes of one thread from racing.
 export async function resumeInterrupt(
   graph: ConversationGraph,
-  { threadId, interruptId, reference }: ResumeRequest,
+  { context, interruptId, reference }: ResumeRequest,
 ): Promise<ResumeResult> {
-  const config = runConfig(threadId);
-  const snapshot = await graph.getState(config);
-  const pending = snapshot.tasks
-    .flatMap((task) => task.interrupts)
-    .find((item) => item.id === interruptId);
-  if (!pending || !isKnownKind(pending.value)) return { ok: false, reason: "not_pending" };
-  if (!REFERENCE_SCHEMAS[pending.value.kind].safeParse(reference).success) {
+  const pending = await findPendingPause(graph, context.conversationId);
+  if (pending?.interruptId !== interruptId) return { ok: false, reason: "not_pending" };
+  const kind: PauseKind = pending.pause.kind;
+  if (!REFERENCE_SCHEMAS[kind].safeParse(reference).success) {
     return { ok: false, reason: "invalid_reference" };
   }
-  await graph.invoke(new Command({ resume: { [interruptId]: reference } }), config);
+  await graph.invoke(
+    new Command({ resume: { [interruptId]: reference } }),
+    runConfig(context.conversationId, context),
+  );
   return { ok: true };
 }
