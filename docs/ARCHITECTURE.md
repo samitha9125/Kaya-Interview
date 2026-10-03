@@ -184,7 +184,7 @@ erDiagram
 | Audience | Gets |
 |---|---|
 | Customer | A written template and a next step. Hard failures add a short reference code for support |
-| LLM | One **situation label** (e.g. `CHECK_UNAVAILABLE_TODAY`, `REFERRED`, `INVALID_INPUT`), never error details, internal numbers, or personal data |
+| LLM | One **situation label** (e.g. `CHECK_UNAVAILABLE`, `REFERRED`, `INVALID_INPUT`), never error details, internal numbers, or personal data |
 | Logs and audit | Full detail, personal data redacted, under the same reference |
 
 **P0 guarantees come from code and deterministic tests, never from evals.**

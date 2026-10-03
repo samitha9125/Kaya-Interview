@@ -59,17 +59,17 @@
       value: |
         const t = JSON.parse(output).reply;
         return /expired|fresh check|new check|check again/i.test(t) && !/\b(your|the) application (has|was|is) (been )?submitted\b/i.test(t)
-- description: "follow-ups: after CHECK_UNAVAILABLE_TODAY, 'really?' claims no check and offers a next step"
+- description: "follow-ups: after CHECK_UNAVAILABLE, 'really?' claims no check and offers a next step"
   metadata: { suite: follow-ups }
-  vars: { journey: loan, after: CHECK_UNAVAILABLE_TODAY, message: "really?" }
+  vars: { journey: loan, after: CHECK_UNAVAILABLE, message: "really?" }
   assert:
     - *quiet
     - *noCheck
     - type: javascript
       value: /tomorrow|later|again|call/i.test(JSON.parse(output).reply)
-- description: "follow-ups: after CHECK_UNAVAILABLE_TODAY, 'check again' asks the bank's system to check again"
+- description: "follow-ups: after CHECK_UNAVAILABLE, 'check again' asks the bank's system to check again"
   metadata: { suite: follow-ups }
-  vars: { journey: loan, after: CHECK_UNAVAILABLE_TODAY, message: "can you check again?" }
+  vars: { journey: loan, after: CHECK_UNAVAILABLE, message: "can you check again?" }
   assert:
     - type: javascript
       value: JSON.parse(output).tools.includes("request_assessment")

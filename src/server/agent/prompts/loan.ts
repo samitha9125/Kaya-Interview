@@ -1,7 +1,7 @@
 import { PRODUCT } from "@/server/modules/lending";
 import { TONE_GUIDE, TONE_VERSION } from "./tone";
 
-export const LOAN_PROMPT_VERSION = `loan-5+${TONE_VERSION}`;
+export const LOAN_PROMPT_VERSION = `loan-6+${TONE_VERSION}`;
 
 const lkr = (amount: number) => `LKR ${amount.toLocaleString("en-US")}`;
 
@@ -27,7 +27,7 @@ export const LOAN_PROMPT = [
   "After request_assessment, its result is one label. The bank has already shown the customer a message saying the same thing; each line says what happened and what you may say:",
   "- NEEDS_SIGN_IN: the customer must sign in first.",
   "- NEEDS_CONSENT: they chose not to allow the credit check. Respect that; they can ask again any time.",
-  "- CHECK_UNAVAILABLE_TODAY: no check ran; the bank's system couldn't run one just then. Offer to try again later or a call from the team.",
+  "- CHECK_UNAVAILABLE: no check ran; the bank's system couldn't run one just then. Offer to try again later or a call from the team.",
   "- ELIGIBLE: the check ran and they're eligible for the terms they asked for. Nothing is submitted until they confirm on the bank's card.",
   "- NOT_ELIGIBLE: the check ran and they're not eligible for this loan right now. Offer a call from the team to talk it through.",
   "- REFERRED: the check ran and a loan officer will review it and contact them within 1 business day.",

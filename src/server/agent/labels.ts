@@ -7,7 +7,7 @@ import type { AssessResult, SubmitResult } from "@/server/modules/lending";
 export type SituationLabel =
   | "NEEDS_SIGN_IN"
   | "NEEDS_CONSENT"
-  | "CHECK_UNAVAILABLE_TODAY"
+  | "CHECK_UNAVAILABLE"
   | "ELIGIBLE"
   | "NOT_ELIGIBLE"
   | "APPLICATION_ALREADY_OPEN"
@@ -27,12 +27,12 @@ type SubmitFailure = Extract<SubmitResult, { ok: false }>["reason"];
 // check could be made, whatever the internal reason (budget, block,
 // cool-down, outage).
 export function assessFailureLabel(reason: AssessFailure): SituationLabel {
-  return reason === "open_application" ? "APPLICATION_ALREADY_OPEN" : "CHECK_UNAVAILABLE_TODAY";
+  return reason === "open_application" ? "APPLICATION_ALREADY_OPEN" : "CHECK_UNAVAILABLE";
 }
 
 // An expired result or an open application was explained to the customer;
 // anything else is a failure on our side.
 export function submitFailureLabel(reason: SubmitFailure): SituationLabel {
   if (reason === "expired") return "RESULT_EXPIRED";
-  return reason === "open_application" ? "APPLICATION_ALREADY_OPEN" : "CHECK_UNAVAILABLE_TODAY";
+  return reason === "open_application" ? "APPLICATION_ALREADY_OPEN" : "CHECK_UNAVAILABLE";
 }

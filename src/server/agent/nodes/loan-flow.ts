@@ -53,7 +53,7 @@ export function creditCheckNode({ lending, isStepUpFresh }: LoanFlowDeps) {
   return async (state: ConversationStateValue, config: NodeConfig) => {
     const context = contextOf(config);
     if (!context.customerId || !state.consentId) {
-      return endWith(state, "CHECK_UNAVAILABLE_TODAY", CANT_COMPLETE);
+      return endWith(state, "CHECK_UNAVAILABLE", CANT_COMPLETE);
     }
     if (!isStepUpFresh(context.sessionId)) return new Command({ goto: "step_up_check" });
     reportProgress(config, CHECKING_CREDIT);
@@ -108,7 +108,7 @@ export const CREDIT_CHECK_POLICY = {
       correlationId: ConversationContext.safeParse(config?.context).data?.correlationId,
       error: error.error,
     });
-    return endWith(state, "CHECK_UNAVAILABLE_TODAY", CHECK_UNAVAILABLE_NOW);
+    return endWith(state, "CHECK_UNAVAILABLE", CHECK_UNAVAILABLE_NOW);
   },
 };
 
@@ -119,7 +119,7 @@ export function submitNode({ lending, isStepUpFresh }: LoanFlowDeps) {
     const context = contextOf(config);
     const { assessment } = state;
     if (!context.customerId || !assessment) {
-      return endWith(state, "CHECK_UNAVAILABLE_TODAY", CANT_COMPLETE);
+      return endWith(state, "CHECK_UNAVAILABLE", CANT_COMPLETE);
     }
     if (!isStepUpFresh(context.sessionId)) return new Command({ goto: "step_up_submit" });
     reportProgress(config, SUBMITTING);

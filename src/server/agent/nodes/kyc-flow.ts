@@ -38,14 +38,14 @@ export function kycConfirmNode(state: ConversationStateValue) {
 export function kycSubmitNode(onboarding: OnboardingDeps) {
   return (state: ConversationStateValue, config: NodeConfig) => {
     const { conversationId, correlationId, customerId, sessionId } = contextOf(config);
-    if (!state.kycDraftId) return endWith(state, "CHECK_UNAVAILABLE_TODAY", CANT_COMPLETE);
+    if (!state.kycDraftId) return endWith(state, "CHECK_UNAVAILABLE", CANT_COMPLETE);
     const actor = customerId ?? `guest:${sessionId}`;
     const result = confirmKycApplication(
       state.kycDraftId,
       { conversationId, correlationId, actor },
       onboarding,
     );
-    if (!result.ok) return endWith(state, "CHECK_UNAVAILABLE_TODAY", CANT_COMPLETE);
+    if (!result.ok) return endWith(state, "CHECK_UNAVAILABLE", CANT_COMPLETE);
     return endWith(state, "SUBMITTED", KYC_SUBMITTED);
   };
 }

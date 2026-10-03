@@ -22,7 +22,7 @@ const ENDINGS = {
   REFERRED: { decision: "referred", shown: REFERRED_TO_OFFICER },
   APPLICATION_ALREADY_OPEN: { decision: null, shown: openApplication("referred") },
   RESULT_EXPIRED: { decision: "eligible", shown: ASSESSMENT_EXPIRED },
-  CHECK_UNAVAILABLE_TODAY: { decision: null, shown: CHECK_UNAVAILABLE_TODAY },
+  CHECK_UNAVAILABLE: { decision: null, shown: CHECK_UNAVAILABLE_TODAY },
 } satisfies Partial<Record<SituationLabel, { decision: Decision; shown: string }>>;
 
 export type QuestionedEnding = keyof typeof ENDINGS;
