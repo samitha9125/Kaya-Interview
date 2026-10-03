@@ -165,6 +165,7 @@ The same loan traffic on Claude Haiku ($1 / $5) would cost ≈ $47 a month on it
 | Database | Behind a repository port · **Drizzle directly** | Drizzle | Drizzle already isolates the SQL dialect, so Postgres is a dialect change. A repository layer would add files, not options |
 | Engine | Postgres · **SQLite** | SQLite | Zero setup for the demo, same schema later (D5). One writer at a time, handled with `busy_timeout` and retry |
 | Domain code and LangChain | Shared · **domain modules never import LangChain or LangGraph** | Separated | Business rules run and test with no model at all |
+| Enforcing the layers | `no-restricted-imports` alone · **`import/no-restricted-paths` for layers and module privacy, `no-restricted-imports` for banned packages** | Both | `no-restricted-imports` only sees the import text, so a relative path like `../../agent` slips past it. `import/no-restricted-paths` resolves the real file and is already installed with `eslint-config-next` |
 
 ### TD13. Reliability inside the graph
 

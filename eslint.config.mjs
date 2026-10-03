@@ -2,6 +2,7 @@ import { defineConfig, globalIgnores } from "eslint/config";
 import nextVitals from "eslint-config-next/core-web-vitals";
 import nextTs from "eslint-config-next/typescript";
 import prettier from "eslint-config-prettier/flat";
+import { boundaries } from "./eslint.boundaries.mjs";
 
 const eslintConfig = defineConfig([
   ...nextVitals,
@@ -14,6 +15,7 @@ const eslintConfig = defineConfig([
       "@typescript-eslint/consistent-type-imports": "error",
     },
   },
+  ...boundaries,
   // Must stay last: turns off rules that conflict with Prettier.
   prettier,
   globalIgnores([

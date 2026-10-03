@@ -58,7 +58,7 @@ export async function getScore(customerId: string, deps: GovCreditDeps): Promise
 ## 4. Modules and imports
 
 - Each module in `server/modules/<id>/` exposes **only** `index.ts`. Other code never deep-imports a module's internal files.
-- Layer rules are in `ARCHITECTURE.md` §4 and enforced by ESLint `no-restricted-imports`. Key rule: **domain modules never import LangChain or LangGraph**, so business logic runs and tests with no model at all.
+- Layer rules are in `ARCHITECTURE.md` §4 and enforced by ESLint (`import/no-restricted-paths` and `no-restricted-imports`, in `eslint.boundaries.mjs`). Key rule: **domain modules never import LangChain or LangGraph**, so business logic runs and tests with no model at all.
 - **Depend on ports, not adapters.** A module that needs an external system declares a port (a TypeScript type in `ports.ts`) and receives an implementation. Concrete adapters live in `server/adapters/` and are wired only in `server/composition.ts`. Adding a provider or endpoint means adding an adapter, never editing domain logic.
 - A module owns its tables. Only the owner writes them; other modules call the owner's public functions.
 - Server-only code imports `server-only`, so it can't be bundled into the browser.
