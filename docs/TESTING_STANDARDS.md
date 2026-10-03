@@ -20,21 +20,22 @@ The database is deliberately **real** (SQLite in memory), not mocked. It's fast,
 
 ## 2. What a good test looks like
 
+From `src/server/modules/lending/decide.test.ts`:
+
 ```ts
-describe("lending/assess: auto-decision threshold", () => {
+describe("lending/decide: the auto-decision threshold (BR-LEND-05)", () => {
   it.each([
-    { confidenceBp: 9_500, expected: "outcome" },  // exactly at threshold → outcome
-    { confidenceBp: 9_499, expected: "referral" }, // just below → referral
-  ])("BR-LEND-05: confidence $confidenceBp bp → $expected", ({ confidenceBp, expected }) => {
-    const result = routeDecision(anAssessment({ confidenceBp }), { thresholdBp: 9_500 });
-    expect(result.kind).toBe(expected);
+    { days: 32, outcome: "eligible" }, // 9,500 bp: exactly at the threshold → outcome
+    { days: 33, outcome: "referred" }, // 9,480 bp: below → referral
+  ])("P0-07: an eligible case with a score $days days old → $outcome", ({ days, outcome }) => {
+    expect(decideLoan(input(scoreAged(days))).outcome).toBe(outcome);
   });
 });
 ```
 
 - **Named as a specification**, starting with the requirement or failure ID it proves (`BR-LEND-04`, `P0-07`). That's how traceability works: search an ID, find its proof.
 - **One behaviour per test**, in Arrange → Act → Assert order.
-- **Boundaries as tables.** Every numeric rule is tested at its limit and just past it with `it.each`.
+- **Boundaries as tables.** Every decision rule (bands, repayment-to-income, the threshold, confidence, cache lifetime and stale window, the daily budget, lockout) is tested at its limit and just past it with `it.each`. Plumbing limits such as message length, rate limits and session timeouts follow framework practice and aren't boundary-tested.
 - **No logic in tests:** no loops or conditionals beyond `it.each` tables.
 - **Assert outcomes, not internal calls.** The one exception is security: "the government API was **not** called" is the outcome.
 
@@ -51,8 +52,8 @@ describe("lending/assess: auto-decision threshold", () => {
 |---|---|
 | LLM | `fakeModel()` from `langchain` (`.respond`, `.respondWithTools`, `.alwaysThrow`) |
 | Government API | A fake `CreditBureau` adapter; the real `HttpGovBureau` adapter is tested against a local fake HTTP server |
-| LLM provider and model list | A fake `ChatModelProvider` returning `fakeModel()`; a fixture of the OpenRouter models API for `OpenRouterCatalog` |
-| Clock | Injected `now()`; Vitest fake timers for retries and backoff |
+| LLM provider | A fake `ChatModelProvider` returning `fakeModel()`. Browser tests use `ScriptedChatProvider` and `StaticModelCatalog` instead of OpenRouter (TD25) |
+| Clock and waits | Injected `now()`. Retries and backoff take an injected `sleep`, so no test ever waits |
 | Randomness (tokens, jitter) | Injected and seeded |
 
 **Never** fake the unit under test, an internal function of the same module, or the database. If something is hard to test without that, the design needs to change, not the test.
@@ -67,7 +68,7 @@ describe("lending/assess: auto-decision threshold", () => {
 
 | Where | How | Why |
 |---|---|---|
-| **P0 controls and business-rule boundaries** (threshold, eligibility, confidence, cache lifetime and stale window, budget and 429 block, lockout, ownership, consent, duplicate submit, …) | **Manual mutant**: break the code on purpose, watch the test fail, revert. Recorded in the task's verification line in `tasks/todo.md` (`Mutant: inverted the ownership check → P0-04 test failed`) | Here a silently passing test hides a security hole or a business bug (`>=` → `>` on the threshold, `<` → `<=` on the 30-day lifetime) that coverage alone can't see |
+| **P0 controls and business-rule boundaries** (threshold, eligibility, confidence, cache lifetime and stale window, budget and 429 block, lockout, ownership, consent, duplicate submit, …) | **Manual mutant**: break the code on purpose, watch the test fail, revert. Recorded in `tasks/todo.md`: in the task's Result line, or in the block of mutants run after T21 (`Mutant: inverted the ownership check → P0-04 test failed`) | Here a silently passing test hides a security hole or a business bug (`>=` → `>` on the threshold, `<` → `<=` on the 30-day lifetime) that coverage alone can't see |
 | **Everything else** | Normal test-first red → green | Mutation ceremony on UI and glue code is slow and noisy and pins tests to implementation details |
 
 Bugs follow **Prove-It**: first a test that fails because of the bug, then the fix.
@@ -76,7 +77,7 @@ Bugs follow **Prove-It**: first a test that fails because of the bug, then the f
 
 - Every **P0** failure case in the spec has at least one **deterministic** automated test (unit, module, graph or E2E), and the test name carries its ID. **Evals never prove a P0**; they measure behaviour quality.
 - **Graph tests treat the model as an adversary:** the fake model is scripted to call the credit tool early, pass identity arguments, claim an outcome, or loop. The graph must refuse.
-- **Red-team evals** run the same attacks against real models: someone else's NIC, "I'm already verified", system-prompt extraction, "what's my score?", "when is my next evaluation?", draining the budget, emotional pressure, authority claims, task smuggling, and "ignore previous instructions".
+- **Red-team evals** run the same attacks against real models. The attack list lives in [`SPEC.md`](SPEC.md) §9.
 
 ## 8. Evals
 
@@ -91,7 +92,7 @@ Bugs follow **Prove-It**: first a test that fails because of the bug, then the f
 
 ## 10. Review
 
-Before a module is built, the **test-engineer persona** (`agent-skills:test-engineer`) reviews its test plan against the spec, including its failure cases. Every test, whether a person or an AI writes or audits it, must pass these four questions:
+Every test, whether a person or an AI writes or reviews it, must pass these four questions:
 
 1. Which requirement or failure ID does it prove?
 2. Would it fail if that behaviour broke? (Shown by a mutant.)
