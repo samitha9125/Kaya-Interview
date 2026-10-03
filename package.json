@@ -14,6 +14,7 @@
     "secrets:scan": "node scripts/secret-scan.mjs",
     "db:generate": "drizzle-kit generate",
     "db:setup": "node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/db-setup.ts",
+    "smoke:models": "node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/smoke-models.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:mutation": "stryker run",
