@@ -13,7 +13,7 @@
     "prepare": "husky",
     "secrets:scan": "node scripts/secret-scan.mjs",
     "db:generate": "drizzle-kit generate",
-    "db:setup": "drizzle-kit migrate && node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/seed.ts",
+    "db:setup": "node --env-file-if-exists=.env.local --conditions=react-server --import tsx scripts/db-setup.ts",
     "test": "vitest run",
     "test:watch": "vitest",
     "test:mutation": "stryker run",

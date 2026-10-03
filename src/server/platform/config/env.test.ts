@@ -18,6 +18,7 @@ describe("platform/config: startup validation", () => {
         CREDIT_CACHE_TTL_DAYS: 30,
         DEMO_MODE: false,
         OPENROUTER_API_KEY: undefined,
+        DATABASE_PATH: "bank.db",
       },
     });
   });

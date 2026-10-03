@@ -1,0 +1,19 @@
+import { ConfigError, getConfig } from "@/server/platform/config";
+import { migrateDatabase, openDatabase } from "@/server/platform/db";
+import { seedDemoCustomers } from "./demo-customers";
+
+// `pnpm db:setup`: migrate, then add the demo data. One script, so both
+// steps use the same configured database file.
+async function main() {
+  const { APP_ENCRYPTION_KEY, DATABASE_PATH } = getConfig();
+  const { db, sqlite } = openDatabase(DATABASE_PATH);
+  migrateDatabase(db);
+  await seedDemoCustomers(db, APP_ENCRYPTION_KEY);
+  sqlite.close();
+  console.log(`Database ready: ${DATABASE_PATH}, with the demo customers.`);
+}
+
+main().catch((error: unknown) => {
+  console.error(error instanceof ConfigError ? error.message : error);
+  process.exit(1);
+});
