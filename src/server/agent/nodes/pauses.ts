@@ -1,5 +1,6 @@
 import { Command, interrupt } from "@langchain/langgraph";
 import { z } from "zod";
+import type { CallbackReason } from "../callbacks/requests";
 import type { ConversationStateValue } from "../state";
 import { CONFIRM_DECLINED, CONSENT_DECLINED } from "../templates";
 import { endWith } from "./endings";
@@ -23,12 +24,21 @@ export const KycFormReference = z.union([
   z.strictObject({ declined: z.literal(true) }),
 ]);
 
-export type PauseKind = "step_up" | "consent" | "confirm" | "kyc_form" | "kyc_confirm";
+// FR-AGT-14: a guest's callback details are stored by the server, which
+// returns the request's ID.
+export const CallbackFormReference = z.union([
+  z.strictObject({ callbackId: z.string().min(1) }),
+  z.strictObject({ declined: z.literal(true) }),
+]);
+
+export type PauseKind =
+  "step_up" | "consent" | "confirm" | "kyc_form" | "kyc_confirm" | "callback_form";
 export type Pause =
   | { kind: "step_up" }
   | { kind: "consent" | "confirm"; amountLkr: number; termMonths: number }
   | { kind: "kyc_form" }
-  | { kind: "kyc_confirm"; draftId: string };
+  | { kind: "kyc_confirm"; draftId: string }
+  | { kind: "callback_form"; reason: CallbackReason };
 
 export const REFERENCE_SCHEMAS = {
   step_up: StepUpReference,
@@ -36,6 +46,7 @@ export const REFERENCE_SCHEMAS = {
   confirm: ConfirmReference,
   kyc_form: KycFormReference,
   kyc_confirm: ConfirmReference,
+  callback_form: CallbackFormReference,
 } as const;
 
 function termsOf(state: ConversationStateValue) {

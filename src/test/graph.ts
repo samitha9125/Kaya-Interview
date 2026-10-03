@@ -29,12 +29,15 @@ export function buildTestGraph(model: BaseChatModel, options: TestGraphOptions =
     models: options.models ?? { chatModel: () => model },
     lending,
     onboarding: options.onboarding ?? onboardingTestDeps(lending),
+    callbacks: { ...pickStores(lending), encryptionKey: TEST_ENCRYPTION_KEY },
     isStepUpFresh: options.isStepUpFresh ?? (() => true),
     checkpointer: options.checkpointer ?? new MemorySaver(),
     // Retries without real waiting (TESTING_STANDARDS §5).
     modelRetry: { initialDelayMs: 0 },
   });
 }
+
+const pickStores = ({ db, audit, clock, ids }: LendingDeps) => ({ db, audit, clock, ids });
 
 // Real onboarding on the same database as lending; no applicant is an
 // existing customer unless a test says so.
@@ -59,20 +62,21 @@ export function testContext(
   };
 }
 
+// A message on the loan journey, as if from the "Check a loan" starter.
 export function sendMessage(
   graph: ConversationGraph,
   threadId: string,
   text: string,
   context = testContext(threadId),
 ) {
-  return graph.invoke({ messages: [new HumanMessage(text)] }, runConfig(threadId, context));
+  return startJourney(graph, threadId, "loan", text, context);
 }
 
 // A message sent from a starter button, which picks the specialist.
 export function startJourney(
   graph: ConversationGraph,
   threadId: string,
-  journey: "loan" | "kyc",
+  journey: "loan" | "kyc" | "human",
   text: string,
   context = testContext(threadId),
 ) {

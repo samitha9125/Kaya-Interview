@@ -26,9 +26,13 @@ export const ConversationState = new StateSchema({
   assessment: AssessmentValue.nullable().optional(),
   applicationId: z.string().nullable().optional(),
   decision: Outcome.nullable().optional(),
-  // Which specialist the conversation is with. It stays until a starter
-  // button or triage changes it (FR-AGT-01).
-  journey: z.enum(["loan", "kyc"]).nullable().optional(),
+  // Which journey the conversation is on. It stays until a starter button
+  // or triage changes it, so triage runs only when there is none (FR-AGT-01).
+  // "human" lasts one turn: the callback step clears it.
+  journey: z.enum(["loan", "kyc", "human"]).nullable().optional(),
+  // FR-AGT-15: the specialist that just handed a message back, so triage
+  // doesn't send it straight back there.
+  handedBackFrom: z.enum(["loan", "kyc"]).nullable().optional(),
   // FR-ONB-02: the encrypted draft's ID; the form itself never enters state.
   kycDraftId: z.string().nullable().optional(),
 });

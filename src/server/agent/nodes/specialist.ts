@@ -7,10 +7,12 @@ import {
   piiMiddleware,
   toolCallLimitMiddleware,
   ToolCallLimitExceededError,
+  tool,
   ToolMessage,
   type StructuredTool,
   type ToolRuntime,
 } from "langchain";
+import { z } from "zod";
 import type { AgentRole } from "@/server/modules/settings";
 import { findNics } from "@/server/platform/pii";
 import { logger } from "@/server/platform/logger";
@@ -51,6 +53,22 @@ export function handOff(
     graph: Command.PARENT,
     update: { messages: [lastAiMessage, result].filter(Boolean), ...update },
   });
+}
+
+// FR-AGT-15: every specialist can give a message back to triage: a topic
+// change, a misroute, or a request for a person. The journey's progress
+// stays in state.
+function handBackTool(role: Specialist["role"]) {
+  return tool(
+    (_input: Record<string, never>, runtime: ToolRuntime<ConversationStateValue>) =>
+      handOff(runtime, "Handed back", "triage", { handedBackFrom: role }),
+    {
+      name: "hand_back",
+      description:
+        "Give the conversation back to the front desk when the customer wants something you don't handle, including talking to a person. Don't reply yourself.",
+      schema: z.strictObject({}),
+    },
+  );
 }
 
 // FR-AGT-09, FR-AGT-11, FR-AGT-12, in the order they wrap the model:
@@ -103,6 +121,7 @@ export function createSpecialistNode(
   models: ChatModelProvider,
   retry: ModelRetryOptions,
 ) {
+  const tools: StructuredTool[] = [...specialist.tools, handBackTool(specialist.role)];
   return async (state: ConversationStateValue, config: NodeConfig) => {
     const { models: selection, correlationId } = contextOf(config);
     const limits = turnLimits(state.messages);
@@ -112,7 +131,7 @@ export function createSpecialistNode(
     try {
       const agent = createAgent({
         model: models.chatModel(modelRequestFor(specialist.role, selection[specialist.role])),
-        tools: specialist.tools,
+        tools,
         systemPrompt: specialist.systemPrompt,
         middleware: middlewareFor(limits, retry, specialist.invalidInputHint),
       });

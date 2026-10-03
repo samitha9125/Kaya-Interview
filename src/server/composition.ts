@@ -78,6 +78,7 @@ function createApp(config: AppConfig) {
     models,
     lending,
     onboarding,
+    callbacks: { db, audit, clock, ids, encryptionKey: config.APP_ENCRYPTION_KEY },
     isStepUpFresh: (sessionId) => isStepUpFreshFor(sessionId, { db, clock }),
     checkpointer: createCheckpointer(sqlite),
   });

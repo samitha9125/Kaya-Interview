@@ -39,7 +39,7 @@ describe("agent graph: SQLite checkpoints with sync durability", () => {
   it("P2-03: a pause survives a restart and resumes with its reference", async () => {
     const first = startServer(fakeModel().respondWithTools([ASSESSMENT_CALL]));
     await first.graph.invoke(
-      { messages: [new HumanMessage("Check my loan")] },
+      { messages: [new HumanMessage("Check my loan")], journey: "loan" as const },
       runConfig("t1", testContext("t1")),
     );
     first.stop();

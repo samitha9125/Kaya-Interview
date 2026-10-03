@@ -65,7 +65,7 @@ describe("harness/turn-stream: what the browser hears (FR-WEB-04)", () => {
 
   it("FR-AGT-08: the customer's own message and tool traffic are not sent back", async () => {
     const graph = buildTestGraph(fakeModel().respondWithTools([ASSESSMENT_CALL]));
-    const input = { messages: [new HumanMessage("Check my loan")] };
+    const input = { messages: [new HumanMessage("Check my loan")], journey: "loan" as const };
 
     const response = streamTurn(
       aRun({ graph, input, context: testContext("t1", { customerId: null }) }),
@@ -77,7 +77,7 @@ describe("harness/turn-stream: what the browser hears (FR-WEB-04)", () => {
 
   it("FR-WEB-05: a run that fails sends the template and a reference, never the raw error", async () => {
     const graph = buildTestGraph(fakeModel().respondWithTools([ASSESSMENT_CALL]));
-    const input = { messages: [new HumanMessage("Check my loan")] };
+    const input = { messages: [new HumanMessage("Check my loan")], journey: "loan" as const };
     const brokenContext = { ...testContext("t1"), customerId: 42 } as never;
 
     const response = streamTurn(aRun({ graph, input, context: brokenContext }));
@@ -96,7 +96,7 @@ describe("harness/turn-stream: what the browser hears (FR-WEB-04)", () => {
     await streamTurn(
       aRun({
         graph,
-        input: { messages: [new HumanMessage("Hi")] },
+        input: { messages: [new HumanMessage("Hi")], journey: "loan" as const },
         context: { ...testContext("t1"), customerId: 42 } as never,
         release: () => releases++,
       }),

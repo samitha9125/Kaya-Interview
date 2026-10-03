@@ -3,6 +3,8 @@ import { AIMessage } from "langchain";
 import { ConversationContext, type ConversationContextValue } from "./context";
 import { CALL_LIMITS } from "./limits";
 import type { OnboardingDeps } from "@/server/modules/onboarding";
+import type { CallbackDeps } from "./callbacks/requests";
+import { callbackFormNode, callbackNode } from "./nodes/callback";
 import { createKycAgentNode } from "./nodes/kyc-agent";
 import { kycConfirmNode, kycFormNode, kycSubmitNode } from "./nodes/kyc-flow";
 import { createLoanAgentNode } from "./nodes/loan-agent";
@@ -15,12 +17,14 @@ import {
   type LoanFlowDeps,
 } from "./nodes/loan-flow";
 import { confirmNode, consentNode, stepUpNode } from "./nodes/pauses";
+import { createTriageNode } from "./nodes/triage";
 import { validateReplyNode } from "./nodes/validate-reply";
 import type { ChatModelProvider } from "./ports";
 import { ConversationState, type ConversationStateValue } from "./state";
 
 export type GraphDeps = LoanFlowDeps & {
   onboarding: OnboardingDeps;
+  callbacks: CallbackDeps;
   models: ChatModelProvider;
   checkpointer: BaseCheckpointSaver;
   modelRetry?: ModelRetryOptions;
@@ -29,10 +33,13 @@ export type GraphDeps = LoanFlowDeps & {
 // FR-AGT-12: about 1 s, then 2 s, before giving up.
 const MODEL_RETRY: ModelRetryOptions = { initialDelayMs: 1_000 };
 
-// The specialist the conversation is with. Until triage exists (T18), a
-// conversation without one goes to the loan agent.
+// FR-AGT-01: sticky routing. A journey (set by triage or a starter button)
+// goes straight to its specialist; only a conversation without one meets
+// triage.
+const JOURNEY_START = { loan: "loan_agent", kyc: "kyc_agent", human: "callback" } as const;
+
 function routeFromStart(state: ConversationStateValue) {
-  return state.journey === "kyc" ? "kyc_agent" : "loan_agent";
+  return state.journey ? JOURNEY_START[state.journey] : "triage";
 }
 
 // A text reply goes to validation; a handoff has already set its own next
@@ -42,15 +49,18 @@ function routeAfterSpecialist(state: ConversationStateValue) {
   return AIMessage.isInstance(last) && !last.tool_calls?.length ? "validate_reply" : END;
 }
 
-// ARCHITECTURE §7. Only the specialists are LLMs; every other node is code,
-// and each routes itself with a Command.
+// ARCHITECTURE §7. Triage and the specialists are LLMs; every other node is
+// code, and each routes itself with a Command.
 export function buildConversationGraph(deps: GraphDeps) {
   return new StateGraph(ConversationState, ConversationContext)
+    .addNode("triage", createTriageNode(deps.models), {
+      ends: ["loan_agent", "kyc_agent", "callback", END],
+    })
     .addNode("loan_agent", createLoanAgentNode(deps.models, deps.modelRetry ?? MODEL_RETRY), {
-      ends: ["loan_gate"],
+      ends: ["loan_gate", "triage"],
     })
     .addNode("kyc_agent", createKycAgentNode(deps.models, deps.modelRetry ?? MODEL_RETRY), {
-      ends: ["kyc_form"],
+      ends: ["kyc_form", "triage"],
     })
     .addNode("validate_reply", validateReplyNode)
     .addNode("loan_gate", loanGateNode(deps), {
@@ -68,7 +78,9 @@ export function buildConversationGraph(deps: GraphDeps) {
     .addNode("kyc_form", kycFormNode, { ends: ["kyc_confirm", END] })
     .addNode("kyc_confirm", kycConfirmNode, { ends: ["kyc_submit", END] })
     .addNode("kyc_submit", kycSubmitNode(deps.onboarding), { ends: [END] })
-    .addConditionalEdges(START, routeFromStart, ["loan_agent", "kyc_agent"])
+    .addNode("callback", callbackNode(deps.callbacks), { ends: ["callback_form", END] })
+    .addNode("callback_form", callbackFormNode, { ends: [END] })
+    .addConditionalEdges(START, routeFromStart, ["triage", "loan_agent", "kyc_agent", "callback"])
     .addConditionalEdges("loan_agent", routeAfterSpecialist, ["validate_reply", END])
     .addConditionalEdges("kyc_agent", routeAfterSpecialist, ["validate_reply", END])
     .addEdge("validate_reply", END)
