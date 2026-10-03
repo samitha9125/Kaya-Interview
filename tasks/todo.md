@@ -66,10 +66,12 @@ The checklist for [`plan.md`](plan.md). Tick a task when its acceptance and veri
   *Accept:* P0-11; tested against a local fake HTTP server. *Verify:* `pnpm test`. *Deps:* T8.
   *Result:* 28 tests through a real local HTTP server. Mutant: loosened the response schema to any number → four P0-11 tests failed; reverted. The adapter is wired into the composition root with the credit policy in T10.
 
-- [ ] **T10 · Credit policy** (M). 30-day cache, 90-day stale window, atomic daily budget, 429 block, retry with jitter, 15-minute cool-down, typed results, change tracking (BR-CRED-01…05, 07; FR-CRED-01, 03, 04).
+- [x] **T10 · Credit policy** (M). 30-day cache, 90-day stale window, atomic daily budget, 429 block, retry with jitter, 15-minute cool-down, typed results, change tracking (BR-CRED-01…05, 07; FR-CRED-01, 03, 04).
   *Accept:* boundary tables; concurrent last-slot test (P1-04); Stryker ≥ 80% on BR-CRED-01…04 and FR-CRED-01. *Verify:* `pnpm test && pnpm test:mutation`. *Deps:* T9.
+  *Result:* Stryker 97.09% on the scope (lockout, credit policy, budget, `getScore`); the five survivors are equivalent. The first run's survivors showed three real gaps (the 429 call's own reason, the audit of a failure's cause, a customer with no NIC), now tested. P1-04 is proven twice: in-process, and with two real connections to one file. The adapter is wired in the composition root behind `GOV_API_BASE_URL` (https, or plain http only to localhost).
 
 ### Checkpoint C: credit policy proven by tests and mutation score
+- [x] All green (398 tests); Stryker 97.09% over lockout and the credit policy.
 
 ## Phase 4: Lending decisions
 
