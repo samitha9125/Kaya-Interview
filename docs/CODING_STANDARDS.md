@@ -22,7 +22,7 @@ Tooling enforces what it can (TypeScript strict, ESLint, Prettier, hooks). This 
 | Named exports | Except where Next.js requires a default export (pages, layouts) |
 | Money and ratios | Integer LKR (`amountLkr`) and integer basis points for ratios and confidence (`9_500` = 95%). Never floats at a business boundary |
 | Time | Injected `now: () => Date` for any time-based logic; never call `Date.now()` inside business rules |
-| Constants | Business numbers (limits, lifetimes, thresholds) live in one `config.ts` per module, or come from validated env. No magic numbers in logic |
+| Constants | Business numbers (limits, lifetimes, thresholds) live in the module's `config.ts` or come from validated env. Two deliberate exceptions: the agent's call limits and token caps sit beside the models they govern (`agent/limits.ts`, `agent/models.ts`), and an adapter keeps the numbers of the external contract it implements (a timeout, a provider's daily limit). No magic numbers in logic |
 | File size | Max **300 lines** (ESLint `max-lines`). Split by responsibility before you hit it |
 | Function size | Aim for under ~40 lines; extract when a function does two things |
 
@@ -34,21 +34,20 @@ Tooling enforces what it can (TypeScript strict, ESLint, Prettier, hooks). This 
 
 Business outcomes and expected failures are returned as **typed results**. Exceptions are reserved for bugs and truly unexpected states. That keeps every failure path visible to the type checker and to reviewers.
 
-```ts
-// server/modules/gov-credit/types.ts
-export type ScoreResult =
-  | { ok: true; score: number; fetchedAt: Date; stale: boolean }
-  | { ok: false; reason: "budget_exhausted" | "blocked" | "cooling_down" | "unavailable" };
+Shortened from `server/modules/gov-credit` (`types.ts`, `get-score.ts`):
 
-// server/modules/gov-credit/get-score.ts
-export async function getScore(customerId: string, deps: GovCreditDeps): Promise<ScoreResult> {
-  const cached = await deps.cache.find(customerId);
-  if (cached && isFresh(cached, deps.now())) {
-    return { ok: true, score: cached.score, fetchedAt: cached.fetchedAt, stale: false };
+```ts
+export type ScoreResult =
+  | { ok: true; score: number | null; hasHistory: boolean; fetchedAt: Date; stale: boolean }
+  | { ok: false; reason: ScoreFailureReason }; // budget_exhausted | blocked | cooling_down | unavailable
+
+export async function getScore(request: ScoreRequest, deps: GovCreditDeps): Promise<ScoreResult> {
+  const cached = findCachedScore(deps.db, request.customerId);
+  if (cached && isFresh(cached.fetchedAt, deps.clock.now(), deps.cacheTtlDays)) {
+    return fromCache(cached, false);
   }
-  const slot = await deps.budget.take(deps.now()); // atomic; never a 6th call
-  if (!slot.ok) return staleOr(cached, slot.reason, deps.now());
-  return fetchAndCache(customerId, deps.bureau, deps); // deps.bureau: CreditBureau port
+  // …take a budget slot atomically, call deps.bureau (the CreditBureau port),
+  // retry once, and fall back to a stale score or a typed failure.
 }
 ```
 
@@ -108,7 +107,7 @@ zod at **every** boundary, with types inferred from the schema (`z.infer<typeof 
 
 | Use | When |
 |---|---|
-| `audit.record(event)` | Anything a bank would need to prove later: model replies (role, model, prompt version, tool names, tokens; never the text), login, step-up, consent, tool calls, decisions (with confidence and threshold used), government calls, budget changes |
+| `audit.record(event)` | Anything a bank would need to prove later. The list of what is recorded is in [`ARCHITECTURE.md`](ARCHITECTURE.md) §12 |
 | `logger.info/warn/error` | Operational detail for debugging, with the correlation ID |
 
 Decisions and their audit records are written in the **same transaction**. No decision exists without its audit trail.

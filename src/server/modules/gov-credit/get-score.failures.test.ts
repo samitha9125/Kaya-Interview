@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DAY, creditTestSetup, request } from "@/test/credit-setup";
-import { aScore, clientError, scriptedBureau, timeout } from "@/test/fake-bureau";
+import { aScore, clientError, noHistory, scriptedBureau, timeout } from "@/test/fake-bureau";
 import { getScore } from "./index";
 
 describe("gov-credit/getScore: daily budget (BR-CRED-03)", () => {
@@ -18,6 +18,20 @@ describe("gov-credit/getScore: daily budget (BR-CRED-03)", () => {
 
     expect(sixth).toEqual({ ok: false, reason: "budget_exhausted" });
     expect(scripted.calls).toHaveLength(5);
+  });
+});
+
+describe("gov-credit/getScore: no credit history (BR-CRED-06)", () => {
+  it("BR-CRED-06: no history is stored as such after one call, with no retry", async () => {
+    const scripted = scriptedBureau([noHistory]);
+    const { deps, slept } = creditTestSetup(scripted.bureau);
+    await getScore(request(), deps);
+
+    const again = await getScore(request(), deps);
+
+    expect(again).toMatchObject({ ok: true, score: null, hasHistory: false, stale: false });
+    expect(scripted.calls).toHaveLength(1);
+    expect(slept).toEqual([]);
   });
 });
 

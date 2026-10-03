@@ -57,6 +57,14 @@ describe("adapters/http-gov-bureau: valid answers", () => {
   });
 });
 
+describe("adapters/http-gov-bureau: no credit history (BR-CRED-06)", () => {
+  it("BR-CRED-06: a 404 → no history, not a failure", async () => {
+    const bureau = await bureauReplying(json(404, { error: "not_found" }));
+
+    await expect(bureau.fetchScore(NIC)).resolves.toEqual({ kind: "no_history" });
+  });
+});
+
 describe("adapters/http-gov-bureau: malformed answers are failures, never scores (P0-11)", () => {
   it.each([
     { case: "a score above 900", body: { score: 901 } },
