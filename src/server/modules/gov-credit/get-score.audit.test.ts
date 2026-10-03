@@ -43,7 +43,7 @@ describe("gov-credit/getScore: what the audit shows (FR-PLAT-03)", () => {
     ]);
   });
 
-  it("no audit event carries the score", async () => {
+  it("FR-PLAT-06: no audit event carries the score", async () => {
     const { deps, advance } = creditTestSetup(scriptedBureau([aScore(712), clientError]).bureau);
     await getScore(request(), deps);
     advance(3 * DAY);

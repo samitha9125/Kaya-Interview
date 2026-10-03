@@ -33,16 +33,14 @@ function signIn(password: string, customerNumber = customer.customerNumber, ip =
   return login({ customerNumber, password, ip, correlationId: `corr-${attempt}` }, deps);
 }
 
-// Attempts run one after another, as a person would make them.
-async function signInRepeatedly(times: number, password: string, customerNumber?: string) {
-  for (let made = 0; made < times; made += 1) await signIn(password, customerNumber);
-}
-
-const failTimes = (times: number) => signInRepeatedly(times, WRONG);
-
 describe("auth/login: lockout (BR-AUTH-02)", () => {
   it("P0-13: a locked account looks the same as a wrong password, so a lock reveals nothing", async () => {
-    await failTimes(5);
+    // One after another, as a person would make them.
+    await signIn(WRONG);
+    await signIn(WRONG);
+    await signIn(WRONG);
+    await signIn(WRONG);
+    await signIn(WRONG);
 
     const locked = await signIn(CUSTOMER_PASSWORD);
     const unknown = await signIn(WRONG, "C9999");

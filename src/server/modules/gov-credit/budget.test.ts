@@ -21,10 +21,6 @@ function twoConnections() {
   return handles;
 }
 
-function useSlots(handle: DatabaseHandle, count: number) {
-  for (let used = 0; used < count; used += 1) takeSlot(handle.db, NOW, 5);
-}
-
 afterEach(() => {
   handles.forEach(({ sqlite }) => sqlite.close());
   rmSync(folder, { recursive: true, force: true });
@@ -33,7 +29,10 @@ afterEach(() => {
 describe("gov-credit/budget: taking a slot across connections (FR-CRED-01)", () => {
   it("P1-04: with one slot left, two connections get exactly one between them", () => {
     const [a, b] = twoConnections();
-    useSlots(a!, 4);
+    takeSlot(a!.db, NOW, 5);
+    takeSlot(a!.db, NOW, 5);
+    takeSlot(a!.db, NOW, 5);
+    takeSlot(a!.db, NOW, 5);
 
     const results = [takeSlot(a!.db, NOW, 5), takeSlot(b!.db, NOW, 5)];
 

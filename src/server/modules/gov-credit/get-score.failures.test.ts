@@ -1,18 +1,18 @@
 import { describe, expect, it } from "vitest";
 import { DAY, creditTestSetup, request } from "@/test/credit-setup";
 import { aScore, clientError, scriptedBureau, timeout } from "@/test/fake-bureau";
-import { getScore, type GovCreditDeps } from "./index";
-
-// Different customers, so each check misses the cache and needs a call.
-async function checkCustomers(count: number, deps: GovCreditDeps) {
-  for (let n = 0; n < count; n += 1) await getScore(request(`other-${n}`), deps);
-}
+import { getScore } from "./index";
 
 describe("gov-credit/getScore: daily budget (BR-CRED-03)", () => {
   it("P1-03: once 5 attempts are used today, the 6th check never reaches the bureau", async () => {
     const scripted = scriptedBureau(Array.from({ length: 5 }, () => aScore(700)));
     const { deps } = creditTestSetup(scripted.bureau);
-    await checkCustomers(5, deps);
+    // Different customers, so each check misses the cache and needs a call.
+    await getScore(request("other-1"), deps);
+    await getScore(request("other-2"), deps);
+    await getScore(request("other-3"), deps);
+    await getScore(request("other-4"), deps);
+    await getScore(request("other-5"), deps);
 
     const sixth = await getScore(request(), deps);
 
