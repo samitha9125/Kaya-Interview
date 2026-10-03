@@ -218,6 +218,9 @@ Each dependency added during the build gets one line here.
 | `@langchain/langgraph`, `langchain`, `@langchain/core` | The required agent framework (LangGraph) and `createAgent` with its middleware |
 | `@langchain/openrouter` | The OpenRouter chat model. It's still 0.x, so it sits behind our own `ChatModelProvider` adapter |
 | `zod` | Validation at every boundary, and the schema type for LangGraph state and interrupts |
+| `drizzle-orm`, `drizzle-kit` (dev) | Typed, parameterised SQL and generated migrations; the schema is the single source for columns (TD12) |
+| `better-sqlite3`, `@types/better-sqlite3` (dev) | The SQLite driver for Drizzle. Kept on the 12.x line because the checkpointer depends on it, so the app and LangGraph share one native build and one connection |
+| `@langchain/langgraph-checkpoint-sqlite` | The documented SQLite checkpointer (`SqliteSaver`), so conversations survive a restart |
 
 ## 3. Deferred: right idea, wrong time
 

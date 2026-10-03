@@ -50,3 +50,5 @@ next-env.d.ts
 # local databases
 *.db
 *.db-journal
+*.db-wal
+*.db-shm

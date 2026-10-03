@@ -16,6 +16,7 @@ rather than generated from commits. The format follows
 - Test tooling: Vitest with an 80% coverage gate, Playwright e2e, promptfoo evals.
 - GitHub Actions CI, a manual eval workflow, and a pull request template.
 - The server refuses to start, with a message naming each problem, when the encryption key, approval threshold, cache lifetime or demo flag is missing or invalid.
+- `pnpm db:setup` creates the local SQLite database; conversations and the audit trail survive a restart.
 
 ### Changed
 
