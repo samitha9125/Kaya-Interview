@@ -76,6 +76,8 @@ pnpm test:e2e                           # browser tests
 
 To try a customer again, go to **Settings → Reset my demo data**.
 
+The other journeys: **I'm new → Open an account** on the sign-in screen (no sign-in needed), **Talk to a person** in the chat, and **Settings** for the model per assistant role.
+
 **See what the code is doing.** Click the *Behind the scenes* icon at the top right of the chat. It shows how many government calls are left today, whether the next check can call, how old the customer's saved score is, and this conversation's audit trail. To replay any past case in the terminal: `pnpm audit:trail C1001`.
 
 **Demo: the cache and the daily limit (about 3 minutes).** Keep *Behind the scenes* open the whole time.
