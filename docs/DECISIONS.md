@@ -36,7 +36,7 @@ Four parts: **business** decisions (the bank's calls), **technical** decisions (
 
 | Options | Choice | Trade-off |
 |---|---|---|
-| Plain HTML page + separate API · **Next.js (App Router)** | Next.js | A delivery-speed decision: it's the candidate's strongest stack and gives UI and API in one codebase. The interviewer suggested plain HTML and agreed to the change. Cost: a heavier framework than the UI strictly needs |
+| Plain HTML page + separate API · **Next.js (App Router)** | Next.js | Delivery speed: UI and API in one codebase, on a well-known stack. Plain HTML with a separate API was the lighter option. Cost: a heavier framework than the UI strictly needs |
 
 ### TD2. Agent pattern: router
 
@@ -185,7 +185,7 @@ The same loan traffic on Claude Haiku ($1 / $5) would cost ≈ $47 a month on it
 |---|---|---|
 | A message collector node that merges rapid messages · **one turn at a time** (the UI locks input; the server rejects a concurrent turn with 409) | One turn at a time | A collector adds a wait to every turn, so everything feels slower (D11). A customer who sends two quick messages has to wait for the reply to the first |
 
-**A pending pause counts as an unfinished turn** (the user's call at Checkpoint A). The T4 spike showed that a chat message sent while an `interrupt()` is pending starts a new run from START and silently drops the pause (documented LangGraph behaviour). Options were: let the message through and drop the pause · resume the pause with the chat text · **refuse the message with 409 and keep input locked until the pause is answered through its card**. Dropping it loses the customer's place without telling them; resuming with chat text breaks the references-only rule (TD11). Cost: a customer who wants to move on has to answer the card first (declining is an answer)
+**A pending pause counts as an unfinished turn** (decided at Checkpoint A). The T4 spike showed that a chat message sent while an `interrupt()` is pending starts a new run from START and silently drops the pause (documented LangGraph behaviour). Options were: let the message through and drop the pause · resume the pause with the chat text · **refuse the message with 409 and keep input locked until the pause is answered through its card**. Dropping it loses the customer's place without telling them; resuming with chat text breaks the references-only rule (TD11). Cost: a customer who wants to move on has to answer the card first (declining is an answer)
 
 ### TD15. Audit log separate from checkpoints
 
@@ -199,9 +199,8 @@ The same loan traffic on Claude Haiku ($1 / $5) would cost ≈ $47 a month on it
 
 | Topic | Options | Choice | Trade-off |
 |---|---|---|---|
-| Mutation testing scope (superseded by TD28) | Everywhere · none · **decision modules only** | Stryker (≥ 80%) on the threshold, eligibility, confidence, cache lifetime, budget and lockout | There, a surviving mutant is a real business bug. Elsewhere it's slow and noisy, so P0 controls outside that scope get a **manual mutant** (break it on purpose, watch the test fail, revert) |
 | What proves a P0 | Evals · **deterministic tests** | Deterministic tests | Evals on real models vary run to run, so they measure quality targets, never guarantees |
-| Coverage gate | 80% lines and branches · **no gate** | No gate (the user's call at Checkpoint A) | Coverage rewards lines run, not behaviour proven, and a gate invites tests written to touch lines. Requirement-traced test names, a deterministic test per P0 and mutation testing on the decision modules show what's actually proven. Cost: an untested file no longer fails the build by itself, so review and the traceability search (an ID with no test) have to catch it |
+| Coverage gate | 80% lines and branches · **no gate** | No gate (decided at Checkpoint A) | Coverage rewards lines run, not behaviour proven, and a gate invites tests written to touch lines. Requirement-traced test names, a deterministic test per P0 and manual mutants on the P0 and business-rule controls (TD28) show what's actually proven. Cost: an untested file no longer fails the build by itself, so review and the traceability search (an ID with no test) have to catch it |
 | Database in tests | Mocked · **real in-memory SQLite** | Real | A mock would hide the bugs we care about most: a non-atomic budget update or a missing unique constraint |
 
 ### TD17. Money and ratios as integers
@@ -234,7 +233,7 @@ Each dependency added during the build gets one line here.
 | `better-sqlite3`, `@types/better-sqlite3` (dev) | The SQLite driver for Drizzle. Kept on the 12.x line because the checkpointer depends on it, so the app and LangGraph share one native build and one connection |
 | `@langchain/langgraph-checkpoint-sqlite` | The documented SQLite checkpointer (`SqliteSaver`), so conversations survive a restart |
 | `server-only` | Makes a client bundle fail to build if it imports server code, as the Next.js docs recommend. Tests map it to its empty build |
-| `@stryker-mutator/core`, `@stryker-mutator/vitest-runner` (dev), **removed in TD28** | Mutation testing on the decision modules (TD16). Version 10 runs on Vitest 5, with a one-line `pnpm patch` (`patches/`): the runner names tests `suite test`, but Vitest 5 matches `suite > test`, so with per-test coverage no test ran and every mutant survived. Found in T5; the T3 trial's 17 kills were static mutants only. Drop the patch once the runner is fixed upstream |
+| `@stryker-mutator/core`, `@stryker-mutator/vitest-runner` (dev), **removed in TD28** | Was mutation testing on the decision modules; replaced by manual mutants (TD28) |
 | `shadcn`, `@base-ui/react`, `class-variance-authority`, `cn`, `tw-animate-css` | shadcn/ui (SPEC §5), added by `shadcn init`: the components are copied into `src/components/ui` and built on Base UI primitives; `cn` is shadcn's own class merger (in place of `clsx` + `tailwind-merge`); `shadcn` and `tw-animate-css` supply the theme CSS. `lucide-react`, also added by init, was removed until an icon is needed |
 | `lucide-react` | The icon set `components.json` names. Back now that icons are needed: the shadcn Combobox's chevron, check and clear, and the Settings back arrow |
 | `tsx` (dev) | Runs the TypeScript seed script (`pnpm db:setup`) with the project's path aliases. Already in the tree through Vitest; now a direct dependency because we call it |
@@ -243,7 +242,7 @@ Each dependency added during the build gets one line here.
 
 | Options | Choice | Trade-off |
 |---|---|---|
-| Node 24 LTS · **Node 25** | Node 25 (`.nvmrc`, `engines`, `@types/node` 25) | The user's call at Checkpoint A: it's the Node the project is developed on. The T2 spike was re-run on it: better-sqlite3 rebuilds, and the checkpointer and the full suite pass. Cost: 25 is a current release, not LTS, so its support window is shorter; moving back to 24 LTS is a one-line `.nvmrc` change plus a native rebuild |
+| Node 24 LTS · **Node 25** | Node 25 (`.nvmrc`, `engines`, `@types/node` 25) | Decided at Checkpoint A: it's the Node the project is developed on. The T2 spike was re-run on it: better-sqlite3 rebuilds, and the checkpointer and the full suite pass. Cost: 25 is a current release, not LTS, so its support window is shorter; moving back to 24 LTS is a one-line `.nvmrc` change plus a native rebuild |
 
 ### TD21. Integration: a branch per task, merged with `--no-ff`
 
@@ -276,7 +275,7 @@ Each dependency added during the build gets one line here.
 
 | Topic | Options | Choice | Trade-off |
 |---|---|---|---|
-| Making the last slot atomic | One conditional `UPDATE` in SQL · **read, decide and write in one `IMMEDIATE` transaction** | Transaction | The decision stays a pure function that Stryker can mutate meaningfully; SQLite's write lock makes it atomic across connections, shown by a two-connection test |
+| Making the last slot atomic | One conditional `UPDATE` in SQL · **read, decide and write in one `IMMEDIATE` transaction** | Transaction | The decision stays a pure function, easy to test at its boundaries; SQLite's write lock makes it atomic across connections, shown by a two-connection test |
 | When the cool-down starts | After any failure · **only when the attempts end in a retryable failure** (timeout, 5xx, network) | Retryable only | A 4xx or a malformed answer says the request or the bureau's data is wrong, not that it's struggling; it's counted, not retried, and doesn't stop the next customer |
 | Parallel first checks for one customer | Merge in-flight requests · **let them both call** | Both call (D3) | Two tabs at once is rare at this scale; the worst case is one extra call, and the budget still caps the total |
 | No NIC on the record | Throw · **`unavailable`, with no call** | `unavailable` | Shouldn't happen for a seeded customer, and the customer still gets the honest fallback |
@@ -315,7 +314,7 @@ Each dependency added during the build gets one line here.
 
 | Topic | Options | Choice | Trade-off |
 |---|---|---|---|
-| Mutation testing | Stryker on the decision modules (TD16) · **manual mutants only** | Manual mutants on the P0 and business-rule controls | Stryker removed: a patched test tool is more machinery than a take-home needs, and manual mutants keep the guarantee that a test fails when its behaviour breaks. Cost: nothing re-checks the boundaries automatically on every change |
+| Mutation testing | Stryker on the decision modules (TD16) · **manual mutants only** | Manual mutants on the P0 and business-rule controls | Stryker removed: a patched test tool is more machinery than a suite this size needs, and manual mutants keep the guarantee that a test fails when its behaviour breaks. Cost: nothing re-checks the boundaries automatically on every change |
 | Suite size | A test for every rule and variant (740 cases, 22 E2E) · **about 100 cases, one E2E per journey** | 91 cases at T21 (129 today), 6 E2E | A reviewer can read the whole suite. Kept: a test per P0 at the lowest level that proves it, the rule boundary tables at their edges, the graph tests where a manipulated model tries to skip a gate, invent an outcome or put secrets in state, and a few module tests for transactions, idempotency and ownership. Cost: plumbing, adapters and secondary rules are covered by review and the journeys, not by their own tests |
 
 ## 3. Deferred: right idea, wrong time
