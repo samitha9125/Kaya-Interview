@@ -148,6 +148,8 @@ The same loan traffic on Claude Haiku ($1 / $5) would cost ≈ $47 a month on it
 | Session binding | **No binding** · IP or device binding | No binding | Binding breaks mobile users on changing networks; short timeouts, rotation and step-up cover a stolen cookie instead |
 | Re-authentication | None · OTP/TOTP · **password re-entry** | Password step-up now | Protects hijacked or unattended sessions. Only a second factor stops a stolen password, so it's the production control (D1) |
 | Password hashing | bcrypt or argon2 (native packages) · **Node's built-in `scrypt`** | `scrypt` | No native dependency; a memory-hard hash |
+| A refused sign-in | Say "unknown customer", "wrong password" or "locked" · **one answer for all three** | One answer | Sign-in never confirms that a customer number exists or is locked, so guessing learns nothing. The message tells a real customer that sign-in pauses after 5 tries, and the audit trail keeps the real reason. An unknown number is checked against a dummy hash at full cost, so timing doesn't tell them apart either |
+| Login rate-limit counts | Database table · **in memory** | In memory | One instance (ARCHITECTURE §12); a restart only gives a caller a fresh 15-minute window, and the per-account lockout, which is in the database, still holds. A shared store comes with a second instance |
 | BYOK key storage | Typed into a UI form and stored encrypted · **server environment only** | Env | No key ever crosses the network from a browser, and there's no key-storage code to get wrong. Changing the key means a restart. Production uses a secret manager |
 
 ### TD11. Pauses resume with references only
