@@ -1,4 +1,3 @@
-import { desc, eq } from "drizzle-orm";
 import { findOwnedConversation } from "@/server/agent/conversations/ownership";
 import { resolveSession, type Session, type SessionDeps } from "@/server/modules/auth";
 import {
@@ -7,10 +6,9 @@ import {
   type CachedScoreStatus,
   type GovCreditDeps,
 } from "@/server/modules/gov-credit";
-import { auditEvents } from "@/server/platform/audit/schema";
 import { newCorrelationId } from "@/server/platform/ids";
 import type { Logger } from "@/server/platform/logger";
-import { describeEvent, readTimeline } from "./audit-timeline";
+import { currentFailureMode, describeEvent, readTimeline } from "./audit-timeline";
 import { failureResponse } from "./failures";
 import { readSessionToken } from "./http/session-cookie";
 
@@ -26,7 +24,13 @@ export type ServiceStatus =
 // The demo panel's data: service-wide counters, and only the signed-in
 // visitor's own case. Never a score: the cache entry shows its age only.
 export type InspectorView = {
-  service: { usedToday: number; perDay: number; status: ServiceStatus; failureMode: string };
+  service: {
+    usedToday: number;
+    perDay: number;
+    cacheTtlDays: number;
+    status: ServiceStatus;
+    failureMode: string;
+  };
   cachedScore: CachedScoreStatus | null;
   timeline: { id: string; at: string; text: string }[];
 };
@@ -69,12 +73,13 @@ function readInspector(
     service: {
       usedToday: budget.usedToday,
       perDay: deps.credit.bureau.callsPerDay,
+      cacheTtlDays: deps.credit.cacheTtlDays,
       status: budget.blockedUntil
         ? { kind: "blocked", until: budget.blockedUntil.toISOString() }
         : budget.coolDownUntil
           ? { kind: "cooling_down", until: budget.coolDownUntil.toISOString() }
           : { kind: "available" },
-      failureMode: currentFailureMode(deps),
+      failureMode: currentFailureMode(deps.db),
     },
     cachedScore: session.customerId
       ? cachedScoreStatus(deps.credit.db, session.customerId, now, deps.credit.cacheTtlDays)
@@ -85,16 +90,4 @@ function readInspector(
       text: describeEvent(event),
     })),
   };
-}
-
-// The mock's behaviour as last set from Settings; the mock itself is only
-// reached over HTTP, and the audit already records every change.
-function currentFailureMode(deps: InspectorDeps): string {
-  const latest = deps.db
-    .select({ payload: auditEvents.payload })
-    .from(auditEvents)
-    .where(eq(auditEvents.type, "demo.failure_mode_set"))
-    .orderBy(desc(auditEvents.at))
-    .get();
-  return typeof latest?.payload.mode === "string" ? latest.payload.mode : "normal";
 }

@@ -55,7 +55,7 @@ export function ChatShell({ greetingName, restored, isDemo }: ChatShellProps) {
 
   const error = chat.pause ? null : chat.error;
   return (
-    <div className="flex min-h-0 w-full max-w-5xl flex-1 justify-center gap-6">
+    <div className="flex min-h-0 w-full max-w-5xl flex-1 justify-center">
       <section aria-label="Chat" className="flex min-h-0 w-full max-w-2xl flex-1 flex-col">
         <h1 className="sr-only">Chat</h1>
         <div

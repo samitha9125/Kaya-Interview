@@ -1,4 +1,4 @@
-import { and, asc, eq, gte, inArray, like, ne, or } from "drizzle-orm";
+import { and, asc, desc, eq, gte, inArray, like, ne, or } from "drizzle-orm";
 import type { AuditRecord } from "@/server/platform/audit";
 import { auditEvents } from "@/server/platform/audit/schema";
 import type { DbExecutor } from "@/server/platform/db";
@@ -181,4 +181,16 @@ export function readTimeline(db: DbExecutor, query: TimelineQuery): AuditRecord[
     )
     .all();
   return [...own, ...demo].sort((a, b) => a.at.getTime() - b.at.getTime());
+}
+
+// The mock's behaviour as last set from Settings: the mock is reached only
+// over HTTP, and the audit already records every change.
+export function currentFailureMode(db: DbExecutor): string {
+  const latest = db
+    .select({ payload: auditEvents.payload })
+    .from(auditEvents)
+    .where(eq(auditEvents.type, "demo.failure_mode_set"))
+    .orderBy(desc(auditEvents.at))
+    .get();
+  return typeof latest?.payload.mode === "string" ? latest.payload.mode : "normal";
 }

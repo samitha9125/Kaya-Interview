@@ -1,16 +1,15 @@
 "use client";
 
 import { useEffect, useId, useRef, type ReactNode } from "react";
-import { MODES } from "@/components/settings/demo-controls";
-import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 
-// What GET /api/demo/inspector returns. Never a score: the cached entry
+// What GET /api/demo/inspector returns. Never a score: the saved entry
 // comes as an age and a state only.
 export type InspectorView = {
   service: {
     usedToday: number;
     perDay: number;
+    cacheTtlDays: number;
     status: { kind: "available" } | { kind: "blocked" | "cooling_down"; until: string };
     failureMode: string;
   };
@@ -19,39 +18,60 @@ export type InspectorView = {
   timeline: { id: string; at: string; text: string }[];
 };
 
+// What each Settings choice makes the mock government service do.
+const SIMULATED: Record<string, string> = {
+  normal: "Working normally",
+  slow: "Too slow: every call times out",
+  error: "Failing: every call errors (500)",
+  rate_limited: "Refusing: too many requests (429)",
+  down: "Down: no answer (503)",
+};
+
 const hourMinute = (iso: string) =>
   new Date(iso).toLocaleTimeString("en-GB", { hour: "2-digit", minute: "2-digit" });
-const daysOld = (count: number) => (count === 1 ? "1 day old" : `${count} days old`);
-const days = (count: number) => (count === 1 ? "1 day" : `${count} days`);
+const daysAgo = (count: number) =>
+  count === 0 ? "today" : count === 1 ? "1 day ago" : `${count} days ago`;
 
-function describeCache(cached: InspectorView["cachedScore"]): string {
-  if (!cached) return "Customers only";
+function describeNextCheck(service: InspectorView["service"]): { text: string; canCall: boolean } {
+  const { status } = service;
+  if (status.kind === "blocked") {
+    return {
+      text: `Waits until ${hourMinute(status.until)}: the service said too many requests`,
+      canCall: false,
+    };
+  }
+  if (status.kind === "cooling_down") {
+    return {
+      text: `Waits until ${hourMinute(status.until)}: the service just failed, so we pause`,
+      canCall: false,
+    };
+  }
+  if (service.usedToday >= service.perDay) {
+    return { text: "Waits until midnight: today's calls are used up", canCall: false };
+  }
+  return { text: "Will call the service", canCall: true };
+}
+
+function describeSavedScore(cached: InspectorView["cachedScore"]): string {
+  if (!cached) return "Only for signed-in customers";
   switch (cached.state) {
     case "none":
-      return "None";
+      return "None yet, so the next check calls the service";
     case "fresh":
-      return `Fresh, ${daysOld(cached.ageDays)}`;
+      return `Saved ${daysAgo(cached.ageDays)}: reused, no call needed`;
     case "stale_usable":
-      return `Expired, fallback only (${days(cached.ageDays)})`;
+      return `Saved ${daysAgo(cached.ageDays)}: expired, used only if the next call fails`;
     case "too_old":
-      return `Too old to use (${days(cached.ageDays)})`;
+      return `Saved ${daysAgo(cached.ageDays)}: too old to use at all`;
   }
 }
 
-function StatusBadge({ status }: { status: InspectorView["service"]["status"] }) {
-  if (status.kind === "available") {
-    return <Badge className="bg-success/10 text-success">Available</Badge>;
-  }
-  const label = status.kind === "blocked" ? "Blocked until" : "Cooling down until";
-  return <Badge variant="destructive">{`${label} ${hourMinute(status.until)}`}</Badge>;
-}
-
-// One line per fact: label on the left, value on the right.
+// Label on the left, the fact in plain words on the right.
 function Row({ label, children }: { label: string; children: ReactNode }) {
   return (
-    <div className="flex items-center justify-between gap-3 py-1.5">
+    <div className="grid grid-cols-[6.5rem_1fr] items-baseline gap-x-3 py-1">
       <dt className="text-muted-foreground">{label}</dt>
-      <dd className="flex items-center gap-2 text-right">{children}</dd>
+      <dd className="flex items-center gap-2">{children}</dd>
     </div>
   );
 }
@@ -74,13 +94,17 @@ export function InspectorSections({ view, error }: { view: InspectorView | null;
     );
   }
   const { service } = view;
+  const nextCheck = describeNextCheck(service);
   return (
     <>
       <section aria-labelledby={`${id}-service`} className="flex shrink-0 flex-col gap-1 text-sm">
         <h3 id={`${id}-service`} className="font-semibold">
-          Government credit service
+          Government credit checks
         </h3>
-        <dl className="flex flex-col">
+        <p className="text-xs text-muted-foreground">
+          {`The whole bank may call the government service ${service.perDay} times a day. A customer's score is saved and reused for ${service.cacheTtlDays} days, so a repeat check needs no call.`}
+        </p>
+        <dl className="flex flex-col pt-1">
           <Row label="Calls today">
             <span className="tabular-nums">{`${service.usedToday} of ${service.perDay}`}</span>
             <Progress
@@ -90,11 +114,13 @@ export function InspectorSections({ view, error }: { view: InspectorView | null;
               className="w-16"
             />
           </Row>
-          <Row label="Status">
-            <StatusBadge status={service.status} />
+          <Row label="Next check">
+            <span className={nextCheck.canCall ? "text-success" : "text-destructive"}>
+              {nextCheck.text}
+            </span>
           </Row>
-          <Row label="Behaviour">{MODES[service.failureMode]?.name ?? service.failureMode}</Row>
-          <Row label="Cached score">{describeCache(view.cachedScore)}</Row>
+          <Row label="Simulating">{SIMULATED[service.failureMode] ?? service.failureMode}</Row>
+          <Row label="Saved score">{describeSavedScore(view.cachedScore)}</Row>
         </dl>
       </section>
       <section

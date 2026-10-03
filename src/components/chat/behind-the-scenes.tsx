@@ -2,6 +2,7 @@
 
 import { PanelRightCloseIcon, PanelRightOpenIcon } from "lucide-react";
 import { createContext, use, useEffect, useState, type ReactNode } from "react";
+import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
   Sheet,
@@ -108,12 +109,18 @@ export function BehindTheScenesPanel({ inspector }: { inspector: Inspector }) {
   const body = <InspectorSections view={inspector.view} error={inspector.error} />;
   return (
     <>
-      {inspector.isOpen && (
-        <aside
-          id={PANEL_ID}
-          aria-labelledby={`${PANEL_ID}-title`}
-          className="hidden min-h-0 w-80 shrink-0 flex-col gap-4 border-l py-4 pl-6 lg:flex"
-        >
+      {/* Always rendered from lg up so it can slide; closed, it's zero wide
+          and inert, so nothing in it can be reached. */}
+      <aside
+        id={PANEL_ID}
+        aria-labelledby={`${PANEL_ID}-title`}
+        inert={!inspector.isOpen}
+        className={cn(
+          "hidden min-h-0 shrink-0 overflow-hidden transition-[width,opacity] duration-300 ease-out motion-reduce:transition-none lg:flex",
+          inspector.isOpen ? "w-86 opacity-100" : "w-0 opacity-0",
+        )}
+      >
+        <div className="ml-6 flex min-h-0 w-80 shrink-0 flex-col gap-4 border-l py-4 pl-6">
           <header className="flex flex-col gap-0.5">
             <h2 id={`${PANEL_ID}-title`} className="font-semibold">
               {TITLE}
@@ -121,8 +128,8 @@ export function BehindTheScenesPanel({ inspector }: { inspector: Inspector }) {
             <p className="text-xs text-muted-foreground">{DESCRIPTION}</p>
           </header>
           {body}
-        </aside>
-      )}
+        </div>
+      </aside>
       <Sheet open={inspector.isSheetOpen} onOpenChange={inspector.setIsSheetOpen}>
         <SheetContent side="right" className="w-[90%] gap-0">
           <SheetHeader className="pr-12">
