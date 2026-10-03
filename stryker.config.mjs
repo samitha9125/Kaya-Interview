@@ -6,10 +6,13 @@ const config = {
   testRunner: "vitest",
   plugins: ["@stryker-mutator/vitest-runner"],
   vitest: { configFile: "vitest.config.mts" },
-  mutate: [],
-  // Only while the scope is empty: with nothing to mutate, Vitest finds no
-  // related tests and Stryker would fail. Remove when T5 adds lockout.
-  allowEmpty: true,
+  mutate: [
+    // BR-AUTH-02
+    "src/server/modules/auth/lockout.ts",
+  ],
+  // perTest runs only the tests that reach each mutant. It needs the patch
+  // in patches/ (TD19): Stryker names tests "suite test", Vitest 5 matches
+  // "suite > test", and without it no test ran and every mutant survived.
   coverageAnalysis: "perTest",
   thresholds: { high: 90, low: 80, break: 80 },
   reporters: ["clear-text", "progress", "html"],
