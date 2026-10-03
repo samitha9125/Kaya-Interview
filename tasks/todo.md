@@ -75,8 +75,9 @@ The checklist for [`plan.md`](plan.md). Tick a task when its acceptance and veri
 
 ## Phase 4: Lending decisions
 
-- [ ] **T11 · Eligibility rules and confidence** (M). Bands, repayment-to-income and the instalment formula in basis points, reasons, confidence heuristic, hard referral rules, threshold routing (BR-LEND-01…06). Pure functions.
+- [x] **T11 · Eligibility rules and confidence** (M). Bands, repayment-to-income and the instalment formula in basis points, reasons, confidence heuristic, hard referral rules, threshold routing (BR-LEND-01…06). Pure functions.
   *Accept:* P0-07 and P0-08 boundary tables; Stryker ≥ 80% on BR-LEND-01…06. *Verify:* `pnpm test:mutation`. *Deps:* T3.
+  *Result:* Stryker 96.92% over the whole scope, 100% on `decide.ts`. The first run exposed two real gaps (a record claiming history with no score, and the not-eligible provisional outcome), now tested; the remaining survivors are equivalent (a band-D fallback that can't be reached, a band edge of 0 that no score is near). Instalments are checked against independently computed amortised payments.
 
 - [ ] **T12 · Assessments and applications** (M). Consent records, `loan_assessments`, endings, binding (30-minute validity, assessment ID = idempotency key), one open application, decision + audit in one transaction; seed outcome customers and their matching mock-gov citizens (BR-LEND-07…11, FR-LEND-01).
   *Accept:* P0-10, P0-12; replayed submit → same application (P0-09). *Verify:* `pnpm test`; manual mutants: drop the amount/term binding check → P0-12 fails; drop the idempotency key on submit → P0-09 fails. *Deps:* T5, T10, T11.
