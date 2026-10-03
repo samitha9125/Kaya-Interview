@@ -15,6 +15,8 @@ export type FailureKind =
   | "pause_not_pending"
   | "step_up_failed"
   | "not_found"
+  | "catalog_unavailable"
+  | "demo_control_failed"
   | "internal";
 
 // FR-WEB-05: the browser only ever gets one of these templates and a
@@ -62,6 +64,14 @@ const FAILURES: Record<FailureKind, { status: number; message: string }> = {
     message: "That password didn't match. After 5 tries in a row, sign-in pauses for 15 minutes.",
   },
   not_found: { status: 404, message: "We couldn't find that conversation." },
+  catalog_unavailable: {
+    status: 503,
+    message: "We couldn't load the model list just now. Please try again in a moment.",
+  },
+  demo_control_failed: {
+    status: 502,
+    message: "The demo government service didn't respond. Please try again.",
+  },
   internal: { status: 500, message: "" },
 };
 
