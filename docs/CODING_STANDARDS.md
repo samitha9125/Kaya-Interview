@@ -20,7 +20,7 @@ Tooling enforces what it can (TypeScript strict, ESLint, Prettier, hooks). This 
 | Type-only imports | `import type { … }` (ESLint enforces) |
 | Unions over enums | String literal unions (`"eligible" \| "not_eligible"`), not TS `enum` |
 | Named exports | Except where Next.js requires a default export (pages, layouts) |
-| Money | Integer LKR (`amountLkr: number`), never floats |
+| Money and ratios | Integer LKR (`amountLkr`) and integer basis points for ratios and confidence (`9_500` = 95%). Never floats at a business boundary |
 | Time | Injected `now: () => Date` for any time-based logic; never call `Date.now()` inside business rules |
 | Constants | Business numbers (limits, lifetimes, thresholds) live in one `config.ts` per module, or come from validated env. No magic numbers in logic |
 | File size | Max **300 lines** (ESLint `max-lines`). Split by responsibility before you hit it |
@@ -81,6 +81,9 @@ zod at **every** boundary, with types inferred from the schema (`z.infer<typeof 
 - **Prompts** live in `server/agent/prompts/`, one file per role plus a shared tone guide, each with a `PROMPT_VERSION` constant recorded in the audit log.
 - **Official docs only.** Before using any LangChain/LangGraph API, check the live official docs for our pinned versions (the `langchain-docs` MCP server). No undocumented APIs; anything considered and declined goes in `DECISIONS.md`.
 - One `createAgent` per role, each with its own tools, prompt and model. No shared global tool list.
+- **Interrupt resumes carry server-verified references** (`{ verified: true }`, a consent or draft ID), never passwords or form data. A node that calls `interrupt()` does nothing before it.
+- **Side effects inside the graph are idempotent**, keyed by business identity (conversation + assessment), never a random value.
+- **LLM replies are validated before they're sent** to the browser. No token streaming of LLM text.
 
 ## 7. Security
 

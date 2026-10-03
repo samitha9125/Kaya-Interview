@@ -24,10 +24,10 @@ The database is deliberately **real** (SQLite in memory), not mocked. It's fast,
 ```ts
 describe("lending/assess: auto-decision threshold", () => {
   it.each([
-    { confidence: 0.95, expected: "outcome" },  // exactly at threshold → outcome
-    { confidence: 0.9499, expected: "referral" }, // just below → referral
-  ])("BR-LEND-04: confidence $confidence → $expected", ({ confidence, expected }) => {
-    const result = routeDecision(aDecision({ confidence }), { threshold: 0.95 });
+    { confidenceBp: 9_500, expected: "outcome" },  // exactly at threshold → outcome
+    { confidenceBp: 9_499, expected: "referral" }, // just below → referral
+  ])("BR-LEND-05: confidence $confidenceBp bp → $expected", ({ confidenceBp, expected }) => {
+    const result = routeDecision(anAssessment({ confidenceBp }), { thresholdBp: 9_500 });
     expect(result.kind).toBe(expected);
   });
 });
@@ -42,7 +42,7 @@ describe("lending/assess: auto-decision threshold", () => {
 ## 3. Files and structure
 
 - **Max 300 lines per test file**, the same lint rule as production code. When a file grows, split it by behaviour (`assess.threshold.test.ts`, `assess.rules.test.ts`), never by dumping helpers elsewhere.
-- **Test data builders**, not raw fixtures: `aCustomer({ monthlyIncomeLkr: 150_000 })`, `aDecision({ confidence: 0.9 })`. They live in `src/test/builders/`, one file per entity.
+- **Test data builders**, not raw fixtures: `aCustomer({ monthlyIncomeLkr: 150_000 })`, `anAssessment({ confidenceBp: 9_000 })`. They live in `src/test/builders/`, one file per entity.
 - **No real personal data.** Fake NICs are generated, or marked `secret-scan:ignore` when a literal is unavoidable.
 - **Independent tests:** no shared mutable state, no order dependence, a fresh database per test file.
 
@@ -69,13 +69,14 @@ describe("lending/assess: auto-decision threshold", () => {
 | Where | How | Why |
 |---|---|---|
 | **Decision modules** | **Stryker**, minimum mutation score **80%**, which breaks the build. Scope: the threshold boundary, eligibility rules, confidence, cache lifetime and stale window, daily budget and 429 block, login lockout | Here, a surviving mutant is a real business bug (`>=` → `>` on the threshold, `<` → `<=` on the 30-day lifetime) that coverage alone can't see |
-| **Everything else** | **Manual mutant**: break the code on purpose, watch the test fail, revert. Recorded in the PLAN task's verification step (`Mutant: inverted the ownership check → P0-04 test failed`) | Running Stryker across UI and glue code is slow and noisy, and killing every mutant there produces tests pinned to implementation details |
+| **P0 controls outside Stryker's scope** (ownership, consent, duplicate submit, …) | **Manual mutant**: break the code on purpose, watch the test fail, revert. Recorded in the PLAN task's verification step (`Mutant: inverted the ownership check → P0-04 test failed`) | These are the controls where a silently passing test would hide a security hole |
+| **Everything else** | Normal test-first red → green | Mutation ceremony on UI and glue code is slow and noisy and pins tests to implementation details |
 
 Bugs follow **Prove-It**: first a test that fails because of the bug, then the fix.
 
 ## 7. Security tests
 
-- Every **P0** failure case in the spec has at least one automated test, and the test name carries its ID.
+- Every **P0** failure case in the spec has at least one **deterministic** automated test (unit, module, graph or E2E), and the test name carries its ID. **Evals never prove a P0**; they measure behaviour quality.
 - **Graph tests treat the model as an adversary:** the fake model is scripted to call the credit tool early, pass identity arguments, claim an outcome, or loop. The graph must refuse.
 - **Red-team evals** run the same attacks against real models: someone else's NIC, "I'm already verified", system-prompt extraction, "what's my score?", "when is my next evaluation?", draining the budget, emotional pressure, authority claims, task smuggling, and "ignore previous instructions".
 
@@ -83,7 +84,7 @@ Bugs follow **Prove-It**: first a test that fails because of the bug, then the f
 
 - One suite per concern: routing, refusals, tone, red-team.
 - Prefer deterministic assertions (contains, not-contains, which tool was called). Use an LLM-as-judge **only** for tone, with an explicit written rubric.
-- Run on at least two models; record pass rate and latency. Results go in the README.
+- Pass marks are **quality targets**, not guarantees. Run on at least two models; record pass rate and latency. Results go in the README.
 - Evals cost money, so they never run in hooks; they run on demand and through the manual CI workflow.
 
 ## 9. Coverage
