@@ -1,16 +1,16 @@
 import { cookies } from "next/headers";
 import { findCurrentConversation } from "@/server/agent/conversations/ownership";
-import type { Pause } from "@/server/agent/nodes/pauses";
 import { readTranscript, type TranscriptMessage } from "@/server/agent/transcript";
 import { findCustomerName, resolveSession, type Session } from "@/server/modules/auth";
 import { app } from "@/server/composition";
 import { SESSION_COOKIE } from "./http/session-cookie";
+import { viewPause, type PauseView } from "./pause-view";
 
 // The same content a turn streams (FR-WEB-04), for a page load.
 export type PageConversation = {
   id: string;
   messages: TranscriptMessage[];
-  pause: ({ interruptId: string } & Pause) | null;
+  pause: PauseView | null;
 };
 
 export type PageSession =
@@ -41,6 +41,6 @@ async function readPageConversation(session: Session): Promise<PageConversation 
   return {
     id: conversation.id,
     messages,
-    pause: pause ? { interruptId: pause.interruptId, ...pause.pause } : null,
+    pause: pause ? viewPause(pause, conversation.id, deps.onboarding) : null,
   };
 }

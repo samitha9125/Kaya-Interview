@@ -2,9 +2,20 @@ import { FALLBACK } from "@/components/api";
 
 // The wire format of a turn (FR-WEB-04). It mirrors the harness's events;
 // components never import server code, so the browser keeps its own copy.
+export type KycDetails = {
+  fullName: string;
+  nic: string;
+  dateOfBirth: string;
+  address: string;
+  mobileNumber: string;
+  accountType: "savings" | "current";
+};
+
 export type Pause =
   | { interruptId: string; kind: "step_up" }
-  | { interruptId: string; kind: "consent" | "confirm"; amountLkr: number; termMonths: number };
+  | { interruptId: string; kind: "consent" | "confirm"; amountLkr: number; termMonths: number }
+  | { interruptId: string; kind: "kyc_form" }
+  | { interruptId: string; kind: "kyc_confirm"; draftId: string; details?: KycDetails | null };
 
 export type ChatMessage = { id: string; role: "customer" | "assistant"; text: string };
 
@@ -17,7 +28,8 @@ export type TurnEvent =
   | { type: "interrupt"; pause: Pause }
   // `refused`: the server turned the request down before the turn began
   // (an HTTP status), so nothing in the conversation changed.
-  | { type: "error"; message: string; refused: boolean }
+  // `fields`: a form's own message per field (FR-ONB-01).
+  | { type: "error"; message: string; refused: boolean; fields?: Record<string, string> }
   | { type: "done"; conversationId: string };
 
 const CONNECTION_LOST =
@@ -32,9 +44,10 @@ function parseEvent(block: string): TurnEvent | null {
 
 async function refusal(response: Response): Promise<TurnEvent> {
   const payload = (await response.json().catch(() => null)) as {
-    error?: { message?: string };
+    error?: { message?: string; fields?: Record<string, string> };
   } | null;
-  return { type: "error", message: payload?.error?.message ?? FALLBACK, refused: true };
+  const { message = FALLBACK, fields } = payload?.error ?? {};
+  return { type: "error", message, refused: true, fields };
 }
 
 // POSTs a turn and hands each event to `onEvent` as it arrives. Every

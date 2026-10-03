@@ -6,12 +6,15 @@ import { buildConversationGraph, runConfig, type ConversationGraph } from "@/ser
 import type { ChatModelProvider } from "@/server/agent/ports";
 import { prepareResume } from "@/server/agent/resume";
 import { recordConsent, type LendingDeps } from "@/server/modules/lending";
+import type { OnboardingDeps } from "@/server/modules/onboarding";
+import { TEST_ENCRYPTION_KEY } from "@/test/fakes";
 import { DEFAULT_MODELS } from "@/server/modules/settings";
 import { scriptedBureau } from "@/test/fake-bureau";
 import { CONTEXT, lendingTestSetup, TERMS } from "@/test/lending-setup";
 
 export type TestGraphOptions = {
   lending?: LendingDeps;
+  onboarding?: OnboardingDeps;
   isStepUpFresh?: (sessionId: string) => boolean;
   checkpointer?: BaseCheckpointSaver;
   models?: ChatModelProvider;
@@ -20,15 +23,26 @@ export type TestGraphOptions = {
 // The real graph with a scripted model, in-memory checkpoints and real
 // lending on in-memory SQLite. The step-up check is auth's, so a test
 // decides it; everything else runs for real.
-export function buildTestGraph(loanModel: BaseChatModel, options: TestGraphOptions = {}) {
+export function buildTestGraph(model: BaseChatModel, options: TestGraphOptions = {}) {
+  const lending = options.lending ?? lendingTestSetup(scriptedBureau([]).bureau).deps;
   return buildConversationGraph({
-    models: options.models ?? { chatModel: () => loanModel },
-    lending: options.lending ?? lendingTestSetup(scriptedBureau([]).bureau).deps,
+    models: options.models ?? { chatModel: () => model },
+    lending,
+    onboarding: options.onboarding ?? onboardingTestDeps(lending),
     isStepUpFresh: options.isStepUpFresh ?? (() => true),
     checkpointer: options.checkpointer ?? new MemorySaver(),
     // Retries without real waiting (TESTING_STANDARDS §5).
     modelRetry: { initialDelayMs: 0 },
   });
+}
+
+// Real onboarding on the same database as lending; no applicant is an
+// existing customer unless a test says so.
+export function onboardingTestDeps(
+  { db, audit, clock, ids }: LendingDeps,
+  isExistingCustomerNic: (nic: string) => boolean = () => false,
+): OnboardingDeps {
+  return { db, audit, clock, ids, encryptionKey: TEST_ENCRYPTION_KEY, isExistingCustomerNic };
 }
 
 export function testContext(
@@ -52,6 +66,20 @@ export function sendMessage(
   context = testContext(threadId),
 ) {
   return graph.invoke({ messages: [new HumanMessage(text)] }, runConfig(threadId, context));
+}
+
+// A message sent from a starter button, which picks the specialist.
+export function startJourney(
+  graph: ConversationGraph,
+  threadId: string,
+  journey: "loan" | "kyc",
+  text: string,
+  context = testContext(threadId),
+) {
+  return graph.invoke(
+    { messages: [new HumanMessage(text)], journey },
+    runConfig(threadId, context),
+  );
 }
 
 export async function resume(
@@ -104,6 +132,8 @@ export async function pendingInterrupts(graph: ConversationGraph, threadId: stri
 // The model asks for an assessment at once: the adversarial case, before
 // any sign-in, step-up or consent (TESTING_STANDARDS §7).
 export const ASSESSMENT_CALL = { name: "request_assessment", args: TERMS, id: "call-1" };
+
+export const ACCOUNT_OPENING_CALL = { name: "start_account_opening", args: {}, id: "call-k1" };
 
 // What the consent route records when the customer agrees: a real consent
 // row, whose ID is the only thing the graph receives.

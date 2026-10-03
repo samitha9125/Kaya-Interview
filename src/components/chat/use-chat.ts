@@ -6,7 +6,11 @@ import { sendTurn, type ChatMessage, type Pause, type RestoredConversation } fro
 export type Answer =
   | { kind: "step_up"; password: string }
   | { kind: "consent"; agree: boolean }
-  | { kind: "confirm"; confirm: boolean };
+  | { kind: "confirm"; confirm: boolean }
+  | { kind: "kyc_form"; form: Record<string, string> | null }
+  | { kind: "kyc_confirm"; confirm: boolean };
+
+export type Starter = "loan" | "kyc";
 
 // The chat's state, driven by a turn's events. Input stays locked while a
 // turn runs and while a card waits for its answer (FR-WEB-03).
@@ -17,10 +21,12 @@ export function useChat(restored: RestoredConversation | null) {
   const [isBusy, setIsBusy] = useState(false);
   const [progress, setProgress] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
 
   async function runTurn(url: string, body: Record<string, unknown>, onRefused: () => void) {
     setIsBusy(true);
     setError(null);
+    setFieldErrors({});
     await sendTurn(url, body, (event) => {
       switch (event.type) {
         case "typing":
@@ -37,6 +43,7 @@ export function useChat(restored: RestoredConversation | null) {
           return setPause(event.pause);
         case "error":
           if (event.refused) onRefused();
+          setFieldErrors(event.fields ?? {});
           return setError(event.message);
         case "done":
           return setConversationId(event.conversationId);
@@ -46,7 +53,7 @@ export function useChat(restored: RestoredConversation | null) {
     setIsBusy(false);
   }
 
-  function sendMessage(text: string) {
+  function sendMessage(text: string, starter?: Starter) {
     const id = crypto.randomUUID();
     setMessages((list) => [...list, { id, role: "customer", text }]);
     // A refused message never reached the conversation, so it's taken back.
@@ -54,7 +61,7 @@ export function useChat(restored: RestoredConversation | null) {
     // A new conversation has no ID yet; JSON leaves the field out.
     return runTurn(
       "/api/chat",
-      { message: text, conversationId: conversationId ?? undefined },
+      { message: text, conversationId: conversationId ?? undefined, starter },
       takeBack,
     );
   }
@@ -66,5 +73,15 @@ export function useChat(restored: RestoredConversation | null) {
   }
 
   const isInputLocked = isBusy || pause !== null;
-  return { messages, pause, isBusy, isInputLocked, progress, error, sendMessage, answer };
+  return {
+    messages,
+    pause,
+    isBusy,
+    isInputLocked,
+    progress,
+    error,
+    fieldErrors,
+    sendMessage,
+    answer,
+  };
 }

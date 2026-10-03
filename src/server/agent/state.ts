@@ -26,6 +26,11 @@ export const ConversationState = new StateSchema({
   assessment: AssessmentValue.nullable().optional(),
   applicationId: z.string().nullable().optional(),
   decision: Outcome.nullable().optional(),
+  // Which specialist the conversation is with. It stays until a starter
+  // button or triage changes it (FR-AGT-01).
+  journey: z.enum(["loan", "kyc"]).nullable().optional(),
+  // FR-ONB-02: the encrypted draft's ID; the form itself never enters state.
+  kycDraftId: z.string().nullable().optional(),
 });
 
 export type ConversationStateValue = typeof ConversationState.State;

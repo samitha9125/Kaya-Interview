@@ -49,7 +49,7 @@ export function confirmKycApplication(
     const row = tx
       .select({ status: kycApplications.status })
       .from(kycApplications)
-      .where(ownDraft(draftId, context))
+      .where(ownDraft(draftId, context.conversationId))
       .get();
     if (!row) return { ok: false, reason: "not_found" };
     if (row.status === "pending_verification") return { ok: true, applicationId: draftId };
@@ -71,20 +71,20 @@ export function confirmKycApplication(
 // altered since, so they are read back as they were written.
 export function readKycDetails(
   draftId: string,
-  context: KycContext,
-  deps: OnboardingDeps,
+  conversationId: string,
+  deps: Pick<OnboardingDeps, "db" | "encryptionKey">,
 ): KycForm | undefined {
   const row = deps.db
     .select({ detailsEncrypted: kycApplications.detailsEncrypted })
     .from(kycApplications)
-    .where(ownDraft(draftId, context))
+    .where(ownDraft(draftId, conversationId))
     .get();
   return row
     ? (JSON.parse(decryptField(row.detailsEncrypted, deps.encryptionKey)) as KycForm)
     : undefined;
 }
 
-function ownDraft(draftId: string, { conversationId }: KycContext) {
+function ownDraft(draftId: string, conversationId: string) {
   return and(eq(kycApplications.id, draftId), eq(kycApplications.conversationId, conversationId));
 }
 

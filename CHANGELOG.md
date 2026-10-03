@@ -23,6 +23,7 @@ rather than generated from commits. The format follows
 - Loan assessments are recorded with the customer's consent, outcome, confidence and the threshold used; a referral creates an application for a loan officer, and a customer can have only one open application. `pnpm db:setup` also gives each demo customer a government credit record designed for one demo ending, and C1005 starts with an open application.
 
 - The chat runs the loan journey: a "Check a loan" button, replies that appear whole after they're checked, a typing or progress line while the bank works, and secure cards to re-enter the password, give consent and confirm the application. The chat input is locked while the assistant works or a card is waiting, and reloading the page brings the conversation back where it was.
+- Anyone can start opening an account from the chat, including guests: a secure form checks each detail and says what to fix, a summary shows what the bank stored, and the application waits, unverified, for a branch visit with the original NIC. The answer is the same whether or not the NIC already belongs to a customer.
 
 ### Changed
 

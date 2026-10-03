@@ -2,7 +2,11 @@ import { END, START, StateGraph, type BaseCheckpointSaver } from "@langchain/lan
 import { AIMessage } from "langchain";
 import { ConversationContext, type ConversationContextValue } from "./context";
 import { CALL_LIMITS } from "./limits";
-import { createLoanAgentNode, type ModelRetryOptions } from "./nodes/loan-agent";
+import type { OnboardingDeps } from "@/server/modules/onboarding";
+import { createKycAgentNode } from "./nodes/kyc-agent";
+import { kycConfirmNode, kycFormNode, kycSubmitNode } from "./nodes/kyc-flow";
+import { createLoanAgentNode } from "./nodes/loan-agent";
+import type { ModelRetryOptions } from "./nodes/specialist";
 import {
   CREDIT_CHECK_POLICY,
   creditCheckNode,
@@ -16,6 +20,7 @@ import type { ChatModelProvider } from "./ports";
 import { ConversationState, type ConversationStateValue } from "./state";
 
 export type GraphDeps = LoanFlowDeps & {
+  onboarding: OnboardingDeps;
   models: ChatModelProvider;
   checkpointer: BaseCheckpointSaver;
   modelRetry?: ModelRetryOptions;
@@ -24,19 +29,28 @@ export type GraphDeps = LoanFlowDeps & {
 // FR-AGT-12: about 1 s, then 2 s, before giving up.
 const MODEL_RETRY: ModelRetryOptions = { initialDelayMs: 1_000 };
 
+// The specialist the conversation is with. Until triage exists (T18), a
+// conversation without one goes to the loan agent.
+function routeFromStart(state: ConversationStateValue) {
+  return state.journey === "kyc" ? "kyc_agent" : "loan_agent";
+}
+
 // A text reply goes to validation; a handoff has already set its own next
 // node through Command.PARENT, so this edge adds nothing.
-function routeAfterLoanAgent(state: ConversationStateValue) {
+function routeAfterSpecialist(state: ConversationStateValue) {
   const last = state.messages.at(-1);
   return AIMessage.isInstance(last) && !last.tool_calls?.length ? "validate_reply" : END;
 }
 
-// ARCHITECTURE §7. Only loan_agent is an LLM; every other node is code,
+// ARCHITECTURE §7. Only the specialists are LLMs; every other node is code,
 // and each routes itself with a Command.
 export function buildConversationGraph(deps: GraphDeps) {
   return new StateGraph(ConversationState, ConversationContext)
     .addNode("loan_agent", createLoanAgentNode(deps.models, deps.modelRetry ?? MODEL_RETRY), {
       ends: ["loan_gate"],
+    })
+    .addNode("kyc_agent", createKycAgentNode(deps.models, deps.modelRetry ?? MODEL_RETRY), {
+      ends: ["kyc_form"],
     })
     .addNode("validate_reply", validateReplyNode)
     .addNode("loan_gate", loanGateNode(deps), {
@@ -51,8 +65,12 @@ export function buildConversationGraph(deps: GraphDeps) {
     .addNode("confirm", confirmNode, { ends: ["submit", END] })
     .addNode("step_up_submit", stepUpNode("submit"), { ends: ["submit"] })
     .addNode("submit", submitNode(deps), { ends: ["step_up_submit", END] })
-    .addEdge(START, "loan_agent")
-    .addConditionalEdges("loan_agent", routeAfterLoanAgent, ["validate_reply", END])
+    .addNode("kyc_form", kycFormNode, { ends: ["kyc_confirm", END] })
+    .addNode("kyc_confirm", kycConfirmNode, { ends: ["kyc_submit", END] })
+    .addNode("kyc_submit", kycSubmitNode(deps.onboarding), { ends: [END] })
+    .addConditionalEdges(START, routeFromStart, ["loan_agent", "kyc_agent"])
+    .addConditionalEdges("loan_agent", routeAfterSpecialist, ["validate_reply", END])
+    .addConditionalEdges("kyc_agent", routeAfterSpecialist, ["validate_reply", END])
     .addEdge("validate_reply", END)
     .compile({ checkpointer: deps.checkpointer });
 }
