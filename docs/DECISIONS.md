@@ -267,6 +267,7 @@ Each dependency added during the build gets one line here.
 | How the app reaches it | Import its functions · **over HTTP, through the `CreditBureau` adapter** | HTTP | Exercises the real adapter, timeouts and status codes. Its route files under `app/api/mock-gov` are the only code that imports it (lint-enforced), and it wires its own database connection instead of using our composition root |
 | NICs in its tables | Plain text, as a real bureau would hold them · **a SHA-256 of the NIC** | Hash | Its tables share our SQLite file, and no NIC is ever plain text in our database (FR-PLAT-02). Lookups normalise spacing and case first |
 | Which calls count toward its per-IP limit | Only successful ones · **every call that reaches it**; "down" counts nothing | Every call reaching it | Matches a real metered API, and keeps our own "every attempt counts" budget honest (BR-CRED-03) |
+| Who may call it | Anyone · **only a key it issued the bank** (`x-api-key`, an HMAC of a fixed label under `APP_ENCRYPTION_KEY`) | Bank's key | A real government API issues the bank a key. Without one, five anonymous calls would spend the bank's day; a refused call isn't counted, and no extra setting is needed |
 | `rate_limited` mode's `Retry-After` | Next midnight · **one hour** | One hour | Different from the daily limit's, so the demo shows our block following `Retry-After` (BR-CRED-04) |
 
 ### TD24. Credit policy details

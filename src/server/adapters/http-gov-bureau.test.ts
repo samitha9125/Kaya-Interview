@@ -23,7 +23,12 @@ async function bureauReplying(reply: Reply, timeoutMs = GOV_BUREAU_TIMEOUT_MS) {
   });
   await new Promise<void>((resolve) => server?.listen(0, "127.0.0.1", resolve));
   const { port } = server.address() as AddressInfo;
-  return new HttpGovBureau({ baseUrl: `http://127.0.0.1:${port}`, timeoutMs, clock: fixedClock() });
+  return new HttpGovBureau({
+    baseUrl: `http://127.0.0.1:${port}`,
+    apiKey: "test-key",
+    timeoutMs,
+    clock: fixedClock(),
+  });
 }
 
 const json =

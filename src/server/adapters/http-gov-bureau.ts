@@ -12,16 +12,18 @@ const CALLS_PER_DAY = 5;
 // carries more than a score, is a failure and never becomes a score.
 const ScoreResponse = z.strictObject({ score: z.int().min(300).max(900) });
 
-type Options = { baseUrl: string; clock: Clock; timeoutMs?: number };
+type Options = { baseUrl: string; apiKey: string; clock: Clock; timeoutMs?: number };
 
 export class HttpGovBureau implements CreditBureau {
   readonly callsPerDay = CALLS_PER_DAY;
   private readonly url: string;
+  private readonly apiKey: string;
   private readonly timeoutMs: number;
   private readonly clock: Clock;
 
-  constructor({ baseUrl, clock, timeoutMs = GOV_BUREAU_TIMEOUT_MS }: Options) {
+  constructor({ baseUrl, apiKey, clock, timeoutMs = GOV_BUREAU_TIMEOUT_MS }: Options) {
     this.url = `${baseUrl.replace(/\/$/, "")}/credit-score`;
+    this.apiKey = apiKey;
     this.clock = clock;
     this.timeoutMs = timeoutMs;
   }
@@ -31,7 +33,7 @@ export class HttpGovBureau implements CreditBureau {
     try {
       response = await fetch(this.url, {
         method: "POST",
-        headers: { "content-type": "application/json" },
+        headers: { "content-type": "application/json", "x-api-key": this.apiKey },
         body: JSON.stringify({ nic }),
         signal: AbortSignal.timeout(this.timeoutMs),
         redirect: "error",

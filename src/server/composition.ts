@@ -22,6 +22,7 @@ import type { SettingsDeps } from "@/server/modules/settings";
 import { createAuditLog } from "@/server/platform/audit";
 import { systemClock } from "@/server/platform/clock";
 import { getConfig, type AppConfig } from "@/server/platform/config";
+import { deriveSecret } from "@/server/platform/crypto";
 import { openDatabase } from "@/server/platform/db";
 import { createIdempotency } from "@/server/platform/idempotency";
 import { randomIds } from "@/server/platform/ids";
@@ -48,7 +49,11 @@ function createApp(config: AppConfig) {
     db,
     audit,
     clock,
-    bureau: new HttpGovBureau({ baseUrl: govApiBaseUrl, clock }),
+    bureau: new HttpGovBureau({
+      baseUrl: govApiBaseUrl,
+      apiKey: deriveSecret(config.APP_ENCRYPTION_KEY, "gov-api-key"),
+      clock,
+    }),
     cacheTtlDays: config.CREDIT_CACHE_TTL_DAYS,
     loadNic: (customerId) => findCustomerNic(db, customerId, config.APP_ENCRYPTION_KEY),
     sleep: (ms) => sleep(ms),

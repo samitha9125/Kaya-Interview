@@ -1,5 +1,12 @@
+import { createHmac } from "node:crypto";
 import { expect, test, type APIRequestContext } from "@playwright/test";
 import { startAsGuest } from "./support";
+
+// The key the mock issues the bank, derived from the test encryption key
+// in playwright.config.ts, as the server derives it.
+const GOV_API_KEY = createHmac("sha256", Buffer.alloc(32, 1))
+  .update("gov-api-key")
+  .digest("base64url");
 
 // Nobody holds this NIC, so a working service answers 404 "no credit history".
 const NIC = "199900000000";
@@ -9,7 +16,7 @@ const NIC = "199900000000";
 async function askBureau(request: APIRequestContext, ip: string) {
   const response = await request.post("/api/mock-gov/credit-score", {
     data: { nic: NIC },
-    headers: { "x-forwarded-for": ip },
+    headers: { "x-forwarded-for": ip, "x-api-key": GOV_API_KEY },
   });
   return response.status();
 }

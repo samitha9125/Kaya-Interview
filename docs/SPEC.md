@@ -211,6 +211,7 @@ The credit-score policy. The government API itself sits behind the `CreditBureau
 | FR-MOCK-02 | Its own per-IP counter: the 6th call in a day → `429` with `Retry-After` | | M |
 | FR-MOCK-03 | Failure modes: `slow` (6 s, beyond our timeout), `error` (500), `rate_limited` (429), `down` (503) | | M |
 | FR-MOCK-04 | Admin reset is reachable only in demo mode | 404 otherwise | M |
+| FR-MOCK-05 | Answers only the key it issued the bank (`x-api-key`, derived from `APP_ENCRYPTION_KEY`) | No key or a wrong one → `401`, not counted toward the limit | M |
 
 ## 7. Non-functional requirements
 

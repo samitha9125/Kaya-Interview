@@ -1,7 +1,7 @@
 import { and, eq, sql } from "drizzle-orm";
 import { z } from "zod";
 import type { Clock } from "@/server/platform/clock";
-import { hashToken } from "@/server/platform/crypto";
+import { hashToken, secretsMatch } from "@/server/platform/crypto";
 import { runInTransaction, type AppDatabase, type DbExecutor } from "@/server/platform/db";
 import { nextSriLankaMidnight, sriLankaDay } from "@/server/platform/time";
 import { mockGovCitizens, mockGovIpCalls, mockGovSettings } from "./schema";
@@ -22,6 +22,7 @@ export type MockGovDeps = {
   clock: Clock;
   sleep: (ms: number) => Promise<void>;
   isDemoMode: boolean;
+  apiKey: string;
 };
 
 const CreditScoreRequest = z.strictObject({ nic: z.string().trim().min(10).max(14) });
@@ -39,9 +40,14 @@ export function registerCitizen(executor: DbExecutor, nic: string, score: number
 
 // FR-MOCK-01: 200 with a score, or 404 for no credit history. Nothing
 // else about the person, and nothing about future evaluations, is ever
-// returned. A service that is down can't count calls, so "down" answers
-// first; every call that reaches it counts toward the IP's daily limit.
+// returned. Like a real government API, it answers only the key it issued
+// the bank, so nobody else can spend the bank's daily calls. A service
+// that is down can't count calls, so "down" answers next; every call that
+// reaches it counts toward the IP's daily limit.
 export async function creditScore(request: Request, deps: MockGovDeps): Promise<Response> {
+  if (!secretsMatch(request.headers.get("x-api-key") ?? "", deps.apiKey)) {
+    return Response.json({ error: "unauthorized" }, { status: 401 });
+  }
   const mode = currentFailureMode(deps.db);
   if (mode === "down") return new Response(null, { status: 503 });
   const now = deps.clock.now();
