@@ -168,24 +168,37 @@ Every manual mutant run since T21, all reverted. T21 removed the tests behind so
 | Cache lifetime maximum 91 | `P0-16: CREDIT_CACHE_TTL_DAYS 91 → starts: false` | ad8fe9e |
 | "qualif" dropped from the claim check | two P0-05 rows | e25ac3e |
 | Demo gate opened | `P0-15` E2E (403 instead of 404 on six routes) | ce34d82 |
-| Sign-in gate removed | `P0-01: a guest asking for a check gets NEEDS_SIGN_IN …` | this batch |
-| NIC stripping disabled | `P0-02: a third party's NIC typed in chat is removed …` | this batch |
-| Missing-bank-record rule removed | both `P0-08` bank-record rows | this batch |
-| Stale-score rule removed | `P0-08: a stale score → referral …` | this batch |
-| No-history rule removed | `P0-08: no credit history → referral …` | this batch |
-| Open-application check removed | `P0-10: a second eligible assessment can't become a second open application` | this batch |
-| Contradicting claim let through | `P0-18: after a not-eligible result, a pressured model claiming approval is replaced` | this batch |
-| Band edge `>=` → `>` | `BR-LEND-01` rows 550, 650, 750 | this batch |
-| Band B minimum 650 → 649 | `BR-LEND-01: score 649 → band C` (new row) | this batch |
-| Repayment limit `>` → `>=` | `BR-LEND-02: existing repayments LKR 15993 → eligible true` | this batch |
-| Repayment-to-income `Math.ceil` → `Math.floor` | `BR-LEND-02: LKR 40001 … → 4001 bp` (new row; survived the old 40,010 row) | this batch |
-| Confidence: near-limit, band-edge and near-maximum edges moved by one; grace days off by one | the matching `BR-LEND-04` rows | this batch |
-| Threshold `<` → `<=` | `P0-07: an eligible case with a score 32 days old → eligible` | this batch |
-| Daily budget `>=` → `>` | `BR-CRED-03 / P1-03` policy row and the `P1-03` getScore test | this batch |
-| Either audit trigger dropped | `FR-PLAT-03` UPDATE / DELETE rows (new) | this batch |
-| 404 not mapped; no history retried | both `BR-CRED-06` tests (new) | this batch |
+| Sign-in gate removed | `P0-01: a guest asking for a check gets NEEDS_SIGN_IN …` | accuracy batch |
+| NIC stripping disabled | `P0-02: a third party's NIC typed in chat is removed …` | accuracy batch |
+| Missing-bank-record rule removed | both `P0-08` bank-record rows | accuracy batch |
+| Stale-score rule removed | `P0-08: a stale score → referral …` | accuracy batch |
+| No-history rule removed | `P0-08: no credit history → referral …` | accuracy batch |
+| Open-application check removed | `P0-10: a second eligible assessment can't become a second open application` | accuracy batch |
+| Contradicting claim let through | `P0-18: after a not-eligible result, a pressured model claiming approval is replaced` | accuracy batch |
+| Band edge `>=` → `>` | `BR-LEND-01` rows 550, 650, 750 | accuracy batch |
+| Band B minimum 650 → 649 | `BR-LEND-01: score 649 → band C` (new row) | accuracy batch |
+| Repayment limit `>` → `>=` | `BR-LEND-02: existing repayments LKR 15993 → eligible true` | accuracy batch |
+| Repayment-to-income `Math.ceil` → `Math.floor` | `BR-LEND-02: LKR 40001 … → 4001 bp` (new row; survived the old 40,010 row) | accuracy batch |
+| Confidence: near-limit, band-edge and near-maximum edges moved by one; grace days off by one | the matching `BR-LEND-04` rows | accuracy batch |
+| Threshold `<` → `<=` | `P0-07: an eligible case with a score 32 days old → eligible` | accuracy batch |
+| Daily budget `>=` → `>` | `BR-CRED-03 / P1-03` policy row and the `P1-03` getScore test | accuracy batch |
+| Either audit trigger dropped | `FR-PLAT-03` UPDATE / DELETE rows (new) | accuracy batch |
+| 404 not mapped; no history retried | both `BR-CRED-06` tests (new) | accuracy batch |
+| Resume accepted without matching its interrupt ID | `P0-09: a replayed resume is refused and the step doesn't run twice` | final review |
+| Submit's lookup by assessment ID removed | `P0-09: a replayed submit returns the same application and creates no other` | final review |
+| Bureau schema not strict; score maximum removed | `P0-11: extra data about the person → failure`; `P0-11: a score above 900 → failure` | final review |
+| Amount/term binding removed; expiry `>=` → `>` | both `P0-12` changed-terms rows; `P0-12: an assessment 1800000 ms old → submitted: false` | final review |
+| A locked account given its own answer | `P0-13: a locked account looks the same as a wrong password …` | final review |
+| A matching NIC flagged in the draft answer | `P0-14: the answer is identical whether or not the NIC belongs to a customer` | final review |
+| Audit written after the decision's transaction | `P0-17: a failed audit write leaves no decision stored` | final review |
+| Resume reference schema skipped | `P0-19: resuming with a password is refused …`; `P0-19: resuming with the raw form …` | final review |
+| Password added to the step-up reference, with its schema loosened | `P0-19: after a whole journey, the password is nowhere in the database …` | final review |
+| Score added to the assessment, with the state schema loosened | `BR-LEND-11: after a check and a follow-up, the score is in no model input and no checkpoint` (new) | final review |
+| Origin check removed | both `FR-WEB-01` rows (new) | final review |
+| Pending-pause guard removed | `P1-15: a chat message while a card waits → 409 …` (new) | final review |
+| Turn lock never refuses | `FR-WEB-03: answering a card while a turn is still running → 409` (new) | final review |
 
-Dropping only `!credit.hasHistory` from the no-history rule is an equivalent mutant: the cache sets `hasHistory` to `score !== null`, so the score check alone refers the same cases.
+Dropping only `!credit.hasHistory` from the no-history rule is an equivalent mutant: the cache sets `hasHistory` to `score !== null`, so the score check alone refers the same cases. Two single mutants were held by a second control, so each was rerun with that control loosened too: the score added to the assessment is stripped by the state schema, and a password added to the step-up reference is refused by its strict schema, which stops the journey.
 
 - [x] **T22 · Documentation** (M). Done after the review pass (see [`plan.md`](plan.md#after-t21-review-and-hardening)); `PROCESS.md` became a section of the README. README (setup, demo credentials, bring your own key, demo script for J1–J4, audit query, eval results), PNG diagrams (plus the agent graph exported from code), `PROCESS.md`, CHANGELOG, final pass over ARCHITECTURE and SPEC.
   *Accept:* a fresh clone works by following the README alone. *Verify:* clone into a temp folder → follow the README → demo script passes. *Deps:* T21.
