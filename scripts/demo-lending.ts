@@ -44,10 +44,11 @@ export const DEMO_CREDIT: {
     terms: { amountLkr: 2_000_000, termMonths: 60 },
   },
   {
+    // Band C, asking for twice its maximum: a confident "not eligible" (B19).
     customerNumber: "C1009",
     score: 610,
-    ending: "eligible",
-    terms: { amountLkr: 300_000, termMonths: 36 },
+    ending: "not_eligible",
+    terms: { amountLkr: 1_000_000, termMonths: 36 },
   },
   { customerNumber: "C1010", score: 690, ending: "eligible" },
 ];

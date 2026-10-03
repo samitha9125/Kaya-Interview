@@ -79,6 +79,18 @@ describe("lending/decide: the auto-decision threshold (BR-LEND-05)", () => {
   });
 });
 
+describe("lending/decide: an amount over the band maximum", () => {
+  it("BR-LEND-03, BR-LEND-04: with clean data it is a confident, final not-eligible", () => {
+    const bandB = { score: 700, hasHistory: true, stale: false, fetchedAt: NOW };
+
+    expect(decideLoan(input({ amountLkr: 2_000_000, credit: bandB }))).toMatchObject({
+      outcome: "not_eligible",
+      reason: "amount_above_limit",
+      confidenceBp: 10_000,
+    });
+  });
+});
+
 describe("lending/decide: hard referral rules (BR-LEND-06)", () => {
   it.each([
     {

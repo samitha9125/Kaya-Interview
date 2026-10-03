@@ -27,8 +27,11 @@ export function confidenceBp(input: ConfidenceInput): number {
   const nearEdge = BAND_EDGES.some(
     (edge) => Math.abs(input.score - edge) <= scoreNearBandEdge.withinPoints,
   );
+  // Borderline means 90–100% of the maximum. An amount over it isn't
+  // uncertain: it's simply over (B19). Band D's maximum is 0, so nothing
+  // is near it.
   const nearMax =
-    input.maxAmountLkr > 0 &&
+    input.amountLkr <= input.maxAmountLkr &&
     input.amountLkr * 10_000 >= input.maxAmountLkr * amountNearBandMax.fromBp;
   const ageDays = Math.floor((input.now.getTime() - input.scoreFetchedAt.getTime()) / DAY_MS);
   const agePenalty = Math.max(0, ageDays - scoreAge.graceDays) * scoreAge.penaltyBpPerDay;

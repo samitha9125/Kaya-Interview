@@ -50,9 +50,12 @@ describe("lending/confidence: score near a band edge", () => {
 
 describe("lending/confidence: amount near the band maximum", () => {
   it.each([
+    { amountLkr: 2_699_700, expected: 10_000 }, // 89.99%
     { amountLkr: 2_699_999, expected: 10_000 }, // just under 90%
     { amountLkr: 2_700_000, expected: 9_000 }, // 90% exactly
-    { amountLkr: 3_000_000, expected: 9_000 },
+    { amountLkr: 3_000_000, expected: 9_000 }, // 100%: the maximum itself
+    { amountLkr: 3_000_001, expected: 10_000 }, // just over: not borderline, over
+    { amountLkr: 3_000_300, expected: 10_000 }, // 100.01%
   ])(
     "BR-LEND-04: LKR $amountLkr of a 3,000,000 maximum → $expected bp",
     ({ amountLkr, expected }) => {
