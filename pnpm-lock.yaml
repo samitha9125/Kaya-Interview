@@ -53,9 +53,6 @@ importers:
       server-only:
         specifier: ^0.0.1
         version: 0.0.1
-      shadcn:
-        specifier: ^4.21.1
-        version: 4.21.1(@cfworker/json-schema@4.1.1)(typescript@5.9.3)
       tw-animate-css:
         specifier: ^1.4.0
         version: 1.4.0
@@ -111,6 +108,9 @@ importers:
       promptfoo:
         specifier: ^0.123.1
         version: 0.123.1(@aws-sdk/credential-provider-node@3.972.84)(@aws-sdk/credential-providers@3.1146.0)(@cfworker/json-schema@4.1.1)(@smithy/hash-node@4.5.2)(@smithy/signature-v4@5.7.4)(@swc/helpers@0.5.23)(@types/better-sqlite3@9.6.0)(@types/json-schema@7.0.15)(@types/node@25.9.9)(@types/react@19.3.0)(better-sqlite3@12.11.1)(graphql@17.0.2)(pg@8.23.1)(playwright-core@1.63.0)(socks@2.8.10)
+      shadcn:
+        specifier: ^4.21.1
+        version: 4.21.1(@cfworker/json-schema@4.1.1)(typescript@5.9.3)
       tailwindcss:
         specifier: ^4
         version: 4.3.3
