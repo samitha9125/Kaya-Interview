@@ -1,8 +1,8 @@
-import { AIMessage, HumanMessage, ToolMessage } from "langchain";
+import { AIMessage, HumanMessage, SystemMessage, ToolMessage } from "langchain";
 import { describe, expect, it } from "vitest";
 import { ASK_FOR_TERMS, ScriptedChatProvider, TERMS_REFUSED } from "./scripted-chat-provider";
 
-async function replyTo(...messages: (HumanMessage | AIMessage | ToolMessage)[]) {
+async function replyTo(...messages: (SystemMessage | HumanMessage | AIMessage | ToolMessage)[]) {
   const model = new ScriptedChatProvider().chatModel();
   return (await model.invoke(messages)) as AIMessage;
 }
@@ -40,5 +40,14 @@ describe("adapters/scripted-chat-provider: a rule-played loan agent for tests (T
     );
 
     expect(reply.text).toBe(TERMS_REFUSED);
+  });
+
+  it("TD25: playing the KYC agent (its prompt names start_account_opening), it opens the form", async () => {
+    const reply = await replyTo(
+      new SystemMessage("You help people open an account. Call start_account_opening."),
+      new HumanMessage("I'd like to open an account."),
+    );
+
+    expect(reply.tool_calls).toMatchObject([{ name: "start_account_opening", args: {} }]);
   });
 });
