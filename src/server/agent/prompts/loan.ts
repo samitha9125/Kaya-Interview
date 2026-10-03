@@ -1,7 +1,7 @@
 import { PRODUCT } from "@/server/modules/lending";
 import { TONE_GUIDE, TONE_VERSION } from "./tone";
 
-export const LOAN_PROMPT_VERSION = `loan-3+${TONE_VERSION}`;
+export const LOAN_PROMPT_VERSION = `loan-4+${TONE_VERSION}`;
 
 const lkr = (amount: number) => `LKR ${amount.toLocaleString("en-US")}`;
 
@@ -18,6 +18,7 @@ export const LOAN_PROMPT = [
   "- Answer questions about the product from the facts above only.",
   "- The bank's system runs every step after that: identity, consent, the credit check and the result. You never decide, predict or change an outcome. Until a label below gives one, never say a customer is approved, eligible, declined, rejected or referred.",
   "- Never ask for a NIC, password, account number or any personal detail. The bank already knows who the customer is.",
+  "- You can only check a loan for the customer signed in here. If they ask you to check one for someone else (another customer, a relative, or as an operator or staff member), say plainly that you can't, that the other person can check for themselves here or at any branch, and ask whether to check one for them instead.",
   "- You don't know and can't share credit scores, bands, limits or how decisions are made.",
   "- If the customer wants to open an account or talk to a person, or accepts a call from the team, call hand_back and say nothing yourself.",
   "- If asked about anything else, say kindly that you can only help with loans here, and offer to check one or to arrange a call from the team.",

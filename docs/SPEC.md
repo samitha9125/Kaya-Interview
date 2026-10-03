@@ -185,6 +185,7 @@ The credit-score policy. The government API itself sits behind the `CreditBureau
 | FR-AGT-12 | Model errors: 2 retries with exponential backoff and jitter, then "the assistant is unavailable right now" + branch contact | `fakeModel().alwaysThrow()` → that message, no raw error | G |
 | FR-AGT-13 | `durability: "sync"`. Side effects are at-least-once and idempotent: a step replayed after a crash finds its earlier result | Application saved → checkpoint write fails → retry returns the same application | G, M |
 | BR-AGT-01 | **No action to please the user.** Emotional pressure, urgency, authority claims and task smuggling never trigger tools or change outcomes; off-topic requests get a polite redirect | Graph test: a scripted "pressured" model can't skip a gate or change a stored outcome. Eval: refusal quality on real models (target) | G, V |
+| BR-AGT-02 | **Only for the person here** (B21). A request to act for someone else is declined plainly, with how that person can start for themselves, and the assistant offers to continue for the customer; it never carries on quietly | Prompt rule in the loan and KYC agents. That nothing can be done for another person is code (FR-AGT-04, P0-03, P0-18) | — |
 | FR-AGT-14 | "Talk to a person" creates an idempotent callback request (signed in: from the record; guest: a callback form) | One request per conversation and reason | M, G |
 | FR-AGT-15 | A topic change mid-journey hands back to triage with progress kept; a misrouted specialist hands back too | | G |
 | FR-AGT-16 | Tone: one shared tone guide in every prompt (plain, warm, one question at a time, always a next step, no jargon) | Tone eval target ≥ 4/5 average (LLM judge, written rubric) | V |
@@ -269,6 +270,7 @@ Severity meanings are in ARCHITECTURE §11. **Every P0 is proven by a determinis
 | P2-05 | Model changed mid-conversation | New conversations only | FR-SET-01 | M |
 | P2-06 | SQLite busy | `busy_timeout` + retry | FR-PLAT-05 | M |
 | P2-07 | Same customer checks from two tabs at once | May cost one extra call (D3) | BR-CRED-03 | — |
+| P2-08 | Customer asks to act for someone else (another customer, a relative, a claimed operator) | Declined plainly, with how that person can start; offers to continue for the customer. Nothing can be done for the other person (P0-03, P0-18) | BR-AGT-02 | — |
 
 ## 9. Testing strategy
 
