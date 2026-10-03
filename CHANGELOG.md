@@ -33,11 +33,12 @@ rather than generated from commits. The format follows
 - In demo mode, a **Behind the scenes** panel, opened from an icon at the right of the chat's header (a drawer on phones), shows what the bank's side did: government calls used today, whether the next check can call or must wait and why, what the simulated service is doing, the customer's saved-score age (never the score), and this conversation's audit trail in plain English. It updates after each reply.
 - The audit now records when a saved score is reused with no call, when a call is skipped (daily limit, a 429 block, a cool-down) and whether an old score stood in, and numbers each call ("call 3 of 5 today"). `pnpm audit:trail` and the panel describe them in the same words.
 - The audit records each model reply's input and output tokens, and `pnpm eval` reports them per turn, so real cost can be checked against the estimate.
+- `pnpm graph:draw` writes the agent graph as Mermaid from the compiled code (`docs/diagrams/agent-graph.mmd`), so the diagram can't drift from it.
 - A demo control, **Age cached scores by 31 days**, so the 30-day lifetime and the 90-day stale fallback can be shown without waiting.
 
 ### Changed
 
-- The test suite is focused on what the bank would be hurt by: 129 unit, module and graph tests (a test for every P0, the business-rule boundaries, and a model trying to skip a gate or invent an outcome) and one browser test per journey plus two security checks. Mutation testing with Stryker (`pnpm test:mutation`) is gone; manual mutants prove the key tests fail when their control breaks.
+- The test suite is focused on what the bank would be hurt by: 137 unit, module and graph tests (a test for every P0, the business-rule boundaries, and a model trying to skip a gate or invent an outcome) and one browser test per journey plus two security checks. Mutation testing with Stryker (`pnpm test:mutation`) is gone; manual mutants prove the key tests fail when their control breaks.
 - A loan amount over the customer's band maximum, with otherwise clear data, is a final "not eligible" instead of a referral to an officer. Demo customer C1009 shows it.
 - The loan and account-opening assistants allow room for the model's reasoning on top of a 400-token reply, so replies are no longer cut short.
 - `.env.example` lists only the five settings an operator sets: the OpenRouter key, the encryption key, the auto-decision threshold, the cache lifetime and demo mode. The admin password is gone, and `AUTO_DECISION_THRESHOLD` is in basis points (`9500` = 95%). The government credit service is always the built-in mock, and the assistant always uses OpenRouter.
@@ -50,6 +51,7 @@ rather than generated from commits. The format follows
 - Asked to check again after a check couldn't run, the loan assistant now asks the bank's system to try again instead of refusing on its own; the system still decides whether a call can be made. A new follow-ups eval case checks it.
 - When a credit check can't run, the customer is told to try again tomorrow only when today's government calls are used up; after a failure, a block or a cool-down, the message says "a little later".
 - The mock government service answers only the key it issued the bank, derived from the encryption key; anyone else gets a 401 that doesn't count toward the daily limit, so nobody can use up the bank's five calls.
+- A reply that claims an outcome in other words ("you qualify", "your loan has been granted") is replaced before display, like "approved" already was.
 - A reply that repeats the account-opening assistant's instructions is now caught before display, as the loan assistant's already was.
 - Personal-number redaction now also covers tool results, and triage requests go only to providers that honour every request parameter.
 - The server refuses to start with a credit-cache lifetime over 90 days, the window in which an old score may still stand in.

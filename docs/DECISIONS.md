@@ -315,7 +315,7 @@ Each dependency added during the build gets one line here.
 | Topic | Options | Choice | Trade-off |
 |---|---|---|---|
 | Mutation testing | Stryker on the decision modules (TD16) · **manual mutants only** | Manual mutants on the P0 and business-rule controls | Stryker removed: a patched test tool is more machinery than a suite this size needs, and manual mutants keep the guarantee that a test fails when its behaviour breaks. Cost: nothing re-checks the boundaries automatically on every change |
-| Suite size | A test for every rule and variant (740 cases, 22 E2E) · **about 100 cases, one E2E per journey** | 91 cases at T21 (129 today), 6 E2E | A reviewer can read the whole suite. Kept: a test per P0 at the lowest level that proves it, the rule boundary tables at their edges, the graph tests where a manipulated model tries to skip a gate, invent an outcome or put secrets in state, and a few module tests for transactions, idempotency and ownership. Cost: plumbing, adapters and secondary rules are covered by review and the journeys, not by their own tests |
+| Suite size | A test for every rule and variant (740 cases, 22 E2E) · **about 100 cases, one E2E per journey** | 91 cases at T21 (137 today), 6 E2E | A reviewer can read the whole suite. Kept: a test per P0 at the lowest level that proves it, the rule boundary tables at their edges, the graph tests where a manipulated model tries to skip a gate, invent an outcome or put secrets in state, and a few module tests for transactions, idempotency and ownership. Cost: plumbing, adapters and secondary rules are covered by review and the journeys, not by their own tests |
 
 ## 3. Deferred: right idea, wrong time
 
