@@ -1,6 +1,12 @@
 import { z } from "zod";
 import { deleteCustomerConversations } from "@/server/agent/conversations/demo-reset";
-import { clearScoreCache, resetBudget, type GovCreditDeps } from "@/server/modules/gov-credit";
+import {
+  ageScoreCache,
+  clearScoreCache,
+  DEMO_CACHE_AGE_DAYS,
+  resetBudget,
+  type GovCreditDeps,
+} from "@/server/modules/gov-credit";
 import { resetCustomerLoans } from "@/server/modules/lending";
 import { deleteKycApplications } from "@/server/modules/onboarding";
 import {
@@ -85,6 +91,24 @@ export function postClearCache(request: Request, deps: SettingsRouteDeps) {
     handleRoute(request, options, deps, async ({ correlationId }) => {
       clearScoreCache(deps.credit.db);
       deps.audit.record(deps.db, { type: "demo.cache_cleared", correlationId, actor: ACTOR });
+      return done();
+    }),
+  );
+}
+
+// Demo only: every cached score gets older, so the 30-day lifetime and the
+// 90-day stale fallback can be shown without waiting.
+export function postAgeCache(request: Request, deps: SettingsRouteDeps) {
+  const options = { scope: "demo.cache_age", body: ControlBody, session: "optional" as const };
+  return demoOnly(deps, () =>
+    handleRoute(request, options, deps, async ({ correlationId }) => {
+      ageScoreCache(deps.credit.db);
+      deps.audit.record(deps.db, {
+        type: "demo.cache_aged",
+        correlationId,
+        actor: ACTOR,
+        payload: { days: DEMO_CACHE_AGE_DAYS },
+      });
       return done();
     }),
   );

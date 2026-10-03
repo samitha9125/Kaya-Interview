@@ -3,6 +3,7 @@ import { app } from "@/server/composition";
 import { postGuest, postLogin, postLogout } from "./auth-routes";
 import { postChatMessage, postResume } from "./chat-routes";
 import {
+  postAgeCache,
   postClearCache,
   postFailureMode,
   postModelChoice,
@@ -21,6 +22,7 @@ export const resumeRoute = (request: Request) => postResume(request, app());
 export const modelChoiceRoute = (request: Request) => postModelChoice(request, app());
 export const resetLimitRoute = (request: Request) => postResetLimit(request, app());
 export const clearCacheRoute = (request: Request) => postClearCache(request, app());
+export const ageCacheRoute = (request: Request) => postAgeCache(request, app());
 export const resetMyDataRoute = (request: Request) => postResetMyData(request, app());
 export const failureModeRoute = (request: Request) => postFailureMode(request, app());
 export const settingsView = () => readSettingsView(app());

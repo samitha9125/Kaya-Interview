@@ -137,6 +137,21 @@ export function DemoControls({ failureModes, govChecks, isCustomer }: DemoContro
         </Button>
       </ControlRow>
       <ControlRow
+        title="Age cached scores by 31 days"
+        description="Past the 30-day lifetime after one press; past the 90-day stale window after three."
+        note={note("age")}
+      >
+        <Button
+          variant="outline"
+          disabled={busyRow !== null}
+          onClick={() =>
+            void run("age", "/api/demo/age-cache", {}, "Cached scores are now 31 days older.")
+          }
+        >
+          Age scores
+        </Button>
+      </ControlRow>
+      <ControlRow
         title="Government CRIB Service behaviour"
         titleFor="failure-mode"
         description={MODES[mode]?.effect ?? ""}
