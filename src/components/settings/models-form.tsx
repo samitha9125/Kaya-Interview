@@ -6,6 +6,7 @@ import { postJson } from "@/components/api";
 import { Button } from "@/components/ui/button";
 import { CardFooter } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
+import { ModelPicker } from "./model-picker";
 
 export type CatalogModel = {
   id: string;
@@ -76,27 +77,25 @@ export function ModelsForm({ roles, models, canChange }: ModelsFormProps) {
                 <Label htmlFor={isEditable ? fieldId : undefined}>{role.name}</Label>
                 <p className="text-sm text-muted-foreground">{role.job}</p>
               </div>
-              <div className="flex flex-col gap-1 sm:w-72">
+              <div className="flex flex-col gap-1 sm:w-72 sm:shrink-0">
                 {isEditable ? (
-                  <select
+                  <ModelPicker
                     id={fieldId}
-                    value={selected[choice.role]}
-                    onChange={(event) => {
-                      setStatus(null);
-                      setSelected({ ...selected, [choice.role]: event.target.value });
-                    }}
+                    models={
+                      models.some((model) => model.id === choice.modelId)
+                        ? models
+                        : [
+                            { id: choice.modelId, name: `${choice.modelId} (no longer offered)` },
+                            ...models,
+                          ]
+                    }
+                    value={selected[choice.role] ?? choice.modelId}
                     disabled={isBusy}
-                    className="h-9 w-full rounded-md border border-input bg-background px-2 text-sm focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none"
-                  >
-                    {!models.some((model) => model.id === choice.modelId) && (
-                      <option value={choice.modelId}>{choice.modelId} (no longer offered)</option>
-                    )}
-                    {models.map((model) => (
-                      <option key={model.id} value={model.id}>
-                        {model.name}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(modelId) => {
+                      setStatus(null);
+                      setSelected({ ...selected, [choice.role]: modelId });
+                    }}
+                  />
                 ) : (
                   <p className="text-sm font-medium">{current?.name ?? choice.modelId}</p>
                 )}

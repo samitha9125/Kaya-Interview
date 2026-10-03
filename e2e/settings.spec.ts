@@ -22,13 +22,14 @@ test("J4: a model is changed and today's government limit is reset from Settings
   await startAsGuest(page, 60);
   await page.getByRole("link", { name: "Settings" }).click();
 
-  await page.getByLabel("Loan", { exact: true }).selectOption("google/gemini-3.1-flash-lite");
+  const loanModel = page.getByLabel("Loan", { exact: true });
+  await loanModel.click();
+  await page.getByLabel("Search models").fill("flash lite");
+  await page.getByRole("option", { name: "Gemini 3.1 Flash Lite" }).click();
   await page.getByRole("button", { name: "Save changes" }).click();
   await expect(page.getByRole("status").getByText("Saved")).toBeVisible();
   await page.reload();
-  await expect(page.getByLabel("Loan", { exact: true })).toHaveValue(
-    "google/gemini-3.1-flash-lite",
-  );
+  await expect(loanModel).toHaveText("Gemini 3.1 Flash Lite");
 
   await Promise.all(Array.from({ length: 5 }, () => askBureau(request, ip)));
   expect(await askBureau(request, ip)).toBe(429);
