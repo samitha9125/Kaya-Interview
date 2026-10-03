@@ -17,5 +17,9 @@
       "mcp__langchain-docs"
     ],
     "deny": ["Read(./.env)", "Read(./.env.local)", "Read(./.env.*.local)"]
+  },
+  "attribution": {
+    "commit": "",
+    "pr": ""
   }
 }
