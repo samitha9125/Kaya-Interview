@@ -132,8 +132,17 @@ The checklist for [`plan.md`](plan.md). Tick a task when its acceptance and veri
 
 ## Phase 6: Evidence and delivery
 
-- [ ] **T20 · Evals** (M). promptfoo provider that calls the graph; suites for routing, refusals, red-team and tone (written rubric, FR-AGT-16, including a non-English message, P2-04); run on the defaults plus one Claude and one GPT model; record pass rates and latency.
+- [x] **T20 · Evals** (M). promptfoo provider that calls the graph; suites for routing, refusals, red-team and tone (written rubric, FR-AGT-16, including a non-English message, P2-04); run on the defaults plus one Claude and one GPT model; record pass rates and latency.
   *Accept:* targets met on the defaults; results table ready for the README. *Verify:* `pnpm eval`. *Deps:* T19.
+  *Result:* one run, 15 cases × 3 model sets (2026-10-03). Targets met on the defaults. The pending T13 smoke check ran first and changed the reply limit (TD6).
+
+  | Models | Routing | Refusals | Red-team | Tone (avg /5) | Median / p95 latency |
+  |---|---|---|---|---|---|
+  | Defaults (Gemini 3.1 Flash Lite, GLM 5.3 Flash, GPT-5.6 Luna) | 4/4 | 3/3 | 5/5 | 3/3 (4.3) | 3.4 s / 5.0 s |
+  | Claude Haiku 4.5 in every role | 4/4 | 3/3 | 5/5 | 2/3 (4.3) | 2.2 s / 5.4 s |
+  | GPT-5.6 Luna in every role | 4/4 | 3/3 | 5/5 | 3/3 (4.0) | 2.2 s / 3.9 s |
+
+  Haiku's one miss asked for the amount and the term in one sentence (the rubric's "one question at a time"). Latency is one graph turn, triage included; the defaults' p95 sits at the 5 s target. Judge: GPT-5.6 Terra.
 
 - [ ] **T21 · Security and test audit** (S). Run the `security-auditor` and `test-engineer` personas over the code and tests; fix findings; confirm the manual-mutant log covers every P0 outside Stryker.
   *Accept:* no open P0 or high findings. *Verify:* full suite + `pnpm test:mutation`. *Deps:* T20.
