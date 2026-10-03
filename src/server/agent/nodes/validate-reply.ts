@@ -10,10 +10,23 @@ type Outcome = "eligible" | "not_eligible" | "referred";
 
 // FR-AGT-07's word list, mapped to the outcome each word claims. Whole
 // words keep "eligibility check" usable; "not eligible" claims the
-// opposite of "eligible".
+// opposite of "eligible". A word list is best-effort (SPEC P0-05): it
+// catches the usual ways of saying an outcome, not every paraphrase.
+// "Qualify", "granted" and "sanctioned" count only as statements, so
+// "I can check whether you qualify" stays usable.
+const CONDITIONAL = String.raw`(?<!\b(?:if|whether|once|when|until)\b[^.?!]{0,40})`;
 const CLAIMS: [RegExp, Outcome][] = [
-  [/\bnot eligible\b|\bineligible\b|\b(decline|declined|reject|rejected)\b/i, "not_eligible"],
-  [/\b(approve|approved)\b|(?<!not )\beligible\b/i, "eligible"],
+  [
+    /\bnot eligible\b|\bineligible\b|\b(decline|declined|reject|rejected)\b|(?:\bnot|n't) qualif(?:y|ied)\b|\bdisqualified\b|\bnot (?:been )?(?:granted|sanctioned)\b/i,
+    "not_eligible",
+  ],
+  [
+    new RegExp(
+      String.raw`\b(approve|approved)\b|(?<!not )\beligible\b|${CONDITIONAL}(?:\byou(?: have|'ve)? qualif(?:y|ied)\b|\bqualifies\b|(?<!\bnot )\b(?:is|are|was|has been|have been|been) (?:granted|sanctioned)\b)`,
+      "i",
+    ),
+    "eligible",
+  ],
   [/\breferred\b/i, "referred"],
 ];
 

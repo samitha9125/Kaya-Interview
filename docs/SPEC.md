@@ -15,7 +15,7 @@ It must be **security-first and kind**: no customer data reaches someone who sho
 
 **Success looks like:**
 - A signed-in customer gets a final, correct eligibility outcome in one conversation, or a clear referral to an officer.
-- No P0 failure case can happen, as proven by deterministic tests.
+- Every P0 failure case has a deterministic test of the control code enforces; where a P0 also relies on a best-effort check of free text, the spec labels it and evals measure it.
 - The 5-calls-a-day government API is never called a 6th time, and an outage never leaves a customer stuck.
 
 ## 2. Assumptions
@@ -178,7 +178,7 @@ The credit-score policy. The government API itself sits behind the `CreditBureau
 | FR-AGT-04 | No tool accepts identity; tools read the customer from runtime context | Tool schemas contain no identity fields | U, G |
 | FR-AGT-05 | Fixed loan order: step-up → consent → credit check → decide → ending (BR-LEND-09) | A scripted model calling `request_assessment` at once still meets step-up and consent first; the bureau isn't called before both | G |
 | FR-AGT-06 | Pauses resume only through the resume endpoint, with a **single-use** interrupt ID bound to the session and conversation. The resume value is a server-verified reference, never raw input. A node that pauses does nothing before its `interrupt()` | Typing "I consent" in chat does nothing; a replayed resume is rejected | G, E |
-| FR-AGT-07 | Outcomes, referrals and failures are **code-written templates**. Each LLM reply is checked before sending: if it contains decision wording (approve/approved, eligible, decline/declined, reject/rejected, referred) while no decision exists in state, it's replaced with: *"I can't give a decision in chat. I can run a proper eligibility check for you. Shall I start?"* | A scripted model claiming approval → the customer sees the replacement, never the claim | G, V |
+| FR-AGT-07 | Outcomes, referrals and failures are **code-written templates**. Each LLM reply is checked before sending: if it contains decision wording (approve/approved, eligible, decline/declined, reject/rejected, referred, qualify/qualified, granted, sanctioned) that doesn't match the decision in state, it's replaced with: *"I can't give a decision in chat. I can run a proper eligibility check for you. Shall I start?"* | A scripted model claiming approval → the customer sees the replacement, never the claim | G, V |
 | FR-AGT-08 | The LLM receives **situation labels only**: `NEEDS_SIGN_IN`, `NEEDS_CONSENT`, `CHECK_UNAVAILABLE`, `ELIGIBLE`, `NOT_ELIGIBLE`, `REFERRED`, `APPLICATION_ALREADY_OPEN`, `RESULT_EXPIRED`, `APPLICATION_NOT_SENT`, `SUBMITTED`, `INVALID_INPUT`, `FORM_NOT_SENT`, `HANDED_TO_PERSON`, `CALLBACK_NOT_REQUESTED`: one per ending the customer was shown, so a follow-up stays consistent with it. Never error details, internal numbers or personal data | Tool-failure middleware tested per failure reason | U, G |
 | FR-AGT-09 | NIC-shaped text is stripped **in the harness, before the graph**; `piiMiddleware` with a custom NIC detector also checks model output (defence in depth) | A third party's NIC typed in chat never reaches the model or a checkpoint | U, G |
 | FR-AGT-10 | **LLM replies are buffered and validated** (FR-AGT-07 check + output PII check) before they're sent; typing and progress events stream meanwhile | No unvalidated LLM text reaches the browser | G, E |
@@ -227,7 +227,7 @@ The credit-score policy. The government API itself sits behind the `CreditBureau
 
 ## 8. Failure cases
 
-Severity meanings are in ARCHITECTURE §11. **Every P0 is proven by a deterministic test** (U, M, G or E); evals add quality evidence but never prove a P0.
+Severity meanings are in ARCHITECTURE §11. **Every P0 is proven by a deterministic test** (U, M, G or E) of the control code enforces; evals add quality evidence but never prove a P0. Where a P0 also has a best-effort check of free text, its row says so.
 
 | ID | Case | Required behaviour | Requirement | Tests |
 |---|---|---|---|---|
@@ -235,8 +235,8 @@ Severity meanings are in ARCHITECTURE §11. **Every P0 is proven by a determinis
 | P0-02 | A third party's NIC typed in chat | Stripped before the graph; never used or stored | FR-AGT-09 | U, G |
 | P0-03 | Injection triggers the credit tool early or with arguments | No identity arguments; step-up and consent gates hold | FR-AGT-04, FR-AGT-05, BR-LEND-07 | G |
 | P0-04 | Another customer's conversation | 404 | FR-AUTH-06 | M, E |
-| P0-05 | LLM invents an outcome | Replaced before display | FR-AGT-07, FR-AGT-10 | G |
-| P0-06 | Score, band, NIC or system prompt in a reply | Never given to the LLM; output check | BR-LEND-11, FR-AGT-09, FR-AGT-10 | G |
+| P0-05 | LLM invents an outcome | **Guaranteed by code:** chat text can never create a decision or an application; outcomes reach the customer only as template cards. **Best-effort, measured by evals:** the wording check replaces a reply that claims an outcome the state doesn't hold; a word list can't catch every paraphrase | FR-AGT-07, FR-AGT-10 | G, V |
+| P0-06 | Score, band, NIC or system prompt in a reply | **Guaranteed by code:** the score and band are never given to the LLM, and NIC-shaped text is redacted. **Best-effort, measured by evals:** the prompt-leak check catches a reply that repeats lines of a prompt, not a paraphrase | BR-LEND-11, FR-AGT-09, FR-AGT-10 | G, V |
 | P0-07 | Outcome given below the threshold | Referral | BR-LEND-05 | U, G |
 | P0-08 | Stale, missing or no-history data gives a final outcome | Hard referral | BR-CRED-01, BR-CRED-02, BR-LEND-06 | U |
 | P0-09 | Double submit or replayed resume | Original result returned; single-use interrupt ID | FR-PLAT-05, BR-LEND-10, FR-AGT-06 | M, G, E |

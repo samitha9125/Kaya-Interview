@@ -11,7 +11,7 @@ import {
 } from "@/test/graph";
 import { lendingTestSetup } from "@/test/lending-setup";
 import { runConfig } from "./graph";
-import { leaksSomething } from "./nodes/validate-reply";
+import { claimedOutcomes, leaksSomething } from "./nodes/validate-reply";
 import { KYC_PROMPT } from "./prompts/kyc";
 import { LOAN_PROMPT } from "./prompts/loan";
 import { CANT_SHARE, NO_DECISION_IN_CHAT } from "./templates";
@@ -51,6 +51,21 @@ describe("agent/validate-reply: claims must match the decision (P0-05, P0-18)", 
     const { values } = await graph.getState(runConfig("t1"));
     expect(result.messages.at(-1)?.text).toBe(NO_DECISION_IN_CHAT);
     expect(values.decision).toBe("not_eligible");
+  });
+});
+
+describe("agent/validate-reply: the wording that claims an outcome (FR-AGT-07)", () => {
+  it.each([
+    { text: "Good news, you qualify!", claims: ["eligible"] },
+    { text: "You've qualified for the full amount.", claims: ["eligible"] },
+    { text: "Your loan has been granted.", claims: ["eligible"] },
+    { text: "The loan is sanctioned.", claims: ["eligible"] },
+    { text: "I'm sorry, you don't qualify this time.", claims: ["not_eligible"] },
+    { text: "The loan has not been granted.", claims: ["not_eligible"] },
+    { text: "I can check whether you qualify for a personal loan.", claims: [] },
+    { text: "Loans run from 6 to 60 months at 14% a year.", claims: [] },
+  ])("P0-05: '$text' claims $claims", ({ text, claims }) => {
+    expect(claimedOutcomes(text)).toEqual(claims);
   });
 });
 

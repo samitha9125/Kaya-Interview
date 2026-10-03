@@ -179,7 +179,7 @@ erDiagram
 
 | Level | Meaning | Obligation |
 |---|---|---|
-| **P0** | Could leak data, give a wrong or unauthorised outcome, duplicate an action, or bypass verification | Must never happen. An automated test blocks the merge; a manual mutant shows the test fails when the control breaks |
+| **P0** | Could leak data, give a wrong or unauthorised outcome, duplicate an action, or bypass verification | Must never happen where code can prevent it; a best-effort check of free text is labelled as such. An automated test blocks the merge; a manual mutant shows the test fails when the control breaks |
 | **P1** | A journey can't complete or visibly degrades | Must fail safe with an honest message and a next step. Automated test |
 | **P2** | A fallback already exists | Tested where cheap |
 
