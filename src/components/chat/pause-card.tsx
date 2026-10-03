@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { KycConfirmCard, KycFormCard } from "./kyc-cards";
 import type { Pause } from "./turn-client";
 import type { Answer } from "./use-chat";
 
@@ -19,6 +20,7 @@ type PauseCardProps = {
   pause: Pause;
   isBusy: boolean;
   error: string | null;
+  fieldErrors: Record<string, string>;
   onAnswer: (answer: Answer) => Promise<void>;
 };
 
@@ -28,7 +30,7 @@ const termsOf = (pause: { amountLkr: number; termMonths: number }) =>
 
 // FR-AGT-06: what the customer does here goes to the bank's server, which
 // verifies or records it; the assistant only learns the outcome.
-export function PauseCard({ pause, isBusy, error, onAnswer }: PauseCardProps) {
+export function PauseCard({ pause, isBusy, error, fieldErrors, onAnswer }: PauseCardProps) {
   return (
     <Card aria-labelledby="pause-title" className="w-full">
       {pause.kind === "step_up" && <StepUp isBusy={isBusy} onAnswer={onAnswer} />}
@@ -51,6 +53,12 @@ export function PauseCard({ pause, isBusy, error, onAnswer }: PauseCardProps) {
           isBusy={isBusy}
           onChoose={(confirm) => onAnswer({ kind: "confirm", confirm })}
         />
+      )}
+      {pause.kind === "kyc_form" && (
+        <KycFormCard isBusy={isBusy} onAnswer={onAnswer} fieldErrors={fieldErrors} />
+      )}
+      {pause.kind === "kyc_confirm" && (
+        <KycConfirmCard isBusy={isBusy} onAnswer={onAnswer} details={pause.details} />
       )}
       {error && (
         <CardContent>

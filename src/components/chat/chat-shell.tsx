@@ -9,12 +9,16 @@ import { Label } from "@/components/ui/label";
 import { MessageList } from "./message-list";
 import { PauseCard } from "./pause-card";
 import type { RestoredConversation } from "./turn-client";
-import { useChat } from "./use-chat";
+import { useChat, type Starter } from "./use-chat";
 
 type ChatShellProps = { greetingName: string | null; restored: RestoredConversation | null };
 
-// The journeys that exist so far. Each starter sends a plain message.
-const STARTERS = [{ label: "Check a loan", message: "I'd like to check a loan." }];
+// Each starter sends a plain message and picks its journey, so triage is
+// skipped (FR-AGT-01).
+const STARTERS: { label: string; message: string; starter: Starter }[] = [
+  { label: "Check a loan", message: "I'd like to check a loan.", starter: "loan" },
+  { label: "Open an account", message: "I'd like to open an account.", starter: "kyc" },
+];
 
 export function ChatShell({ greetingName, restored }: ChatShellProps) {
   const router = useRouter();
@@ -56,7 +60,7 @@ export function ChatShell({ greetingName, restored }: ChatShellProps) {
             <Button
               key={starter.label}
               variant="outline"
-              onClick={() => void chat.sendMessage(starter.message)}
+              onClick={() => void chat.sendMessage(starter.message, starter.starter)}
             >
               {starter.label}
             </Button>
@@ -69,6 +73,7 @@ export function ChatShell({ greetingName, restored }: ChatShellProps) {
           pause={chat.pause}
           isBusy={chat.isBusy}
           error={chat.error}
+          fieldErrors={chat.fieldErrors}
           onAnswer={chat.answer}
         />
       )}
