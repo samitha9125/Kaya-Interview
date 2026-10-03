@@ -213,7 +213,7 @@ The same loan traffic on Claude Haiku ($1 / $5) would cost ≈ $47 a month on it
 | Node `cachePolicy` for the credit score | In-memory; our cache must persist and follow TD7 |
 | `@langchain/langgraph-supervisor` / `-swarm` | Not the chosen pattern (TD2), and no longer featured in the JS docs |
 | `modelFallbackMiddleware` | It would pick a model on the bank's behalf (D4) |
-| `toolErrorMiddleware` | Its JS docs section is empty; a documented `createMiddleware({ wrapToolCall })` maps tool failures to situation labels instead |
+| `toolErrorMiddleware` | Its JS docs section is empty; a documented `createMiddleware({ wrapToolCall })` maps tool failures to situation labels instead. That middleware is required, not optional: without it, the agent's tool node answers the LLM with the schema parser's message and the arguments it refused (found in T14b) |
 | A compiled agent's `.graph` used as a node | Undocumented; the documented wrapper node that calls the agent is used instead |
 | `streamEvents` v3 | Experimental in our installed version (TD5) |
 
