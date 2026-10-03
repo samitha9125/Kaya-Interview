@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Bank Assistant
 
-## Getting Started
+An AI chat assistant for a small local bank. It helps customers check loan eligibility, apply for a loan, and start opening an account (KYC), built on **LangGraph.js** with bring-your-own-key model access through **OpenRouter**.
 
-First, run the development server:
+> **Status:** environment ready. Specification in progress.
+
+## Quick start
+
+Requires Node 24 (`.nvmrc`) and pnpm 10.
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install
+cp .env.example .env.local        # then fill in the values
+pnpm exec playwright install chromium   # once, for e2e tests
+pnpm dev                          # http://localhost:3000
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Scripts
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+| Command | What it does |
+|---|---|
+| `pnpm dev` / `pnpm build` / `pnpm start` | Run, build, serve |
+| `pnpm lint` · `pnpm format:check` · `pnpm typecheck` | Static checks |
+| `pnpm test` · `pnpm test:coverage` | Unit tests (Vitest); coverage gate of 80% on `src/` logic |
+| `pnpm test:e2e` | End-to-end tests (Playwright, Chromium) |
+| `pnpm eval` · `pnpm eval:view` | Prompt evals (promptfoo) and the results viewer |
+| `pnpm secrets:scan` | Scan all tracked files for secrets |
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## Quality gates
 
-## Learn More
+| Where | What runs |
+|---|---|
+| `pre-commit` | ESLint + Prettier on staged files, secret scan on staged files |
+| `commit-msg` | commitlint ([Conventional Commits](https://www.conventionalcommits.org)) |
+| `pre-push` | Typecheck + unit tests |
+| CI (every PR) | PR-title check, secret scan, prod dependency audit, format, lint, typecheck, tests with coverage, build, e2e |
+| CI (manual) | Evals against a real model (needs the `OPENROUTER_API_KEY` secret) |
 
-To learn more about Next.js, take a look at the following resources:
+**About the secret scan:** `scripts/secret-scan.mjs` is a small, dependency-free safety net. On a real repository, also turn on [GitHub secret scanning with push protection](https://docs.github.com/en/code-security/secret-scanning/introduction/about-push-protection) or use a service such as GitGuardian.
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## How this repo is worked on
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- Trunk-based: short-lived branches, one plan task per PR, squash merge. PR titles follow Conventional Commits because they become the commits on `main`.
+- [`CHANGELOG.md`](CHANGELOG.md) is written by hand for readers; releases are git tags.
+- [`CLAUDE.md`](CLAUDE.md) holds the rules for AI-assisted work, and `.mcp.json` connects the LangChain docs so LangGraph code follows the current API.
 
-## Deploy on Vercel
+## Documentation
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+| Document | Purpose |
+|---|---|
+| `docs/SPEC.md` | What the system does *(next)* |
+| `docs/PLAN.md` | Build order *(after the spec)* |
+| `docs/ARCHITECTURE.md` · `docs/DECISIONS.md` · `docs/PROCESS.md` | How it works, why, and how we worked *(during the build)* |
