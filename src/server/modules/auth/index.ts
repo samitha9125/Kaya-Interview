@@ -5,6 +5,7 @@ export {
   findBankRecord,
   findCustomerName,
   findCustomerNic,
+  hasCustomerWithNic,
   type NewCustomer,
 } from "./customers";
 export { login, type AuthDeps, type LoginRequest, type LoginResult } from "./login";

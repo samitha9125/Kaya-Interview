@@ -72,6 +72,17 @@ export function findCustomerNic(
   return row ? decryptField(row.nicEncrypted, key) : undefined;
 }
 
+// BR-ONB-02: whether an account-opening applicant is already a customer.
+// NICs are encrypted with a fresh IV each, so they can't be matched in
+// SQL; at ~500 customers, decrypting each one is a few milliseconds.
+export function hasCustomerWithNic(executor: DbExecutor, nic: string, key: Buffer): boolean {
+  return executor
+    .select({ nicEncrypted: customers.nicEncrypted })
+    .from(customers)
+    .all()
+    .some((row) => decryptField(row.nicEncrypted, key) === nic);
+}
+
 // SPEC A3: income and existing repayments come from the bank's record,
 // never from chat. Lending receives this through an injected loader.
 export function findBankRecord(executor: DbExecutor, customerId: string) {
