@@ -2,7 +2,8 @@
 // The server's message is shown as it is: it's already a template.
 export type ApiResult = { ok: true } | { ok: false; message: string };
 
-const FALLBACK = "We couldn't reach the bank just now. Please check your connection and try again.";
+export const FALLBACK =
+  "We couldn't reach the bank just now. Please check your connection and try again.";
 
 export async function postJson(
   url: string,

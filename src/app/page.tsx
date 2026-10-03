@@ -11,7 +11,10 @@ export default async function Home() {
       {session.kind === "signed_out" ? (
         <SignInCard />
       ) : (
-        <ChatShell greetingName={session.kind === "customer" ? session.name : null} />
+        <ChatShell
+          greetingName={session.kind === "customer" ? session.name : null}
+          restored={session.conversation}
+        />
       )}
     </main>
   );
