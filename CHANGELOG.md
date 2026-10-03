@@ -18,6 +18,7 @@ rather than generated from commits. The format follows
 - The server refuses to start, with a message naming each problem, when the encryption key, approval threshold, cache lifetime or demo flag is missing or invalid.
 - `pnpm db:setup` creates the local SQLite database and ten demo customers (`C1001`–`C1010`); conversations and the audit trail survive a restart.
 - Sign-in with a customer number and password. Five wrong passwords in a row pause sign-in for that account for 15 minutes, and one address can try at most 10 times in 15 minutes. A refused sign-in never says whether the customer number exists.
+- Every page and API response carries security headers: a nonce-based Content Security Policy that forbids framing, `nosniff`, no referrer, and HSTS in production.
 
 ### Changed
 

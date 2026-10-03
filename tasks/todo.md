@@ -45,8 +45,9 @@ The checklist for [`plan.md`](plan.md). Tick a task when its acceptance and veri
   *Accept:* a DB row alone isn't a session; rotation invalidates the old token. *Verify:* `pnpm test`; manual mutant: skip the ownership check → P0-04 test fails. *Deps:* T5.
   *Result:* mutant: dropped the owner condition from the conversation lookup → the four P0-04 tests failed; reverted. Step-up (password check, token rotation, 5-minute freshness) landed here with the other session rules, so T14a only wires it into the graph. The `__Host-session` cookie itself is set by the routes (T7a/T7b), where its flags are asserted.
 
-- [ ] **T7a · Harness request pipeline** (M). Origin check, session, zod, idempotency, rate limit, turn lock, NIC stripping, failure → template + reference, security headers (FR-WEB-01/02/03/05/06).
+- [x] **T7a · Harness request pipeline** (M). Origin check, session, zod, idempotency, rate limit, turn lock, NIC stripping, failure → template + reference, security headers (FR-WEB-01/02/03/05/06).
   *Accept:* P1-15; P0-02 (stripping); foreign origin → 403. *Verify:* `pnpm test`. *Deps:* T6.
+  *Result:* mutant: skipped the origin check → both FR-WEB-01 403 tests failed; reverted. NIC detection now also catches spaced and dashed NICs and is shared with the logger. Security headers come from Next.js Proxy with a per-request CSP nonce; the E2E header assertions land with the first real page in T7b. The pending-pause 409 joins the turn guard in T14a, once the graph can be asked.
 
 - [ ] **T7b · Auth routes and chat shell** (M). Login/logout/guest routes, shadcn init, sign-in card, empty chat page.
   *Accept:* sign in, sign out, copied cookie rejected after logout. *Verify:* `pnpm test:e2e`. *Deps:* T7a.
