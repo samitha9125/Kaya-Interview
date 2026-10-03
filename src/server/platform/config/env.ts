@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { DEFAULT_DATABASE_PATH } from "../db/config";
 
 const BASE64_32_BYTES = /^[A-Za-z0-9+/]{43}=$/;
 const WHOLE_NUMBER = /^\d+$/;
@@ -44,6 +45,7 @@ const ConfigSchema = z.object({
       .transform((value) => value === "true"),
   ),
   OPENROUTER_API_KEY: z.preprocess(unsetIfEmpty, z.string().optional()),
+  DATABASE_PATH: z.preprocess(unsetIfEmpty, z.string().default(DEFAULT_DATABASE_PATH)),
 });
 
 export type AppConfig = z.infer<typeof ConfigSchema>;

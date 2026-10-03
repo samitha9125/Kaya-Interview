@@ -1,6 +1,8 @@
 import { defineConfig, devices } from "@playwright/test";
 
-const PORT = 3000;
+// Its own port and database, so a test run never touches the dev data.
+const PORT = 3100;
+const DATABASE_PATH = ".e2e.db";
 const isCI = !!process.env.CI;
 // The app refuses to start without an encryption key (P0-16). Tests use a
 // fixed, obviously fake one.
@@ -18,11 +20,12 @@ export default defineConfig({
   },
   projects: [{ name: "chromium", use: { ...devices["Desktop Chrome"] } }],
   webServer: {
-    // CI tests the production build; locally the dev server is faster.
-    command: isCI ? `pnpm start --port ${PORT}` : `pnpm dev --port ${PORT}`,
+    // A fresh database each run. CI tests the production build; locally the
+    // dev server is faster.
+    command: `rm -f ${DATABASE_PATH}* && pnpm db:setup && ${isCI ? "pnpm start" : "pnpm dev"} --port ${PORT}`,
     url: `http://localhost:${PORT}`,
     reuseExistingServer: !isCI,
     timeout: 120_000,
-    env: { APP_ENCRYPTION_KEY: TEST_ENCRYPTION_KEY },
+    env: { APP_ENCRYPTION_KEY: TEST_ENCRYPTION_KEY, DATABASE_PATH, DEMO_MODE: "true" },
   },
 });

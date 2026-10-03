@@ -3,6 +3,8 @@ import { referenceFor } from "@/server/platform/ids";
 export type FailureKind =
   | "forbidden"
   | "not_signed_in"
+  | "sign_in_failed"
+  | "sign_in_paused"
   | "session_expired"
   | "invalid_input"
   | "too_many_requests"
@@ -19,6 +21,17 @@ const FAILURES: Record<FailureKind, { status: number; message: string }> = {
     message: "We stopped this request because it didn't come from our site.",
   },
   not_signed_in: { status: 401, message: "Please sign in to continue." },
+  // One message for an unknown number, a wrong password and a locked
+  // account (FR-AUTH-01), which still tells a real customer about the pause.
+  sign_in_failed: {
+    status: 401,
+    message:
+      "We couldn't sign you in with those details. After 5 tries in a row, sign-in pauses for 15 minutes.",
+  },
+  sign_in_paused: {
+    status: 429,
+    message: "Too many sign-in attempts from here. Please wait 15 minutes and try again.",
+  },
   session_expired: {
     status: 401,
     message: "For your security, you've been signed out after a while. Please sign in again.",

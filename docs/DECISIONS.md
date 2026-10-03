@@ -230,6 +230,7 @@ Each dependency added during the build gets one line here.
 | `@langchain/langgraph-checkpoint-sqlite` | The documented SQLite checkpointer (`SqliteSaver`), so conversations survive a restart |
 | `server-only` | Makes a client bundle fail to build if it imports server code, as the Next.js docs recommend. Tests map it to its empty build |
 | `@stryker-mutator/core`, `@stryker-mutator/vitest-runner` (dev) | Mutation testing on the decision modules (TD16). Version 10 runs on Vitest 5, with a one-line `pnpm patch` (`patches/`): the runner names tests `suite test`, but Vitest 5 matches `suite > test`, so with per-test coverage no test ran and every mutant survived. Found in T5; the T3 trial's 17 kills were static mutants only. Drop the patch once the runner is fixed upstream |
+| `shadcn`, `@base-ui/react`, `class-variance-authority`, `cn`, `tw-animate-css` | shadcn/ui (SPEC §5), added by `shadcn init`: the components are copied into `src/components/ui` and built on Base UI primitives; `cn` is shadcn's own class merger (in place of `clsx` + `tailwind-merge`); `shadcn` and `tw-animate-css` supply the theme CSS. `lucide-react`, also added by init, was removed until an icon is needed |
 | `tsx` (dev) | Runs the TypeScript seed script (`pnpm db:setup`) with the project's path aliases. Already in the tree through Vitest; now a direct dependency because we call it |
 
 ### TD20. Runtime: Node 25
