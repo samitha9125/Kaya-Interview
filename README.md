@@ -25,6 +25,7 @@ pnpm dev                          # http://localhost:3000
 | `pnpm db:generate` | Generate a migration after a Drizzle schema change |
 | `pnpm lint` · `pnpm format:check` · `pnpm typecheck` | Static checks |
 | `pnpm test` · `pnpm test:coverage` | Unit tests (Vitest); coverage gate of 80% on `src/` logic |
+| `pnpm test:mutation` | Mutation testing (Stryker) on the decision modules; fails below 80% |
 | `pnpm test:e2e` | End-to-end tests (Playwright, Chromium) |
 | `pnpm eval` · `pnpm eval:view` | Prompt evals (promptfoo) and the results viewer |
 | `pnpm secrets:scan` | Scan all tracked files for secrets |
