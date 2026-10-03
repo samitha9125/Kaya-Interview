@@ -60,7 +60,7 @@ A module declares the port it needs; an adapter implements it for one external s
 | Port (owner) | Contract | Adapter today | Swapping it means |
 |---|---|---|---|
 | `CreditBureau` (gov-credit) | `fetchScore(nic)` returns a validated result; declares `callsPerDay` | `HttpGovBureau` (calls the mock) | A new endpoint, an API version or the real service is a new adapter. Cache, budget, backoff and fallback rules don't change |
-| `ChatModelProvider` (agent) | `chatModel(role)` returns a LangChain chat model | `OpenRouterProvider` | A direct provider, Azure, or a self-hosted model |
+| `ChatModelProvider` (agent) | `chatModel({ modelId, reasoningEffort, maxOutputTokens })` returns a LangChain chat model. The agent picks those three per role; the adapter adds the provider's privacy settings and never retries on its own | `OpenRouterProvider` | A direct provider, Azure, or a self-hosted model |
 | `ModelCatalog` (settings) | Lists tool-capable models with price and context | `OpenRouterCatalog` | Any other catalogue |
 | `Clock`, `IdGenerator` (platform) | `now()`, `newId()` | System | Deterministic fakes in tests |
 

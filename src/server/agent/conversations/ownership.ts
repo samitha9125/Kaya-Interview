@@ -1,5 +1,6 @@
 import { and, eq, isNull } from "drizzle-orm";
 import type { Session } from "@/server/modules/auth";
+import type { ModelSelection } from "@/server/modules/settings";
 import type { Clock } from "@/server/platform/clock";
 import type { AppDatabase } from "@/server/platform/db";
 import type { IdGenerator } from "@/server/platform/ids";
@@ -9,7 +10,11 @@ export type ConversationDeps = { db: AppDatabase; clock: Clock; ids: IdGenerator
 
 export type Conversation = typeof conversations.$inferSelect;
 
-export function startConversation(owner: Session, deps: ConversationDeps): string {
+export function startConversation(
+  owner: Session,
+  models: ModelSelection,
+  deps: ConversationDeps,
+): string {
   const id = deps.ids.newId();
   deps.db
     .insert(conversations)
@@ -17,6 +22,7 @@ export function startConversation(owner: Session, deps: ConversationDeps): strin
       id,
       customerId: owner.customerId,
       guestSessionId: owner.customerId ? null : owner.id,
+      models,
       createdAt: deps.clock.now(),
     })
     .run();
