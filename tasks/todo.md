@@ -129,6 +129,8 @@ The checklist for [`plan.md`](plan.md). Tick a task when its acceptance and veri
   *Result:* 22 E2E specs green, including J4 (change a model, reset the limit), every failure mode set from the page and checked against the mock's answer, and P0-15 on a second server with demo mode off (the production build: Next.js 16 locks its dev directory, so two dev servers can't share it). P0-15 is also proven at route level. Manual mutant (run after the build, reverted): opened the demo gate in `settings-routes.ts` → the P0-15 demo-off E2E failed, with the six settings and demo routes answering 403 instead of 404. Also folded in (B20, TD27): `.env.example` lists only the five operator settings; the government API is always the built-in mock on this server, and the rule-played model sits behind a test-only `E2E_SCRIPTED_MODEL=1`.
 
 ### Checkpoint E: all four journeys work; every P0 has a passing deterministic test
+- [x] J1–J4 pass in the browser and every P0 has a named test.
+  *Result:* 22 E2E specs at T19; after T21, six (one per journey plus P0-15 and the copied cookie).
 
 ## Phase 6: Evidence and delivery
 
@@ -185,10 +187,10 @@ Every manual mutant run since T21, all reverted. T21 removed the tests behind so
 
 Dropping only `!credit.hasHistory` from the no-history rule is an equivalent mutant: the cache sets `hasHistory` to `score !== null`, so the score check alone refers the same cases.
 
-- [ ] **T22 · Documentation** (M). **Out of scope:** the docs are written separately. README (setup, demo credentials, bring your own key, demo script for J1–J4, audit query, eval results), PNG diagrams (plus the agent graph exported from code), `PROCESS.md`, CHANGELOG, final pass over ARCHITECTURE and SPEC.
+- [x] **T22 · Documentation** (M). Done after the review pass (see [`plan.md`](plan.md#after-t21-review-and-hardening)); `PROCESS.md` became a section of the README. README (setup, demo credentials, bring your own key, demo script for J1–J4, audit query, eval results), PNG diagrams (plus the agent graph exported from code), `PROCESS.md`, CHANGELOG, final pass over ARCHITECTURE and SPEC.
   *Accept:* a fresh clone works by following the README alone. *Verify:* clone into a temp folder → follow the README → demo script passes. *Deps:* T21.
 
-- [ ] **T23 · Release** (XS). **Out of scope:** there is no release. Merge `develop` → `main` (merge commit), tag `v1.0.0`, push.
+- [ ] **T23 · Release** (XS). Waits for the final review. Merge `develop` → `main` (merge commit), tag `v1.0.0`, push.
   *Accept:* CI green on `main`. *Deps:* T22.
 
 ### Checkpoint F: complete. Every SPEC §12 success criterion is ticked.
