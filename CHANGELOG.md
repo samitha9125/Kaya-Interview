@@ -24,6 +24,8 @@ rather than generated from commits. The format follows
 
 - The chat runs the loan journey: a "Check a loan" button, replies that appear whole after they're checked, a typing or progress line while the bank works, and secure cards to re-enter the password, give consent and confirm the application. The chat input is locked while the assistant works or a card is waiting, and reloading the page brings the conversation back where it was.
 - Anyone can start opening an account from the chat, including guests: a secure form checks each detail and says what to fix, a summary shows what the bank stored, and the application waits, unverified, for a branch visit with the original NIC. The answer is the same whether or not the NIC already belongs to a customer.
+- "Talk to a person" asks the team for a call back: at once for a signed-in customer, or with a short name-and-number card for a guest. Asking twice in a conversation doesn't make a second request.
+- Messages typed without pressing a starter are sorted to the right journey, and the assistant hands a conversation over when the customer changes topic. Anything the assistant doesn't handle gets a short redirect.
 
 ### Changed
 

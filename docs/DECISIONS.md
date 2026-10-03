@@ -286,6 +286,16 @@ Each dependency added during the build gets one line here.
 | What a reload restores | A conversation ID in the URL or browser storage · **the latest conversation started since this sign-in** | Since this sign-in | Nothing to keep in the browser or leak in a URL; the session ID already survives the step-up rotation. A new sign-in starts with an empty chat |
 | A model for E2E without a key | A real key in CI · recorded responses · **a scripted provider that plays the specialists by rule** | Scripted (`CHAT_MODEL_PROVIDER=scripted`) | Browser tests run the real graph, gates and templates on every machine and cost nothing; the model's own behaviour is the evals' job. It is a `ChatModelProvider` adapter built on LangChain's `fakeModel`, so nothing else changes. The app refuses to start with it unless `DEMO_MODE=true`, so it can't replace a real model by accident |
 
+### TD26. Triage, hand-back and callbacks
+
+| Topic | Options | Choice | Trade-off |
+|---|---|---|---|
+| How triage runs | A `createAgent` with a response format · **one structured-output call, retried with LangChain's `withRetry` (3 attempts)** | One call | Triage has no tools, so an agent loop adds nothing. The specialists' retry middleware only exists inside `createAgent`, so triage retries through the runnable instead. Its calls are not in the per-conversation counts of FR-AGT-11, which come from the checkpointed history; it runs at most twice a turn |
+| What triage reads | The whole conversation · **the last 6 messages, without tool traffic** | Last 6 | Enough to read a short answer such as "yes please" to an offer of a call, and cheap |
+| A misroute that bounces | Trust the classifier · **don't send a message straight back to the specialist that handed it back** | Guard | A loop between triage and one specialist is impossible; the customer gets the redirect instead |
+| Callback "reason" | Free text · **the journey the customer was on (`loan`, `kyc`, or `general`)** | Journey | One request per conversation and reason (FR-AGT-14) needs a fixed set; the team sees what the call is about without anyone reading chat |
+| How long "talk to a person" lasts | Sticky, like the other journeys · **one turn** | One turn | After the request there is nothing more to do there, so the next message meets triage again |
+
 ## 3. Deferred: right idea, wrong time
 
 | ID | Item | Why not now | When / how to add |
