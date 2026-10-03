@@ -49,10 +49,12 @@ The checklist for [`plan.md`](plan.md). Tick a task when its acceptance and veri
   *Accept:* P1-15; P0-02 (stripping); foreign origin → 403. *Verify:* `pnpm test`. *Deps:* T6.
   *Result:* mutant: skipped the origin check → both FR-WEB-01 403 tests failed; reverted. NIC detection now also catches spaced and dashed NICs and is shared with the logger. Security headers come from Next.js Proxy with a per-request CSP nonce; the E2E header assertions land with the first real page in T7b. The pending-pause 409 joins the turn guard in T14a, once the graph can be asked.
 
-- [ ] **T7b · Auth routes and chat shell** (M). Login/logout/guest routes, shadcn init, sign-in card, empty chat page.
+- [x] **T7b · Auth routes and chat shell** (M). Login/logout/guest routes, shadcn init, sign-in card, empty chat page.
   *Accept:* sign in, sign out, copied cookie rejected after logout. *Verify:* `pnpm test:e2e`. *Deps:* T7a.
+  *Result:* E2E green on the dev server and on the production build (7 specs, including cookie flags, the security headers and a foreign-origin 403), which shows the nonce CSP lets the app's scripts run. The E2E server uses its own port and a fresh database (`DATABASE_PATH`), and `db:setup` became one migrate-and-seed script so both steps use the same file.
 
 ### Checkpoint B: a customer can sign in and out securely
+- [x] All green (lint, typecheck, 283 unit/module/graph tests, 7 E2E specs). Sign-in, lockout, sessions, sign-out, guests and ownership are proven; the security headers are asserted in a browser.
 
 ## Phase 3: Credit (scarce, unreliable bureau)
 
