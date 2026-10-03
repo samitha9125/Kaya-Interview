@@ -47,11 +47,11 @@ The checklist for [`plan.md`](plan.md). Tick a task when its acceptance and veri
 
 - [x] **T7a · Harness request pipeline** (M). Origin check, session, zod, idempotency, rate limit, turn lock, NIC stripping, failure → template + reference, security headers (FR-WEB-01/02/03/05/06).
   *Accept:* P1-15; P0-02 (stripping); foreign origin → 403. *Verify:* `pnpm test`. *Deps:* T6.
-  *Result:* mutant: skipped the origin check → both FR-WEB-01 403 tests failed; reverted. NIC detection now also catches spaced and dashed NICs and is shared with the logger. Security headers come from Next.js Proxy with a per-request CSP nonce; the E2E header assertions land with the first real page in T7b. The pending-pause 409 joins the turn guard in T14a, once the graph can be asked.
+  *Result:* mutant: skipped the origin check → both FR-WEB-01 403 tests failed (test removed in T21); reverted. NIC detection now also catches spaced and dashed NICs and is shared with the logger. Security headers come from Next.js Proxy with a per-request CSP nonce; the E2E header assertions land with the first real page in T7b. The pending-pause 409 joins the turn guard in T14a, once the graph can be asked.
 
 - [x] **T7b · Auth routes and chat shell** (M). Login/logout/guest routes, shadcn init, sign-in card, empty chat page.
   *Accept:* sign in, sign out, copied cookie rejected after logout. *Verify:* `pnpm test:e2e`. *Deps:* T7a.
-  *Result:* E2E green on the dev server and on the production build (7 specs, including cookie flags, the security headers and a foreign-origin 403), which shows the nonce CSP lets the app's scripts run. The E2E server uses its own port and a fresh database (`DATABASE_PATH`), and `db:setup` became one migrate-and-seed script so both steps use the same file.
+  *Result:* E2E green on the dev server and on the production build (7 specs, including cookie flags, the security headers and a foreign-origin 403; specs removed in T21), which shows the nonce CSP lets the app's scripts run. The E2E server uses its own port and a fresh database (`DATABASE_PATH`), and `db:setup` became one migrate-and-seed script so both steps use the same file.
 
 ### Checkpoint B: a customer can sign in and out securely
 - [x] All green (lint, typecheck, 283 unit/module/graph tests, 7 E2E specs). Sign-in, lockout, sessions, sign-out, guests and ownership are proven; the security headers are asserted in a browser.
@@ -60,7 +60,7 @@ The checklist for [`plan.md`](plan.md). Tick a task when its acceptance and veri
 
 - [x] **T8 · Mock government API** (M). Separate module and tables, `POST /api/mock-gov/credit-score`, per-IP 429 with `Retry-After`, failure modes, demo-only reset (FR-MOCK-01…04).
   *Accept:* each mode's response asserted. *Verify:* `pnpm test`. *Deps:* T2, T3.
-  *Result:* 22 tests, one per mode and rule. Mutant: counted the 5th call as over the limit → `FR-MOCK-02: call 5 … → 200` failed; reverted. Citizens are keyed by a NIC hash, so no NIC is plain text even in the mock's tables. The admin controls are `POST /api/mock-gov/admin/reset` and `/admin/failure-mode`; only `app/api/mock-gov` may import the mock (lint-enforced, ARCHITECTURE §4).
+  *Result:* 22 tests, one per mode and rule. Mutant: counted the 5th call as over the limit → `FR-MOCK-02: call 5 … → 200` failed (test removed in T21); reverted. Citizens are keyed by a NIC hash, so no NIC is plain text even in the mock's tables. The admin controls are `POST /api/mock-gov/admin/reset` and `/admin/failure-mode`; only `app/api/mock-gov` may import the mock (lint-enforced, ARCHITECTURE §4).
 
 - [x] **T9 · `CreditBureau` port and HTTP adapter** (S). 5 s timeout, 404 → no history, other 4xx → failure, zod-validated responses (BR-CRED-06, FR-CRED-02).
   *Accept:* P0-11; tested against a local fake HTTP server. *Verify:* `pnpm test`. *Deps:* T8.
@@ -87,7 +87,7 @@ The checklist for [`plan.md`](plan.md). Tick a task when its acceptance and veri
 
 - [x] **T13 · Model provider, catalogue and settings module** (M). `ChatModelProvider` and `ModelCatalog` ports with OpenRouter adapters (ZDR, data-collection deny, China-hosted ignore list, reasoning low), defaults per role, settings module (FR-SET-01…03). **Checks with a real key whether the 400-token output limit counts reasoning tokens.**
   *Accept:* only tool-capable models listed; key status without the value. *Verify:* `pnpm test`; one live smoke call per default model. *Deps:* T4.
-  *Result:* live smoke check run in T20 (`pnpm smoke:models`): all three defaults answer through the adapter. **Reasoning tokens count toward the output limit**: GLM 5.3 Flash at `low` used 197 of its 400 output tokens on reasoning (`finish_reason: length`), GPT-5.6 Luna 46 of 400. Loan and KYC now get 400 tokens of headroom on top of the 400 visible (TD6). Gemini's long stress list was cut off upstream (`finish_reason: error`); short prompts finish normally, and triage only returns a short structured answer. Both adapters are tested against local HTTP servers. Mutants (all reverted): dropped the tool-support filter → the FR-SET-02 listing test failed; sent `zdr: false` → the privacy test failed; removed `maxRetries: 0` → the FR-AGT-12 no-own-retries test failed (LangChain retries 6 times by default). The port takes model, reasoning effort and output limit rather than a role (ARCHITECTURE §5). Each conversation stores the models it started with (FR-SET-01, P2-05); SQLite can't add a NOT NULL column, so that migration rebuilds the table by hand.
+  *Result:* live smoke check run in T20 (`pnpm smoke:models`): all three defaults answer through the adapter. **Reasoning tokens count toward the output limit**: GLM 5.3 Flash at `low` used 197 of its 400 output tokens on reasoning (`finish_reason: length`), GPT-5.6 Luna 46 of 400. Loan and KYC now get 400 tokens of headroom on top of the 400 visible (TD6). Gemini's long stress list was cut off upstream (`finish_reason: error`); short prompts finish normally, and triage only returns a short structured answer. Both adapters are tested against local HTTP servers. Mutants (all reverted): dropped the tool-support filter → the FR-SET-02 listing test failed (test removed in T21); sent `zdr: false` → the privacy test failed (test removed in T21); removed `maxRetries: 0` → the FR-AGT-12 no-own-retries test failed (test removed in T21) (LangChain retries 6 times by default). The port takes model, reasoning effort and output limit rather than a role (ARCHITECTURE §5). Each conversation stores the models it started with (FR-SET-01, P2-05); SQLite can't add a NOT NULL column, so that migration rebuilds the table by hand.
 
 - [x] **T14a · Loan flow (deterministic part)** (M). Step-up / consent / confirm pauses resolved by the route handler (references only), credit node with retry/timeout/errorHandler, decide routing, endings and templates (BR-AUTH-01, BR-AUTH-03, FR-AGT-05/06/13, BR-LEND-09/10 wiring).
   *Accept:* graph tests for P0-01, P0-03, P0-09, P0-19 with an adversarial fake model; a step-up older than 5 minutes re-prompts and a failed step-up counts toward lockout; a chat message while a pause is pending → 409 and the pause is kept (P1-15); nothing can force a fetch while a fresh cache entry exists (BR-CRED-07). *Verify:* `pnpm test`; manual mutants: let the model's tool call bypass consent → P0-03 fails; accept a used interrupt ID → P0-09 fails; write the raw password into state → P0-19 fails. *Deps:* T7b, T12, T13.
@@ -103,7 +103,7 @@ The checklist for [`plan.md`](plan.md). Tick a task when its acceptance and veri
 
 - [x] **T15 · Chat transport and loan UI** (M). Server-sent events (typing, progress, message, interrupt, error, done; FR-WEB-04), starter buttons, step-up / consent / confirm cards, reference code display.
   *Accept:* J1 E2E: eligible → approved, not eligible, referral, unavailable today; input locked during a turn and while a pause is pending (P1-15); reload restores the conversation (P1-11); keyboard-only and labelled inputs (FR-WEB-07). *Verify:* `pnpm test:e2e`. *Deps:* T7b, T14c.
-  *Result:* 14 E2E specs green, 7 of them J1. Mutants (all reverted): removed the chat input's lock → the P1-15 E2E test failed; let a model reply waiting for `validate_reply` into the transcript → the FR-AGT-10 transcript test failed; skipped the turn-lock release at the end of a stream → the FR-WEB-03 and P1-11 stream tests failed; put the raw error in the `error` event → the FR-WEB-05 test failed. Refusals (403/401/404/409) are still HTTP statuses before any stream starts; a stream holds the turn lock until its run ends, and a dropped connection lets the run finish (TD25). Replies are read back from the checkpoint after the run, so the stream and a reload show the same validated transcript. E2E runs without a key on a scripted provider that plays the loan agent by rule; it only starts with `DEMO_MODE=true` (TD25). Each E2E customer signs in from its own `X-Forwarded-For` address, or the suite trips the per-IP sign-in limit. Only the loan starter is shown until T17/T18 add theirs.
+  *Result:* 14 E2E specs green, 7 of them J1. Mutants (all reverted): removed the chat input's lock → the P1-15 E2E test failed (test removed in T21); let a model reply waiting for `validate_reply` into the transcript → the FR-AGT-10 transcript test failed (test removed in T21); skipped the turn-lock release at the end of a stream → the FR-WEB-03 and P1-11 stream tests failed (test removed in T21); put the raw error in the `error` event → the FR-WEB-05 test failed (test removed in T21). Refusals (403/401/404/409) are still HTTP statuses before any stream starts; a stream holds the turn lock until its run ends, and a dropped connection lets the run finish (TD25). Replies are read back from the checkpoint after the run, so the stream and a reload show the same validated transcript. E2E runs without a key on a scripted provider that plays the loan agent by rule; it only starts with `DEMO_MODE=true` (TD25). Each E2E customer signs in from its own `X-Forwarded-For` address, or the suite trips the per-IP sign-in limit. Only the loan starter is shown until T17/T18 add theirs.
 
 ### Checkpoint D: J1 works end to end, reviewed.
 - [x] All green (lint, typecheck, unit/module/graph tests, 14 E2E specs); J1 runs end to end in the browser.
@@ -114,7 +114,7 @@ The checklist for [`plan.md`](plan.md). Tick a task when its acceptance and veri
 
 - [x] **T16 · Onboarding module** (S). KYC field and NIC validation, enumeration-safe response, encrypted draft → confirm → unverified pending application (FR-ONB-01/02, BR-ONB-01/02).
   *Accept:* P0-14; NIC tables for both formats. *Verify:* `pnpm test`. *Deps:* T2, T3.
-  *Result:* 45 onboarding tests on real SQLite. Mutants (all reverted): gave a matching NIC its own answer → `P0-14: the answer is identical …` failed; dropped the "already pending" check on confirm → the FR-ONB-02 replay test failed. The form is one encrypted column; the graph will only see the draft ID. Auth answers "is this NIC a customer's?" (it owns the table) by decrypting and comparing, which needs no new column at ~500 customers; onboarding gets it as an injected function, keeping its only dependency platform (ARCHITECTURE §6). Wired into the composition root with its route in T17.
+  *Result:* 45 onboarding tests on real SQLite. Mutants (all reverted): gave a matching NIC its own answer → `P0-14: the answer is identical …` failed; dropped the "already pending" check on confirm → the FR-ONB-02 replay test failed (test removed in T21). The form is one encrypted column; the graph will only see the draft ID. Auth answers "is this NIC a customer's?" (it owns the table) by decrypting and comparing, which needs no new column at ~500 customers; onboarding gets it as an injected function, keeping its only dependency platform (ARCHITECTURE §6). Wired into the composition root with its route in T17.
 
 - [x] **T17 · KYC journey** (M). KYC agent, `start_account_opening`, form card posting to the server, draft reference resume, confirm (FR-AGT-03, BR-ONB-03).
   *Accept:* P0-19 for form data; J2 E2E. *Verify:* `pnpm test && pnpm test:e2e`; manual mutant: resume with the raw form instead of the draft ID → P0-19 fails. *Deps:* T15, T16.
@@ -122,7 +122,7 @@ The checklist for [`plan.md`](plan.md). Tick a task when its acceptance and veri
 
 - [x] **T18 · Triage, callbacks and hand-back** (M). Triage with structured output, sticky routing, starter-button bypass, callback request and form, topic change / misroute hand-back (FR-AGT-01, 14, 15).
   *Accept:* a starter button costs no triage call; J3 E2E. *Verify:* `pnpm test && pnpm test:e2e`. *Deps:* T17.
-  *Result:* 727 tests and 19 E2E specs green. `FR-AGT-01: a starter button costs no triage call` counts the triage model's requests. Mutant: removed the "don't send it straight back" guard → `P2-01: a misrouted message isn't sent straight back …` failed; reverted. Finding, fixed first (Prove-It): an ending relabelled the latest tool result in the whole history, so a callback in a later turn would have turned an earlier "SUBMITTED" into "HANDED_TO_PERSON"; only this turn's result is relabelled now. Triage is one structured-output call retried with `withRetry`, not counted in FR-AGT-11's conversation limits (TD26). The scripted model answers "other" as triage, so browser tests choose journeys with the starters.
+  *Result:* 727 tests and 19 E2E specs green. `FR-AGT-01: a starter button costs no triage call` counts the triage model's requests. Mutant: removed the "don't send it straight back" guard → `P2-01: a misrouted message isn't sent straight back …` failed (test removed in T21); reverted. Finding, fixed first (Prove-It): an ending relabelled the latest tool result in the whole history, so a callback in a later turn would have turned an earlier "SUBMITTED" into "HANDED_TO_PERSON"; only this turn's result is relabelled now. Triage is one structured-output call retried with `withRetry`, not counted in FR-AGT-11's conversation limits (TD26). The scripted model answers "other" as triage, so browser tests choose journeys with the starters.
 
 - [x] **T19 · Settings page and demo controls** (M). Model pickers with price and context, key status, threshold display, reset the government limit, clear the cache, failure mode; all gated by `DEMO_MODE` (FR-SET-04/05, BR-SET-01).
   *Accept:* P0-15; J4 E2E; each failure mode demonstrable from the UI. *Verify:* `pnpm test:e2e`. *Deps:* T7b, T10, T13, T18.
@@ -149,6 +149,41 @@ The checklist for [`plan.md`](plan.md). Tick a task when its acceptance and veri
 - [x] **T21 · Focus the test suite** (S). Cut Vitest to about 100 cases (a test per P0 at the lowest level, the rule boundary tables, the adversarial graph tests, a few module tests), E2E to one spec per journey plus P0-15 and the copied-cookie check, and remove Stryker (TD28). Replaces the planned security and test audit.
   *Accept:* every P0 still has a deterministic test; docs match. *Verify:* `pnpm lint && pnpm typecheck && pnpm test && pnpm test:e2e`; manual mutants on ownership, the consent gate and the threshold. *Deps:* T20.
   *Result:* Vitest 740 → 91 cases (77 → 26 files, 6,870 → 1,258 lines); E2E 22 → 6 tests (433 → 204 lines). Mutants (all reverted): dropped the owner condition from the conversation lookup → `P0-04: another customer's conversation is not found` failed; sent the loan gate straight to the credit check → `P0-03: after step-up comes consent …`, `BR-LEND-07: only after consent …` and four resume tests failed; made the threshold `<=` → `P0-07: an eligible case with a score 32 days old → eligible` failed. Stryker, its runner patch and `pnpm test:mutation` are gone.
+
+### Mutants after T21
+
+Every manual mutant run since T21, all reverted. T21 removed the tests behind some earlier proofs, so the P0 and boundary mutants were run again on the focused suite.
+
+| Control broken | Test that failed | Source |
+|---|---|---|
+| "Try again tomorrow" given to the wrong reason | both new ending-wording tests | 8ff70e6 |
+| A call limit treated as a plain failure; every failure given the limit template | `FR-AGT-11` / `FR-AGT-12` limit and model-failure graph tests | 4eacd44 |
+| No retry; no cool-down; Retry-After ignored | `P1-01`, `P1-02` getScore tests | 0858918 |
+| Not-eligible and open-application labels swapped | their graph label tests | ff05716 |
+| KYC prompt left out of the leak check | the P0-06 KYC prompt-leak test | d248b5d |
+| Ownership check inverted, then removed (Behind the scenes read) | P0-04 tests | 8d599f2 |
+| No mock API key check; key checked after counting | `FR-MOCK-05` test | c72f3fa |
+| Cache lifetime maximum 91 | `P0-16: CREDIT_CACHE_TTL_DAYS 91 → starts: false` | ad8fe9e |
+| "qualif" dropped from the claim check | two P0-05 rows | e25ac3e |
+| Demo gate opened | `P0-15` E2E (403 instead of 404 on six routes) | ce34d82 |
+| Sign-in gate removed | `P0-01: a guest asking for a check gets NEEDS_SIGN_IN …` | this batch |
+| NIC stripping disabled | `P0-02: a third party's NIC typed in chat is removed …` | this batch |
+| Missing-bank-record rule removed | both `P0-08` bank-record rows | this batch |
+| Stale-score rule removed | `P0-08: a stale score → referral …` | this batch |
+| No-history rule removed | `P0-08: no credit history → referral …` | this batch |
+| Open-application check removed | `P0-10: a second eligible assessment can't become a second open application` | this batch |
+| Contradicting claim let through | `P0-18: after a not-eligible result, a pressured model claiming approval is replaced` | this batch |
+| Band edge `>=` → `>` | `BR-LEND-01` rows 550, 650, 750 | this batch |
+| Band B minimum 650 → 649 | `BR-LEND-01: score 649 → band C` (new row) | this batch |
+| Repayment limit `>` → `>=` | `BR-LEND-02: existing repayments LKR 15993 → eligible true` | this batch |
+| Repayment-to-income `Math.ceil` → `Math.floor` | `BR-LEND-02: LKR 40001 … → 4001 bp` (new row; survived the old 40,010 row) | this batch |
+| Confidence: near-limit, band-edge and near-maximum edges moved by one; grace days off by one | the matching `BR-LEND-04` rows | this batch |
+| Threshold `<` → `<=` | `P0-07: an eligible case with a score 32 days old → eligible` | this batch |
+| Daily budget `>=` → `>` | `BR-CRED-03 / P1-03` policy row and the `P1-03` getScore test | this batch |
+| Either audit trigger dropped | `FR-PLAT-03` UPDATE / DELETE rows (new) | this batch |
+| 404 not mapped; no history retried | both `BR-CRED-06` tests (new) | this batch |
+
+Dropping only `!credit.hasHistory` from the no-history rule is an equivalent mutant: the cache sets `hasHistory` to `score !== null`, so the score check alone refers the same cases.
 
 - [ ] **T22 · Documentation** (M). **Out of scope:** the docs are written separately. README (setup, demo credentials, bring your own key, demo script for J1–J4, audit query, eval results), PNG diagrams (plus the agent graph exported from code), `PROCESS.md`, CHANGELOG, final pass over ARCHITECTURE and SPEC.
   *Accept:* a fresh clone works by following the README alone. *Verify:* clone into a temp folder → follow the README → demo script passes. *Deps:* T21.
