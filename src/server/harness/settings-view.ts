@@ -11,6 +11,7 @@ import {
 } from "@/server/modules/settings";
 import { budgetStatus, type GovCreditDeps } from "@/server/modules/gov-credit";
 import type { AppConfig } from "@/server/platform/config";
+import { currentFailureMode } from "./audit-timeline";
 
 export type SettingsViewDeps = {
   config: Pick<AppConfig, "DEMO_MODE" | "OPENROUTER_API_KEY" | "AUTO_DECISION_THRESHOLD">;
@@ -28,6 +29,7 @@ export type SettingsView = {
   models: CatalogModel[] | null;
   roles: RoleChoice[];
   failureModes: readonly MockFailureMode[];
+  failureMode: string;
   govChecks: { usedToday: number; perDay: number };
 };
 
@@ -49,6 +51,7 @@ export async function readSettingsView(deps: SettingsViewDeps): Promise<Settings
       isFlagged: catalog.ok && !availability[role].isListed,
     })),
     failureModes: MOCK_FAILURE_MODES,
+    failureMode: currentFailureMode(deps.settings.db),
     govChecks: {
       usedToday: budgetStatus(deps.credit.db, deps.credit.clock.now()).usedToday,
       perDay: deps.credit.bureau.callsPerDay,

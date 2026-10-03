@@ -115,6 +115,7 @@ export default async function SettingsPage() {
               </CardHeader>
               <DemoControls
                 failureModes={view.failureModes}
+                failureMode={view.failureMode}
                 govChecks={view.govChecks}
                 isCustomer={session.kind === "customer"}
               />

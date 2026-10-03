@@ -18,7 +18,7 @@ import { Button } from "@/components/ui/button";
 import { OptionPicker } from "./option-picker";
 
 // What each mode does to the mock government service (SPEC §6.9).
-export const MODES: Record<string, { name: string; effect: string }> = {
+const MODES: Record<string, { name: string; effect: string }> = {
   normal: { name: "Normal", effect: "Answers every check." },
   slow: { name: "Slow", effect: "Answers after our 5-second timeout, so checks fail." },
   error: { name: "Error", effect: "Fails with a server error (500)." },
@@ -30,13 +30,20 @@ type Feedback = { row: string; text: string; isError: boolean };
 
 type DemoControlsProps = {
   failureModes: readonly string[];
+  // What the mock is doing now, so the picker starts there.
+  failureMode: string;
   govChecks: { usedToday: number; perDay: number };
   isCustomer: boolean;
 };
 
-export function DemoControls({ failureModes, govChecks, isCustomer }: DemoControlsProps) {
+export function DemoControls({
+  failureModes,
+  failureMode,
+  govChecks,
+  isCustomer,
+}: DemoControlsProps) {
   const router = useRouter();
-  const [mode, setMode] = useState(failureModes[0] ?? "normal");
+  const [mode, setMode] = useState(failureMode);
   const modeOptions = useMemo(
     () => failureModes.map((value) => ({ id: value, name: MODES[value]?.name ?? value })),
     [failureModes],
