@@ -13,9 +13,9 @@ The checklist for [`plan.md`](plan.md). Tick a task when its acceptance and veri
   *Accept:* P0-16 test; tampered ciphertext fails; redaction table test. *Verify:* `pnpm test`; manual mutant: drop the threshold-range check → P0-16 fails. *Deps:* T0. *Files:* `server/platform/{config,crypto,logger}/*`, `.env.example`.
   *Result:* mutant: removed the 0–10000 range check → `P0-16: AUTO_DECISION_THRESHOLD 10001` failed; reverted. Also added `src/instrumentation.ts`, so a bad config stops `next start` and `next dev` (checked by hand: exit code 1).
 
-- [x] **T2 · Platform: database, audit, idempotency** (M). Drizzle + SQLite, migrations, `pnpm db:setup`, audit log (FR-PLAT-03), one-transaction helper (FR-PLAT-04), idempotency store (FR-PLAT-05), SQLite `busy_timeout` + retry (P2-06). **Proves the native SQLite stack and the LangGraph SQLite checkpointer install and run on Node 24.**
+- [x] **T2 · Platform: database, audit, idempotency** (M). Drizzle + SQLite, migrations, `pnpm db:setup`, audit log (FR-PLAT-03), one-transaction helper (FR-PLAT-04), idempotency store (FR-PLAT-05), SQLite `busy_timeout` + retry (P2-06). **Proves the native SQLite stack and the LangGraph SQLite checkpointer install and run on Node 24 (re-run on Node 25 at Checkpoint A).**
   *Accept:* P0-17 and idempotency module tests on in-memory SQLite. *Verify:* `pnpm db:setup && pnpm test`; manual mutant: split the transaction → P0-17 fails. *Deps:* T1.
-  *Result:* mutant: wrote the decision and the audit record in two transactions → `P0-17: a failed audit write leaves no decision stored` failed; reverted. Extra mutant: dropped the stored-key lookup → the FR-PLAT-05 replay test failed; reverted. Spike: better-sqlite3 12.11.1 and `SqliteSaver` run on Node 24.21.0 (needs `better-sqlite3` in `onlyBuiltDependencies`); a checkpointed thread survives closing and reopening the file.
+  *Result:* mutant: wrote the decision and the audit record in two transactions → `P0-17: a failed audit write leaves no decision stored` failed; reverted. Extra mutant: dropped the stored-key lookup → the FR-PLAT-05 replay test failed; reverted. Spike: better-sqlite3 12.11.1 and `SqliteSaver` run on Node 24.21.0 (needs `better-sqlite3` in `onlyBuiltDependencies`); a checkpointed thread survives closing and reopening the file. Re-run on Node 25.2.1 at Checkpoint A (TD20): `pnpm rebuild better-sqlite3`, then `pnpm db:setup` and the full suite pass.
 
 - [x] **T3 · Layer boundaries, skeleton and mutation tooling** (S). Directory skeleton, `server/composition.ts` stub, ESLint `no-restricted-imports` per layer (ARCHITECTURE §4), `server-only`. Stryker config + `pnpm test:mutation` (check Vitest 5 support first; scope starts empty).
   *Accept:* a deliberate forbidden import (module → LangChain) fails lint; `pnpm test:mutation` runs. *Verify:* `pnpm lint` on a temporary violation, then revert. *Deps:* T2.
@@ -32,7 +32,8 @@ The checklist for [`plan.md`](plan.md). Tick a task when its acceptance and veri
   *Result:* every pattern worked as documented, so no fallback was needed; ARCHITECTURE §7 records how each is used. Mutants (all reverted): removed `graph: Command.PARENT` → 8 tests failed, including the FR-AGT-05 handoff tests; skipped the pending-ID check → `P0-09: a replayed resume is refused` failed; skipped the reference check → the four P0-19 resume tests failed; skipped the wording check → `P0-05` failed. Finding for T14a/T15: a chat message sent while a pause is pending starts a new run from START and drops the pause (documented LangGraph behaviour), so the harness needs a rule for it.
 
 ### Checkpoint A: foundation
-- [ ] All green; the three spike results are recorded; review with the user before Phase 2.
+- [x] All green; the three spike results are recorded; review with the user before Phase 2.
+  *Result:* reviewed. The user's decisions: Node 25 (TD20), no PRs (TD21), no coverage gate (TD16), and a pending pause refuses chat messages (TD14, FR-WEB-03).
 
 ## Phase 2: Identity (sign in → chat shell)
 
@@ -77,7 +78,7 @@ The checklist for [`plan.md`](plan.md). Tick a task when its acceptance and veri
   *Accept:* only tool-capable models listed; key status without the value. *Verify:* `pnpm test`; one live smoke call per default model. *Deps:* T4.
 
 - [ ] **T14a · Loan flow (deterministic part)** (M). Step-up / consent / confirm pauses resolved by the route handler (references only), credit node with retry/timeout/errorHandler, decide routing, endings and templates (BR-AUTH-01, BR-AUTH-03, FR-AGT-05/06/13, BR-LEND-09/10 wiring).
-  *Accept:* graph tests for P0-01, P0-03, P0-09, P0-19 with an adversarial fake model; a step-up older than 5 minutes re-prompts and a failed step-up counts toward lockout; nothing can force a fetch while a fresh cache entry exists (BR-CRED-07). *Verify:* `pnpm test`; manual mutants: let the model's tool call bypass consent → P0-03 fails; accept a used interrupt ID → P0-09 fails; write the raw password into state → P0-19 fails. *Deps:* T7b, T12, T13.
+  *Accept:* graph tests for P0-01, P0-03, P0-09, P0-19 with an adversarial fake model; a step-up older than 5 minutes re-prompts and a failed step-up counts toward lockout; a chat message while a pause is pending → 409 and the pause is kept (P1-15); nothing can force a fetch while a fresh cache entry exists (BR-CRED-07). *Verify:* `pnpm test`; manual mutants: let the model's tool call bypass consent → P0-03 fails; accept a used interrupt ID → P0-09 fails; write the raw password into state → P0-19 fails. *Deps:* T7b, T12, T13.
 
 - [ ] **T14b · Loan agent** (M). Loan agent prompt and tone guide, `request_assessment` (no identity arguments), situation-label middleware (FR-AGT-02/04/08).
   *Accept:* P1-09; tool schemas contain no identity fields; each failure reason maps to its label. *Verify:* `pnpm test`. *Deps:* T14a.
@@ -86,7 +87,7 @@ The checklist for [`plan.md`](plan.md). Tick a task when its acceptance and veri
   *Accept:* graph tests for P0-05, P0-06, P0-18; P1-06/07/10. *Verify:* `pnpm test`. *Deps:* T14b.
 
 - [ ] **T15 · Chat transport and loan UI** (M). Server-sent events (typing, progress, message, interrupt, error, done; FR-WEB-04), starter buttons, step-up / consent / confirm cards, reference code display.
-  *Accept:* J1 E2E: eligible → approved, not eligible, referral, unavailable today; input locked during a turn (P1-15); reload restores the conversation (P1-11); keyboard-only and labelled inputs (FR-WEB-07). *Verify:* `pnpm test:e2e`. *Deps:* T7b, T14c.
+  *Accept:* J1 E2E: eligible → approved, not eligible, referral, unavailable today; input locked during a turn and while a pause is pending (P1-15); reload restores the conversation (P1-11); keyboard-only and labelled inputs (FR-WEB-07). *Verify:* `pnpm test:e2e`. *Deps:* T7b, T14c.
 
 ### Checkpoint D: J1 works end to end. Review with the user.
 

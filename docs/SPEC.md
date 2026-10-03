@@ -195,7 +195,7 @@ The credit-score policy. The government API itself sits behind the `CreditBureau
 |---|---|---|---|
 | FR-WEB-01 | Every state-changing route checks the `Origin` header, session, zod body, idempotency key and conversation ownership | Missing or foreign origin → 403 | U, E |
 | FR-WEB-02 | Chat messages ≤ 1,000 characters; per-IP limit of 20 chat requests per minute | 1,001 characters → rejected with a human message; 21st request → "slow down" | U |
-| FR-WEB-03 | One turn at a time per conversation | A concurrent turn → 409; the UI locks input during a turn | M, E |
+| FR-WEB-03 | One turn at a time per conversation. While a pause is pending, the conversation waits for its answer: a chat message is refused until the pause is answered through its card | A concurrent turn → 409; a chat message while a pause is pending → 409 and the pause is kept; the UI locks input during a turn and while a pause is pending | M, E |
 | FR-WEB-04 | Server-sent events: `typing`, `progress`, `message` (whole, validated), `interrupt`, `error` (message + reference), `done` | | E |
 | FR-WEB-05 | Raw errors never reach the browser. Hard failures show: *"Something went wrong on our side. Reference: K7Q2. You can give this to our support team if they ask."* The reference is the correlation-ID prefix | | U, E |
 | FR-WEB-06 | Security headers: CSP (`default-src 'self'`), `frame-ancestors 'none'`, `nosniff`, `Referrer-Policy: no-referrer`; HSTS in production | Asserted on responses | E |
@@ -261,7 +261,7 @@ Severity meanings are in ARCHITECTURE §11. **Every P0 is proven by a determinis
 | P1-12 | Oversized or spammy input | Rejected / rate-limited | FR-WEB-02 | U |
 | P1-13 | Checkpoint write fails after a side effect | Retry returns the earlier result | FR-AGT-13 | G, M |
 | P1-14 | Off-topic tasks or task smuggling | Polite redirect, no tool calls | BR-AGT-01 | G, V |
-| P1-15 | Second message during a turn | 409; input locked | FR-WEB-03 | M, E |
+| P1-15 | Second message during a turn, or a chat message while a pause is pending | 409; input locked until the turn ends or the pause is answered; the pause is kept | FR-WEB-03 | M, E |
 | **P2-01** | Triage misroutes | Specialist hands back | FR-AGT-15 | G |
 | P2-02 | Topic change mid-journey | Back to triage; progress kept | FR-AGT-15 | G |
 | P2-03 | A pause is abandoned | Resumes on return (within session limits) | FR-AGT-06 | G |
@@ -301,21 +301,21 @@ Full rules: [`TESTING_STANDARDS.md`](TESTING_STANDARDS.md).
   - urgency
   - task smuggling
   - "ignore previous instructions"
-- **Coverage:** 80% lines and branches on `src/server/**`.
+- **No coverage gate:** coverage rewards lines run, not behaviour proven. Requirement-traced tests, deterministic P0 tests and targeted mutation testing stand in for it (TESTING_STANDARDS §9).
 - **To verify early in the plan** (the reasoning-token check needs a real key, so it runs in the first live-model task):
   - `Command.PARENT` handoff from a wrapper node;
-  - the SQLite checkpointer on Node 24;
+  - the SQLite checkpointer on Node 25;
   - whether the output-token limit counts reasoning tokens on the default models.
 
 ## 10. Tech stack and commands
 
-Next.js 16.3 (App Router) · React 19 · TypeScript 5.9 strict · Tailwind 4 + shadcn/ui · LangGraph.js 1.4.18 · `langchain` 1.5.15 · `@langchain/openrouter` 0.4.17 · zod 4 · SQLite + Drizzle · Vitest 5 · Playwright · promptfoo · Stryker · pnpm 10 · Node 24.
+Next.js 16.3 (App Router) · React 19 · TypeScript 5.9 strict · Tailwind 4 + shadcn/ui · LangGraph.js 1.4.18 · `langchain` 1.5.15 · `@langchain/openrouter` 0.4.17 · zod 4 · SQLite + Drizzle · Vitest 5 · Playwright · promptfoo · Stryker · pnpm 10 · Node 25.
 
 ```bash
 pnpm install && pnpm db:setup   # install, migrate, seed
 pnpm dev                        # http://localhost:3000
 pnpm lint && pnpm typecheck && pnpm format:check
-pnpm test:coverage              # unit, module and graph tests + coverage gate
+pnpm test                       # unit, module and graph tests
 pnpm test:mutation              # Stryker on the decision modules
 pnpm test:e2e
 pnpm eval                       # needs OPENROUTER_API_KEY
@@ -336,7 +336,7 @@ Project structure: ARCHITECTURE §6. Code style: CODING_STANDARDS (the typed-res
 ## 12. Success criteria
 
 - [ ] Every P0 has a passing deterministic test whose name carries its ID.
-- [ ] Stryker ≥ 80% on its scope; coverage ≥ 80%; CI green on `develop` and `main`.
+- [ ] Stryker ≥ 80% on its scope; CI green on `develop` and `main`.
 - [ ] Eval targets met on the default models; results for at least one Claude and one GPT model are in the README.
 - [ ] The README demo script walks J1–J4 end to end, including the referral, budget-exhausted and API-down paths.
 - [ ] ARCHITECTURE, DECISIONS, SPEC, the plan (`tasks/`), the standards and the diagrams match what was built.

@@ -14,7 +14,7 @@ We build the system bottom-up along the module dependency order, but **in vertic
 - **Test first** for every business rule (red → green). P0 tests are named with their ID.
 - **Proof a test can fail:** Stryker for the decision modules (tooling in T3; scope added in T5, T10 and T11); a **manual mutant** for P0 controls outside Stryker, written in the task's *Verify* line.
 - **Done means:**
-  - `pnpm lint && pnpm typecheck && pnpm test:coverage` are green;
+  - `pnpm lint && pnpm typecheck && pnpm test` are green;
   - E2E is green if the UI or a route changed;
   - `CHANGELOG.md` is updated if the change is user-visible;
   - the docs are updated if a decision changed.
@@ -28,7 +28,7 @@ Full tasks, acceptance criteria and checkpoints are in [`todo.md`](todo.md).
 | Phase | Tasks | Ends with (checkpoint) |
 |---|---|---|
 | 0 Decisions record | T0 | Every decision the spec cites exists in `DECISIONS.md` |
-| 1 Foundation and risk spikes | T1–T4 | **A:** the riskiest patterns proven (handoff, single-use resume, SQLite on Node 24, Stryker) |
+| 1 Foundation and risk spikes | T1–T4 | **A:** the riskiest patterns proven (handoff, single-use resume, SQLite on Node 25, Stryker) |
 | 2 Identity | T5–T7b | **B:** a customer can sign in and out securely |
 | 3 Credit | T8–T10 | **C:** credit policy proven by tests and mutation score |
 | 4 Lending | T11–T12 | Decisions, assessments and applications |
@@ -52,7 +52,7 @@ Once T3 is done, **the agent skeleton (T4, T13), identity (T5–T7b), credit (T8
 | Risk | Impact | Mitigation |
 |---|---|---|
 | `Command.PARENT` doesn't hand off from a wrapper node as documented | High | Proven in T4; fallback is a parent conditional edge reading a "next step" written by the tool |
-| Native SQLite or the checkpointer fails on Node 24 | High | Proven in T2; fallback is pinning Node 22 LTS in `.nvmrc` |
+| Native SQLite or the checkpointer fails on Node 25 | High | Proven in T2 on Node 24, re-run on Node 25 at Checkpoint A; fallback is pinning Node 24 LTS in `.nvmrc` |
 | Default loan model (GLM-5.3-Flash) is unreliable at tool calls | Medium | Gates are in code, so it's a quality risk only; evals compare it with Claude and GPT, and the default switches if it misses targets |
 | Reasoning tokens eat the 400-token output limit | Medium | Checked in T13, the first task with live models (a real key is needed); raise the limit or set reasoning to none |
 | Stryker doesn't support Vitest 5 yet | Medium | Checked first in T3; fallback is running Stryker with a Vitest 4 runner config for its scope only |
@@ -64,6 +64,6 @@ Once T3 is done, **the agent skeleton (T4, T13), identity (T5–T7b), credit (T8
 2. the PNG export (keep the Mermaid diagrams);
 3. UI styling beyond shadcn defaults.
 
-## Open questions
+## Resolved questions
 
-1. Is **"no PRs" permanent?** If so, T0 also updates the README, the PR template, `CLAUDE.md` and the CI PR-title job to match the branch → `--no-ff` merge flow.
+1. **"No PRs" is permanent** (Checkpoint A, TD21). The PR template and the CI PR-title job are gone; CI runs on pushes to `develop` and `main`. The flow is task branch → `--no-ff` merge into `develop` → `develop` merged into `main` at the end.

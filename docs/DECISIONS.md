@@ -179,6 +179,8 @@ The same loan traffic on Claude Haiku ($1 / $5) would cost ≈ $47 a month on it
 |---|---|---|
 | A message collector node that merges rapid messages · **one turn at a time** (the UI locks input; the server rejects a concurrent turn with 409) | One turn at a time | A collector adds a wait to every turn, so everything feels slower (D11). A customer who sends two quick messages has to wait for the reply to the first |
 
+**A pending pause counts as an unfinished turn** (the user's call at Checkpoint A). The T4 spike showed that a chat message sent while an `interrupt()` is pending starts a new run from START and silently drops the pause (documented LangGraph behaviour). Options were: let the message through and drop the pause · resume the pause with the chat text · **refuse the message with 409 and keep input locked until the pause is answered through its card**. Dropping it loses the customer's place without telling them; resuming with chat text breaks the references-only rule (TD11). Cost: a customer who wants to move on has to answer the card first (declining is an answer)
+
 ### TD15. Audit log separate from checkpoints
 
 | Options | Choice | Trade-off |
@@ -191,6 +193,7 @@ The same loan traffic on Claude Haiku ($1 / $5) would cost ≈ $47 a month on it
 |---|---|---|---|
 | Mutation testing scope | Everywhere · none · **decision modules only** | Stryker (≥ 80%) on the threshold, eligibility, confidence, cache lifetime, budget and lockout | There, a surviving mutant is a real business bug. Elsewhere it's slow and noisy, so P0 controls outside that scope get a **manual mutant** (break it on purpose, watch the test fail, revert) |
 | What proves a P0 | Evals · **deterministic tests** | Deterministic tests | Evals on real models vary run to run, so they measure quality targets, never guarantees |
+| Coverage gate | 80% lines and branches · **no gate** | No gate (the user's call at Checkpoint A) | Coverage rewards lines run, not behaviour proven, and a gate invites tests written to touch lines. Requirement-traced test names, a deterministic test per P0 and mutation testing on the decision modules show what's actually proven. Cost: an untested file no longer fails the build by itself, so review and the traceability search (an ID with no test) have to catch it |
 | Database in tests | Mocked · **real in-memory SQLite** | Real | A mock would hide the bugs we care about most: a non-atomic budget update or a missing unique constraint |
 
 ### TD17. Money and ratios as integers
@@ -224,6 +227,18 @@ Each dependency added during the build gets one line here.
 | `@langchain/langgraph-checkpoint-sqlite` | The documented SQLite checkpointer (`SqliteSaver`), so conversations survive a restart |
 | `server-only` | Makes a client bundle fail to build if it imports server code, as the Next.js docs recommend. Tests map it to its empty build |
 | `@stryker-mutator/core`, `@stryker-mutator/vitest-runner` (dev) | Mutation testing on the decision modules (TD16). Version 10 runs on Vitest 5 |
+
+### TD20. Runtime: Node 25
+
+| Options | Choice | Trade-off |
+|---|---|---|
+| Node 24 LTS · **Node 25** | Node 25 (`.nvmrc`, `engines`, `@types/node` 25) | The user's call at Checkpoint A: it's the Node the project is developed on. The T2 spike was re-run on it: better-sqlite3 rebuilds, and the checkpointer and the full suite pass. Cost: 25 is a current release, not LTS, so its support window is shorter; moving back to 24 LTS is a one-line `.nvmrc` change plus a native rebuild |
+
+### TD21. No pull requests
+
+| Options | Choice | Trade-off |
+|---|---|---|
+| A PR per task, squash-merged · **a branch per task, merged into `develop` with `--no-ff`** | Branch + `--no-ff` merge, permanently (the user's call at Checkpoint A) | One developer and no second reviewer, so a PR would be ceremony. `--no-ff` keeps each task one visible unit in the history while keeping its atomic commits, which a squash would flatten. commitlint checks every commit in the `commit-msg` hook, so the CI PR-title job and the PR template went. Cost: no PR page to review a task on; the merge commit and `tasks/todo.md` stand in for it |
 
 ## 3. Deferred: right idea, wrong time
 

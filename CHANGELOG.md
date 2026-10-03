@@ -11,10 +11,10 @@ rather than generated from commits. The format follows
 
 - Next.js 16 + TypeScript project on pnpm, with LangGraph, LangChain and the OpenRouter integration installed.
 - Quality gates: ESLint (300-line file limit), Prettier, strict TypeScript.
-- Conventional Commits enforced locally (Husky + commitlint) and on PR titles in CI.
+- Conventional Commits enforced locally (Husky + commitlint).
 - Pre-commit secret scan for API keys, private keys and `.env` files.
-- Test tooling: Vitest with an 80% coverage gate, Playwright e2e, promptfoo evals.
-- GitHub Actions CI, a manual eval workflow, and a pull request template.
+- Test tooling: Vitest, Playwright e2e, promptfoo evals.
+- GitHub Actions CI on pushes to `develop` and `main`, and a manual eval workflow.
 - The server refuses to start, with a message naming each problem, when the encryption key, approval threshold, cache lifetime or demo flag is missing or invalid.
 - `pnpm db:setup` creates the local SQLite database; conversations and the audit trail survive a restart.
 

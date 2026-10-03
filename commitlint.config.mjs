@@ -1,5 +1,6 @@
 // Conventional Commits: https://www.conventionalcommits.org
-// Squash-merged PR titles are checked with the same rules in CI.
+// Checked on every commit by the commit-msg hook. There are no PRs: task
+// branches merge into develop with --no-ff, so each commit lands as written.
 const config = {
   extends: ["@commitlint/config-conventional"],
   rules: {
