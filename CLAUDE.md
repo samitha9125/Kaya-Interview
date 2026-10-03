@@ -31,11 +31,22 @@ For a human or AI reviewer. Read in this order: `docs/ARCHITECTURE.md` (structur
 |---|---|
 | The system runs | `.env.local` from `.env.example`, then `pnpm install`, `pnpm db:setup`, `pnpm dev`. Sign in as `C1001`–`C1010`, password `Demo@1234` |
 | Each ending | Eligible: C1001, C1008, C1010. Not eligible: C1002 (credit profile), C1007 (repayments), C1009 (amount over limit). Referred: C1003 (borderline), C1004 (no history), C1006 (no income). Open application already: C1005. To retry a customer: Settings → Reset my demo data |
-| Why a case ended as it did | `pnpm audit:trail <customer number, conversation id or reference code>`: the timeline of consent, government call, rules, confidence and its reasons, threshold and outcome. The customer sees only the template; the detail is the bank's |
+| Why a case ended as it did | In demo mode, the **Behind the scenes** icon (top right of the chat) shows it as it happens. Or `pnpm audit:trail <customer number, conversation id or reference code>`: the timeline of consent, government call, rules, confidence and its reasons, threshold and outcome. The customer sees only the template; the detail is the bank's |
 | The guarantees | Search a P0 ID (e.g. `P0-04`) to find its test; `pnpm test` runs them all with no API key |
 | What the LLM may do | `src/server/agent/` (graph, prompts, tools); everything in `src/server/modules/` runs without a model |
 
 The tests cover business rules, decision gates and the P0 controls. The Next.js layer (route plumbing, headers, middleware) follows the framework's practices and is deliberately not unit-tested.
+
+### Caching and the government limit in 3 minutes
+
+Open **Behind the scenes**; every step shows there.
+
+1. C1001 checks a loan → "call 1 of 5 today".
+2. Settings → Reset my demo data; check again → served from cache, no government call.
+3. Settings → behaviour Error; another customer checks → one retry, a 15-minute cool-down, a call-back offer.
+4. Behaviour Normal, Reset limit; check with 5 different customers → the 6th is skipped, "daily limit reached".
+5. Age cached scores; C1001 resets their demo data and checks again → the stale score stands in → referred.
+6. Reset limit.
 
 ## Architecture and standards (always apply)
 
