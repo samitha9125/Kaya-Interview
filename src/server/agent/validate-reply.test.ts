@@ -11,7 +11,7 @@ import {
 } from "@/test/graph";
 import { lendingTestSetup } from "@/test/lending-setup";
 import { runConfig } from "./graph";
-import { claimedOutcomes, leaksSomething } from "./nodes/validate-reply";
+import { claimedOutcomes, leaksSomething, plainTypography } from "./nodes/validate-reply";
 import { KYC_PROMPT } from "./prompts/kyc";
 import { LOAN_PROMPT } from "./prompts/loan";
 import { CANT_SHARE, NO_DECISION_IN_CHAT } from "./templates";
@@ -90,5 +90,30 @@ describe("agent/validate-reply: nothing secret in a reply (P0-06)", () => {
     );
 
     expect(result.messages.at(-1)?.text).toBe(CANT_SHARE);
+  });
+});
+
+describe("agent/validate-reply: model text reads like a person wrote it (FR-AGT-16)", () => {
+  it.each([
+    {
+      text: "The most is LKR 3,000,000 — 30 million is beyond that.",
+      plain: "The most is LKR 3,000,000, 30 million is beyond that.",
+    },
+    { text: "Your choice—and it's yours.", plain: "Your choice, and it's yours." },
+    { text: "Terms run 6–60 months.", plain: "Terms run 6 to 60 months." },
+    { text: "That's the limit —.", plain: "That's the limit." },
+    { text: "“You’re all set,” she said.", plain: '"You\'re all set," she said.' },
+  ])("FR-AGT-16: '$text' → '$plain'", ({ text, plain }) => {
+    expect(plainTypography(text)).toBe(plain);
+  });
+
+  it("FR-AGT-16: the customer sees the model's reply without its dashes", async () => {
+    const graph = buildTestGraph(
+      fakeModel().respond(new AIMessage("Happy to help — what's next?")),
+    );
+
+    const result = await sendMessage(graph, "t1", "Hi");
+
+    expect(result.messages.at(-1)?.text).toBe("Happy to help, what's next?");
   });
 });

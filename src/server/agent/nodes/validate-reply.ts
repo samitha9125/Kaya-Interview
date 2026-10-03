@@ -63,6 +63,21 @@ export function validateReplyNode(state: ConversationStateValue) {
   if (!AIMessage.isInstance(reply)) return {};
   if (leaksSomething(reply.text)) return { messages: [fromBank(CANT_SHARE, reply.id)] };
   const contradicts = claimedOutcomes(reply.text).some((claim) => claim !== state.decision);
-  if (!contradicts) return {};
-  return { messages: [fromBank(NO_DECISION_IN_CHAT, reply.id)] };
+  if (contradicts) return { messages: [fromBank(NO_DECISION_IN_CHAT, reply.id)] };
+  const plain = plainTypography(reply.text);
+  if (plain === reply.text) return {};
+  return { messages: [new AIMessage({ id: reply.id, content: plain })] };
+}
+
+// FR-AGT-16: the tone guide asks for no dashes and straight quotes, but a
+// prompt can't promise it, so model text is normalised here. Templates
+// never pass through this node.
+export function plainTypography(text: string): string {
+  return text
+    .replace(/(\d)–(\d)/g, "$1 to $2")
+    .replace(/^[ \t]*[–—][ \t]*/gm, "")
+    .replace(/\s*[–—]\s*/g, ", ")
+    .replace(/,\s*([,.;:!?])/g, "$1")
+    .replace(/[‘’]/g, "'")
+    .replace(/[“”]/g, '"');
 }
