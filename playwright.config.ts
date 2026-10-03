@@ -26,6 +26,11 @@ export default defineConfig({
     url: `http://localhost:${PORT}`,
     reuseExistingServer: !isCI,
     timeout: 120_000,
-    env: { APP_ENCRYPTION_KEY: TEST_ENCRYPTION_KEY, DATABASE_PATH, DEMO_MODE: "true" },
+    env: {
+      APP_ENCRYPTION_KEY: TEST_ENCRYPTION_KEY,
+      DATABASE_PATH,
+      DEMO_MODE: "true",
+      GOV_API_BASE_URL: `http://localhost:${PORT}/api/mock-gov`,
+    },
   },
 });

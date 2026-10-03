@@ -9,6 +9,15 @@ const MAX_BASIS_POINTS = 10_000;
 // threshold would coerce to 0 and auto-decide every case.
 const unsetIfEmpty = (value: unknown) => (value === "" ? undefined : value);
 
+// ARCHITECTURE §10: the government API is reached over TLS. Plain HTTP is
+// allowed only to this machine, where the demo's mock runs.
+const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
+const isTlsOrLocal = (value: string) => {
+  if (!URL.canParse(value)) return false;
+  const url = new URL(value);
+  return url.protocol === "https:" || (url.protocol === "http:" && LOCAL_HOSTS.has(url.hostname));
+};
+
 const ConfigSchema = z.object({
   APP_ENCRYPTION_KEY: z
     .string({ error: "missing" })
@@ -46,6 +55,13 @@ const ConfigSchema = z.object({
   ),
   OPENROUTER_API_KEY: z.preprocess(unsetIfEmpty, z.string().optional()),
   DATABASE_PATH: z.preprocess(unsetIfEmpty, z.string().default(DEFAULT_DATABASE_PATH)),
+  GOV_API_BASE_URL: z.preprocess(
+    unsetIfEmpty,
+    z
+      .url({ error: "must be a URL" })
+      .refine(isTlsOrLocal, { error: "must use https (plain http only to localhost)" })
+      .default("http://localhost:3000/api/mock-gov"),
+  ),
 });
 
 export type AppConfig = z.infer<typeof ConfigSchema>;

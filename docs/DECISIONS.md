@@ -265,6 +265,15 @@ Each dependency added during the build gets one line here.
 | Which calls count toward its per-IP limit | Only successful ones · **every call that reaches it**; "down" counts nothing | Every call reaching it | Matches a real metered API, and keeps our own "every attempt counts" budget honest (BR-CRED-03) |
 | `rate_limited` mode's `Retry-After` | Next midnight · **one hour** | One hour | Different from the daily limit's, so the demo shows our block following `Retry-After` (BR-CRED-04) |
 
+### TD24. Credit policy details
+
+| Topic | Options | Choice | Trade-off |
+|---|---|---|---|
+| Making the last slot atomic | One conditional `UPDATE` in SQL · **read, decide and write in one `IMMEDIATE` transaction** | Transaction | The decision stays a pure function that Stryker can mutate meaningfully; SQLite's write lock makes it atomic across connections, shown by a two-connection test |
+| When the cool-down starts | After any failure · **only when the attempts end in a retryable failure** (timeout, 5xx, network) | Retryable only | A 4xx or a malformed answer says the request or the bureau's data is wrong, not that it's struggling; it's counted, not retried, and doesn't stop the next customer |
+| Parallel first checks for one customer | Merge in-flight requests · **let them both call** | Both call (D3) | Two tabs at once is rare at this scale; the worst case is one extra call, and the budget still caps the total |
+| No NIC on the record | Throw · **`unavailable`, with no call** | `unavailable` | Shouldn't happen for a seeded customer, and the customer still gets the honest fallback |
+
 ## 3. Deferred: right idea, wrong time
 
 | ID | Item | Why not now | When / how to add |

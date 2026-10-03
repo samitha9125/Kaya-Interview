@@ -1,5 +1,8 @@
 import "server-only";
-import { LOGIN_RATE_LIMIT } from "@/server/modules/auth";
+import { setTimeout as sleep } from "node:timers/promises";
+import { HttpGovBureau } from "@/server/adapters/http-gov-bureau";
+import { findCustomerNic, LOGIN_RATE_LIMIT } from "@/server/modules/auth";
+import type { GovCreditDeps } from "@/server/modules/gov-credit";
 import { createAuditLog } from "@/server/platform/audit";
 import { systemClock } from "@/server/platform/clock";
 import { getConfig, type AppConfig } from "@/server/platform/config";
@@ -21,13 +24,25 @@ function createApp(config: AppConfig) {
   const { db } = openDatabase(config.DATABASE_PATH);
   const clock = systemClock;
   const ids = randomIds;
+  const audit = createAuditLog({ clock, ids });
+  const credit: GovCreditDeps = {
+    db,
+    audit,
+    clock,
+    bureau: new HttpGovBureau({ baseUrl: config.GOV_API_BASE_URL, clock }),
+    cacheTtlDays: config.CREDIT_CACHE_TTL_DAYS,
+    loadNic: (customerId) => findCustomerNic(db, customerId, config.APP_ENCRYPTION_KEY),
+    sleep: (ms) => sleep(ms),
+    random: Math.random,
+  };
   return {
     config,
     db,
     clock,
     ids,
     logger,
-    audit: createAuditLog({ clock, ids }),
+    audit,
+    credit,
     idempotency: createIdempotency({ db, clock }),
     loginLimiter: createRateLimiter({ ...LOGIN_RATE_LIMIT, clock }),
     chatLimiter: createRateLimiter({ ...CHAT_RATE_LIMIT, clock }),
