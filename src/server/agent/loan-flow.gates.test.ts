@@ -1,4 +1,4 @@
-import { fakeModel } from "langchain";
+import { AIMessage, fakeModel } from "langchain";
 import { describe, expect, it } from "vitest";
 import { aScore, scriptedBureau } from "@/test/fake-bureau";
 import {
@@ -102,8 +102,17 @@ describe("agent/loan flow: fixed order (FR-AGT-05, P0-03)", () => {
 });
 
 describe("agent/loan flow: the audit trail (ARCHITECTURE §12)", () => {
-  it("FR-PLAT-03: a model reply and its tool call are audited with the model and prompt version, not the text", async () => {
-    const { graph, lending } = setup();
+  it("FR-PLAT-03: a model reply and its tool call are audited with the model, prompt version and tokens, not the text", async () => {
+    const lending = lendingTestSetup(scriptedBureau([]).bureau);
+    const reply = new AIMessage({
+      content: "",
+      tool_calls: [ASSESSMENT_CALL],
+      usage_metadata: { input_tokens: 1_200, output_tokens: 40, total_tokens: 1_240 },
+    });
+    const graph = buildTestGraph(fakeModel().respond(reply), {
+      lending: lending.deps,
+      isStepUpFresh: () => false,
+    });
 
     await sendMessage(graph, "t1", "Please check 500,000 over 36 months");
 
@@ -117,7 +126,11 @@ describe("agent/loan flow: the audit trail (ARCHITECTURE §12)", () => {
         type: "agent.reply",
         model: "z-ai/glm-5.3-flash",
         promptVersion: LOAN_PROMPT_VERSION,
-        payload: JSON.stringify({ role: "loan", toolCalls: ["request_assessment"] }),
+        payload: JSON.stringify({
+          role: "loan",
+          toolCalls: ["request_assessment"],
+          tokens: { input: 1_200, output: 40 },
+        }),
       },
       {
         type: "agent.tool_call",

@@ -5,6 +5,7 @@ import { OpenRouterProvider } from "@/server/adapters/openrouter-provider";
 import { buildConversationGraph, runConfig } from "@/server/agent/graph";
 import { findPendingPause } from "@/server/agent/resume";
 import { DEFAULT_MODELS } from "@/server/modules/settings";
+import { findAuditEvents } from "@/server/platform/audit";
 import { getConfig } from "@/server/platform/config";
 import { scriptedBureau } from "@/test/fake-bureau";
 import { callbackTestDeps, onboardingTestDeps, testContext } from "@/test/graph";
@@ -15,12 +16,13 @@ import { afterOutcome, type QuestionedEnding } from "./after-outcome";
 // provider options (the models under test) and the test's vars. It runs
 // one turn of the real graph on a real model, with real lending,
 // onboarding and callbacks on in-memory SQLite, and prints what the turn
-// did as JSON. The customer is signed in but hasn't re-entered their
-// password, so an assessment stops at the step-up card and the bureau is
-// never reached. With `after`, the turn is a follow-up to that ending
+// did as JSON, with its input and output tokens. The customer is signed
+// in but hasn't re-entered their password, so an assessment stops at the
+// step-up card and the bureau is never reached. With `after`, the turn is a follow-up to that ending
 // (see after-outcome.ts).
 type Options = { config?: { models?: Partial<typeof DEFAULT_MODELS> } };
 type Vars = { journey?: "loan" | "kyc" | "human"; after?: QuestionedEnding };
+type Tokens = { input: number; output: number } | null;
 
 const SPECIALISTS = new Set(["loan_agent", "kyc_agent", "callback"]);
 
@@ -60,6 +62,17 @@ async function runTurn(message: string, options: Options, vars: Vars) {
   const thisTurn = messages.slice(messages.findLastIndex((m) => HumanMessage.isInstance(m)));
   const replies = thisTurn.filter((m): m is AIMessage => AIMessage.isInstance(m));
   const pending = await findPendingPause(graph, threadId);
+  // Every model call this turn, triage included, as the audit counts them.
+  const tokens = findAuditEvents(lending.db, context.correlationId)
+    .filter((event) => event.type === "agent.reply")
+    .map((event) => event.payload.tokens as Tokens)
+    .reduce<{ input: number; output: number }>(
+      (sum, call) => ({
+        input: sum.input + (call?.input ?? 0),
+        output: sum.output + (call?.output ?? 0),
+      }),
+      { input: 0, output: 0 },
+    );
   return {
     reply: replies
       .filter((m) => !m.tool_calls?.length)
@@ -68,6 +81,7 @@ async function runTurn(message: string, options: Options, vars: Vars) {
     route: nodes.find((node) => SPECIALISTS.has(node))?.replace("_agent", "") ?? "other",
     tools: replies.flatMap((m) => m.tool_calls?.map((call) => call.name) ?? []),
     pause: pending?.pause.kind ?? null,
+    tokens,
     ms,
   };
 }

@@ -16,9 +16,16 @@ export type ReplySource = {
 // loan.assessed, …) record what happened next.
 const HANDED_OFF = "HANDED_OFF";
 
+// The provider's own count, so cost per turn comes from the trail (TD6).
+export function tokensOf(reply: unknown) {
+  if (!AIMessage.isInstance(reply) || !reply.usage_metadata) return null;
+  return { input: reply.usage_metadata.input_tokens, output: reply.usage_metadata.output_tokens };
+}
+
 // ARCHITECTURE §12: every model reply and tool call is audited with the
-// model and prompt version behind it. Names and labels only, never the
-// text or the arguments, so nothing personal is copied into the trail.
+// model and prompt version behind it. Names, labels and token counts only,
+// never the text or the arguments, so nothing personal is copied into the
+// trail.
 export function auditTrail(record: RecordAudit, source: ReplySource) {
   const { role, model, promptVersion, correlationId, conversationId } = source;
   const base = { correlationId, conversationId, actor: `agent:${role}` };
@@ -29,7 +36,13 @@ export function auditTrail(record: RecordAudit, source: ReplySource) {
       const toolCalls = AIMessage.isInstance(reply)
         ? (reply.tool_calls ?? []).map((call) => call.name)
         : [];
-      record({ ...base, type: "agent.reply", model, promptVersion, payload: { role, toolCalls } });
+      record({
+        ...base,
+        type: "agent.reply",
+        model,
+        promptVersion,
+        payload: { role, toolCalls, tokens: tokensOf(reply) },
+      });
     },
     wrapToolCall: async (request, handler) => {
       const tool = request.toolCall.name;

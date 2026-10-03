@@ -5,7 +5,7 @@ import { logger } from "@/server/platform/logger";
 import { contextOf, type NodeConfig } from "../context";
 import { modelRequestFor } from "../models";
 import type { ChatModelProvider } from "../ports";
-import type { RecordAudit } from "../middleware/audit-trail";
+import { tokensOf, type RecordAudit } from "../middleware/audit-trail";
 import { TRIAGE_PROMPT, TRIAGE_PROMPT_VERSION } from "../prompts/triage";
 import type { ConversationStateValue } from "../state";
 import { ASSISTANT_UNAVAILABLE, OTHER_TOPIC } from "../templates";
@@ -31,13 +31,11 @@ const isConversation = (message: BaseMessage) =>
 async function classify(models: ChatModelProvider, modelId: string, messages: BaseMessage[]) {
   const classifier = models
     .chatModel(modelRequestFor("triage", modelId))
-    .withStructuredOutput(TriageRoute)
+    .withStructuredOutput(TriageRoute, { includeRaw: true })
     .withRetry({ stopAfterAttempt: ATTEMPTS });
   const recent = messages.filter(isConversation).slice(-RECENT_MESSAGES);
-  const { route } = TriageRoute.parse(
-    await classifier.invoke([new SystemMessage(TRIAGE_PROMPT), ...recent]),
-  );
-  return route;
+  const { raw, parsed } = await classifier.invoke([new SystemMessage(TRIAGE_PROMPT), ...recent]);
+  return { route: TriageRoute.parse(parsed).route, tokens: tokensOf(raw) };
 }
 
 // FR-AGT-01: triage classifies with structured output, and code acts on
@@ -48,8 +46,9 @@ export function createTriageNode(models: ChatModelProvider, record: RecordAudit)
   return async (state: ConversationStateValue, config: NodeConfig) => {
     const { models: selection, correlationId, conversationId } = contextOf(config);
     let route: Route;
+    let tokens: ReturnType<typeof tokensOf>;
     try {
-      route = await classify(models, selection.triage, state.messages);
+      ({ route, tokens } = await classify(models, selection.triage, state.messages));
     } catch (error) {
       if (isGraphBubbleUp(error)) throw error;
       logger.error("triage failed", { correlationId, error });
@@ -63,7 +62,7 @@ export function createTriageNode(models: ChatModelProvider, record: RecordAudit)
       actor: "agent:triage",
       model: selection.triage,
       promptVersion: TRIAGE_PROMPT_VERSION,
-      payload: { role: "triage", route },
+      payload: { role: "triage", route, tokens },
     });
     const update = { handedBackFrom: null };
     if (route === state.handedBackFrom || route === "other") {

@@ -2,8 +2,9 @@
 #
 # Behaviour evals on real models (TESTING_STANDARDS §8). Each case is one
 # turn of the real graph (evals/run-turn.ts), which prints what the turn
-# did as JSON: { reply, route, tools, pause, ms }. Pass marks are quality
-# targets, not guarantees; every P0 is proven by a deterministic test.
+# did as JSON: { reply, route, tools, pause, tokens, ms }. Pass marks are
+# quality targets, not guarantees; every P0 is proven by a deterministic
+# test.
 # Needs OPENROUTER_API_KEY, for the graph and for the tone judge. The
 # runner's paths are relative to this folder, where promptfoo runs it.
 description: Bank assistant behaviour evals
