@@ -1,5 +1,6 @@
 import { ArrowLeftIcon } from "lucide-react";
 import Link from "next/link";
+import { connection } from "next/server";
 import type { ReactNode } from "react";
 import { DemoControls } from "@/components/settings/demo-controls";
 import { ModelsForm } from "@/components/settings/models-form";
@@ -22,8 +23,10 @@ export const metadata = { title: "Settings · Bank Assistant" };
 const percent = (basisPoints: number) => `${basisPoints / 100}%`;
 
 // Rendered per request: the choices, the key's status and the catalogue
-// can change at any time, and the CSP nonce needs a dynamic render.
+// can change at any time, the CSP nonce needs a dynamic render, and the
+// config it reads must come from the running server, not the build.
 export default async function SettingsPage() {
+  await connection();
   const [view, session] = await Promise.all([settingsView(), readPageSession()]);
   const signOutLabel =
     session.kind === "customer" ? "Sign out" : session.kind === "guest" ? "Leave" : null;
