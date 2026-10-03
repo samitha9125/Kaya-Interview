@@ -67,7 +67,7 @@ Once T3 is done, **the agent skeleton (T4, T13), identity (T5–T7b), credit (T8
 | `Command.PARENT` doesn't hand off from a wrapper node as documented | High | Proven in T4; fallback is a parent conditional edge reading a "next step" written by the tool |
 | Native SQLite or the checkpointer fails on Node 25 | High | Proven in T2 on Node 24, re-run on Node 25 at Checkpoint A; fallback is pinning Node 24 LTS in `.nvmrc` |
 | Default loan model (GLM-5.3-Flash) is unreliable at tool calls | Medium | Gates are in code, so it's a quality risk only; evals compare it with Claude and GPT, and the default switches if it misses targets |
-| Reasoning tokens eat the 400-token output limit | Medium | **Confirmed in T20** (`pnpm smoke:models`): they count (GLM at `low` used 197 of 400). Loan and KYC now allow 400 extra output tokens for reasoning, so 400 visible tokens remain (TD6) |
+| Reasoning tokens eat the 400-token output limit | Medium | **Confirmed in T20** (a one-off live check, since removed): they count (GLM at `low` used 197 of 400). Loan and KYC now allow 400 extra output tokens for reasoning, so 400 visible tokens remain (TD6) |
 | Whoever runs it has no OpenRouter key | Medium | The README explains bring-your-own-key; unit, module and graph tests and E2E use fake models and run without a key |
 | Time: a couple of days | High | Cut line below |
 

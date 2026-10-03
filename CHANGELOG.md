@@ -18,7 +18,6 @@ The first release: both journeys, talking to a person, Settings, the audit trail
 - **Settings.** Each assistant role's model, chosen from the OpenRouter catalogue with its price. In demo mode, controls to reset the government limit, clear or age the cache, change how the mock behaves, and reset a customer's demo data.
 - **Audit trail.** Every consent, government call, decision and model reply (model, prompt version and tokens; never the text), append-only. `pnpm audit:trail` prints one case as a timeline, and the demo-only *Behind the scenes* panel shows it live.
 - **Evals.** promptfoo suites for routing, refusals, red-team attacks, tone and follow-ups after an outcome, on the default models plus Claude Haiku 4.5 and GPT-5.6 Luna.
-- `pnpm graph:draw` writes the agent graph from the compiled code, so the diagram can't drift.
 
 ### Security
 

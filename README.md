@@ -17,6 +17,36 @@ Each guarantee is enforced in code and proven by a deterministic test that names
 
 The full failure catalogue (19 P0 cases, each with its test) is [`SPEC.md` §8](docs/SPEC.md#8-failure-cases). Two checks are best-effort, so evals measure them instead: spotting a claimed outcome, and spotting a repeated line of the assistant's instructions, in a reply. Neither can change an outcome; only code sets one.
 
+## Key decisions
+
+The decisions that shape the system. Each links to its full reasoning in [`DECISIONS.md`](docs/DECISIONS.md), which also holds every smaller decision, the deferred ideas (with what would bring them back) and the rejected ones.
+
+| Decision | Why |
+|---|---|
+| Rules decide every loan, never the LLM ([B2](docs/DECISIONS.md#1-business-decisions)) | The model is never the accountable party for a lending decision |
+| Below 95% confidence, a loan officer decides ([B13](docs/DECISIONS.md#1-business-decisions), [TD9](docs/DECISIONS.md#td9-decision-confidence)) | The threshold is the bank's risk appetite; confidence comes from rule margins and data age, not the model's opinion |
+| The score is never shown, and the LLM never sees it ([B9](docs/DECISIONS.md#1-business-decisions)) | The bank may use bureau data, not republish it; what the model never has, it can't leak |
+| A router agent: cheap triage, then one specialist per journey ([TD2](docs/DECISIONS.md#td2-agent-pattern-router)) | Each specialist sees only its own journey and tools |
+| Passwords, consent and forms go to the server; the graph only gets a reference ([TD11](docs/DECISIONS.md#td11-pauses-resume-with-references-only)) | Nothing secret can end up in the model's context or in saved state |
+| Replies are buffered and checked before display ([TD4](docs/DECISIONS.md#td4-replies-are-buffered-and-validated-not-token-streamed)) | A claimed outcome or a leak is caught before the customer sees it |
+| Credit scores cached for 30 days ([TD7](docs/DECISIONS.md#td7-credit-score-cache-30-days)) | See [How the credit cache works](#how-the-credit-cache-works) |
+| A daily budget, a 429 block and a cool-down, no circuit breaker ([TD8](docs/DECISIONS.md#td8-unreliable-government-api-budget-block-and-cool-down)) | Five calls a day already caps traffic to a failing API |
+| A modular monolith with ports and adapters ([TD12](docs/DECISIONS.md#td12-structure-modular-monolith-ports-and-adapters)) | One small team, ~500 customers; external systems can be swapped without touching the rules |
+| A focused test suite with hand-made mutants ([TD28](docs/DECISIONS.md#td28-a-focused-test-suite-without-stryker)) | Prove the rules and P0 controls, not volume |
+
+## How the credit cache works
+
+The government credit API allows **5 calls a day for the whole bank** and is unreliable, while about 5–6 customers a day start a loan check. Every call has to count.
+
+| Situation | What happens |
+|---|---|
+| A saved score is under 30 days old | It's reused. No call is made |
+| No fresh score, and a call is allowed | One call (the slot is counted before the call, so there is never a sixth). One retry on a timeout or server error, then a 15-minute cool-down. A 429 blocks calls until its `Retry-After` |
+| No call is possible | A saved score up to 90 days old stands in, and the case always goes to a loan officer |
+| Nothing usable | The customer is told the check can't run right now, and offered a call back |
+
+**Why 30 days:** a loan journey (check, think, come back to apply) spans up to about two weeks. Thirty days is the shortest lifetime that serves that whole journey with one call. Shorter lifetimes spend calls on scores that almost never changed; longer ones save nothing and only get staler. The lifetime is a setting, and each fetch records whether the score changed, so it can be re-tuned from real data. The full working is in [TD7](docs/DECISIONS.md#td7-credit-score-cache-30-days), and the flow diagram in [ARCHITECTURE §11](docs/ARCHITECTURE.md#11-failure-handling).
+
 ## Run it
 
 You need Node 25 (see `.nvmrc`), pnpm 10 and an [OpenRouter](https://openrouter.ai) API key.
@@ -45,9 +75,12 @@ pnpm dev        # http://localhost:3000
 
 **4. Sign in**
 
-| Customer number | Password |
-|---|---|
-| `C1001` to `C1010` | `Demo@1234` |
+| Account | Login | Password |
+|---|---|---|
+| Ten demo customers | `C1001` to `C1010` | `Demo@1234` |
+| A new customer | **I'm new** on the sign-in screen (no account needed) | — |
+
+There are only customer accounts. **No admin or operator account was built** ([D12](docs/DECISIONS.md#3-deferred-right-idea-wrong-time)). That's why Settings is open to anyone in demo mode: it's how a tester drives the demo. With `DEMO_MODE=false`, Settings is read-only and the demo controls don't exist.
 
 The government credit API is a mock built into the app, so there is nothing else to set up.
 
@@ -160,11 +193,10 @@ Five operator settings, all in [`.env.example`](.env.example): the OpenRouter ke
 | `pnpm dev` · `pnpm build` · `pnpm start` | Run, build, serve |
 | `pnpm db:setup` | Create or migrate `bank.db` and add the demo customers; safe to re-run |
 | `pnpm audit:trail <customer \| conversation \| reference>` | One case's audit trail as a timeline |
-| `pnpm graph:draw` | Write the agent graph from the compiled code to `docs/diagrams/agent-graph.mmd` |
 | `pnpm lint` · `pnpm format:check` · `pnpm typecheck` | Static checks |
 | `pnpm test` · `pnpm test:e2e` | Vitest; Playwright |
 | `pnpm eval` · `pnpm eval:view` | Evals on real models (needs the key, costs a little) and the results viewer |
-| `pnpm db:generate` · `pnpm smoke:models` · `pnpm secrets:scan` | New migration; a one-off check of each model's token use; secret scan |
+| `pnpm db:generate` · `pnpm secrets:scan` | New migration after a schema change; secret scan |
 
 **Quality gates.** Pre-commit runs ESLint, Prettier and the secret scan on staged files; commit-msg runs commitlint; pre-push runs the typecheck and Vitest. CI on `develop` and `main` runs the secret scan, a dependency audit, format, lint, typecheck, tests, the build and E2E. Evals run in CI only on demand.
 

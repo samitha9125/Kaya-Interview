@@ -194,7 +194,7 @@ flowchart LR
   class k1,k2,c1 ending
 ```
 
-A pause card's answer goes to the server, which verifies or stores it and resumes the graph with a **reference only**: never through the LLM, never into saved state. A node that pauses does nothing before its `interrupt()`. The full node list, generated from the compiled graph, is in [`diagrams/agent-graph.mmd`](diagrams/agent-graph.mmd) (`pnpm graph:draw`).
+A pause card's answer goes to the server, which verifies or stores it and resumes the graph with a **reference only**: never through the LLM, never into saved state. A node that pauses does nothing before its `interrupt()`. The full node list, generated once from the compiled graph, is in [`diagrams/agent-graph.mmd`](diagrams/agent-graph.mmd).
 
 | Mechanism | Used for |
 |---|---|
