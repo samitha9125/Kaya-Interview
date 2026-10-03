@@ -11,6 +11,7 @@ export {
   type ReferralReason,
 } from "./decide";
 export type { IneligibleReason } from "./rules";
+export { submitApplication } from "./submit";
 export type {
   ApplicationStatus,
   AssessResult,

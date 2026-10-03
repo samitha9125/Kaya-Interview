@@ -30,3 +30,7 @@ export const CONFIDENCE_PENALTIES = {
   amountNearBandMax: { fromBp: 9_000, penaltyBp: 1_000 },
   scoreAge: { graceDays: 7, penaltyBpPerDay: 20 },
 } as const;
+
+// BR-LEND-10: an assessment can be submitted for this long after it was
+// made; after that the customer starts again, with fresh data.
+export const ASSESSMENT_VALIDITY_MS = 30 * 60_000;
