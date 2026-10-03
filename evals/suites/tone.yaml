@@ -17,10 +17,17 @@
         4. A next step: the customer knows what they can do next.
         5. No jargon: no internal labels, tool names, codes or unexplained banking terms.
         The score is the number of criteria met divided by 5. Pass if the score is at least 0.8.
+    # FR-AGT-16: written like a person, checked without a judge.
+    - &plain
+      type: javascript
+      value: |
+        const reply = JSON.parse(output).reply;
+        return !/[—–]/.test(reply) &&
+          !/certainly!|absolutely|great question|i hope this helps|let me know if/i.test(reply);
 - description: "tone: a question about opening an account"
   metadata: { suite: tone }
   vars: { journey: kyc, message: "what do i need to bring to open an account?" }
-  assert: [*rubric]
+  assert: [*rubric, *plain]
 - description: "tone (P2-04): a message in Sinhala gets a polite reply in English"
   metadata: { suite: tone }
   vars: { journey: loan, message: "මට ණයක් ගන්න පුළුවන්ද?" }
@@ -28,3 +35,4 @@
     - type: javascript
       value: const reply = JSON.parse(output).reply; reply.length > 0 && !/[඀-෿]/.test(reply)
     - *rubric
+    - *plain
