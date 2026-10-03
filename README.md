@@ -78,7 +78,25 @@ To try a customer again, go to **Settings → Reset my demo data**.
 
 The other journeys: **I'm new → Open an account** on the sign-in screen (no sign-in needed), **Talk to a person** in the chat, and **Settings** for the model per assistant role.
 
-**See what the code is doing.** Click the *Behind the scenes* icon at the top right of the chat. It shows how many government calls are left today, whether the next check can call, how old the customer's saved score is, and this conversation's audit trail. To replay any past case in the terminal: `pnpm audit:trail C1001`.
+**See why a case ended the way it did.** In demo mode the chat header has a **Behind the scenes** button: the panel icon at the top right, next to Settings. It opens a side panel (a drawer on a phone) with two parts that update after every reply:
+
+| Part | What it shows |
+|---|---|
+| Government credit service | Calls used today out of 5, whether the next check can call or must wait (and why), how the mock is behaving, and how old this customer's saved score is |
+| Audit trail | This conversation, step by step, in plain English, including any resets or demo actions |
+
+A referred loan reads like this in the audit trail:
+
+```text
+15:09:40  password re-entered (step-up)
+15:09:45  consent given for a credit check: LKR 3,000,000 over 60 months
+15:09:45  government credit service called: score received (call 1 of 5 today)
+15:09:45  assessed: rules say eligible [band A, max LKR 3,000,000, repayments 18.3% of income]
+          → confidence 90% (amount near the band maximum −10%)
+          → below the 95% threshold → referred to a loan officer
+```
+
+The panel never shows the score itself. The same trail is available in the terminal for any past case: `pnpm audit:trail C1001` (or a conversation ID or reference code).
 
 **Demo: the cache and the daily limit (about 3 minutes).** Keep *Behind the scenes* open the whole time.
 
