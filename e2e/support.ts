@@ -15,6 +15,14 @@ export async function signIn(page: Page, customerNumber: string, password = DEMO
   await page.getByRole("button", { name: "Sign in" }).click();
 }
 
+// "I'm new": a guest session, from its own address like signIn's.
+export async function startAsGuest(page: Page, host: number) {
+  await page.setExtraHTTPHeaders({ "x-forwarded-for": `198.51.100.${host}` });
+  await page.goto("/");
+  await page.getByRole("button", { name: "I'm new" }).click();
+  await expect(page.getByText("Hello. How can I help today?")).toBeVisible();
+}
+
 // "Check a loan", then the terms. The scripted model (TD25) asks for them
 // first, then asks the bank for an assessment.
 export async function askForLoan(page: Page, terms = "500,000 over 36 months") {
@@ -35,4 +43,11 @@ export async function consent(page: Page) {
     page.getByRole("heading", { name: "Your consent for a credit check" }),
   ).toBeVisible();
   await page.getByRole("button", { name: "I agree" }).click();
+}
+
+// Fills each labelled field with its value.
+export async function fillByLabel(page: Page, values: Record<string, string>) {
+  for (const [label, value] of Object.entries(values)) {
+    await page.getByLabel(label).fill(value);
+  }
 }
