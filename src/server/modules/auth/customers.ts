@@ -1,5 +1,5 @@
 import { eq } from "drizzle-orm";
-import { encryptField } from "@/server/platform/crypto";
+import { decryptField, encryptField } from "@/server/platform/crypto";
 import type { DbExecutor } from "@/server/platform/db";
 import { customers } from "./schema";
 
@@ -55,4 +55,19 @@ export function findCustomerName(executor: DbExecutor, customerId: string): stri
     .from(customers)
     .where(eq(customers.id, customerId))
     .get()?.fullName;
+}
+
+// Decrypted only for the one call that needs it: the government credit
+// check (BR-AUTH-01). Never logged, never given to the LLM.
+export function findCustomerNic(
+  executor: DbExecutor,
+  customerId: string,
+  key: Buffer,
+): string | undefined {
+  const row = executor
+    .select({ nicEncrypted: customers.nicEncrypted })
+    .from(customers)
+    .where(eq(customers.id, customerId))
+    .get();
+  return row ? decryptField(row.nicEncrypted, key) : undefined;
 }

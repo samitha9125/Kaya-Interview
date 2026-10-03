@@ -5,7 +5,7 @@ import { createRateLimiter } from "@/server/platform/rate-limit";
 import { aCustomer, CUSTOMER_PASSWORD } from "@/test/builders/customer";
 import { createTestDatabase } from "@/test/database";
 import { movableClock, sequentialIds, TEST_ENCRYPTION_KEY } from "@/test/fakes";
-import { createCustomer, login, type AuthDeps } from "./index";
+import { createCustomer, findCustomerNic, login, type AuthDeps } from "./index";
 
 const MINUTE = 60_000;
 const WRONG = "not the password";
@@ -159,6 +159,11 @@ describe("auth/login: what is stored", () => {
     expect(audit).toHaveLength(2);
     expect(JSON.stringify(audit)).not.toContain(WRONG);
     expect(JSON.stringify(audit)).not.toContain(CUSTOMER_PASSWORD);
+  });
+
+  it("BR-AUTH-01: the NIC is read back from the customer's own record", () => {
+    expect(findCustomerNic(handle.db, "customer-a", TEST_ENCRYPTION_KEY)).toBe(customer.nic);
+    expect(findCustomerNic(handle.db, "no-such-customer", TEST_ENCRYPTION_KEY)).toBeUndefined();
   });
 
   it("FR-PLAT-02: the NIC is stored encrypted, never as plain text", () => {

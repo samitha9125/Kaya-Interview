@@ -19,6 +19,7 @@ describe("platform/config: startup validation", () => {
         DEMO_MODE: false,
         OPENROUTER_API_KEY: undefined,
         DATABASE_PATH: "bank.db",
+        GOV_API_BASE_URL: "http://localhost:3000/api/mock-gov",
       },
     });
   });
@@ -110,5 +111,15 @@ describe("platform/config: startup validation", () => {
     expect(message).toContain("AUTO_DECISION_THRESHOLD");
     expect(message).not.toContain(badKey);
     expect(message).not.toContain("20000");
+  });
+
+  it.each([
+    { url: "https://credit.gov.example/api", ok: true },
+    { url: "http://localhost:3100/api/mock-gov", ok: true },
+    { url: "http://credit.gov.example/api", ok: false }, // plain HTTP off this machine
+    { url: "ftp://localhost/api", ok: false },
+    { url: "not a url", ok: false },
+  ])("ARCHITECTURE §10: GOV_API_BASE_URL $url → starts $ok", ({ url, ok }) => {
+    expect(parseConfig({ ...validEnv, GOV_API_BASE_URL: url }).ok).toBe(ok);
   });
 });
