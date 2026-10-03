@@ -1,5 +1,21 @@
-import { Command } from "@langchain/langgraph";
-import { AIMessage, createAgent, tool, ToolMessage, type ToolRuntime } from "langchain";
+import { Command, GraphRecursionError, isGraphBubbleUp } from "@langchain/langgraph";
+import {
+  AIMessage,
+  createAgent,
+  modelCallLimitMiddleware,
+  modelRetryMiddleware,
+  piiMiddleware,
+  tool,
+  toolCallLimitMiddleware,
+  ToolCallLimitExceededError,
+  ToolMessage,
+  type ToolRuntime,
+} from "langchain";
+import { findNics } from "@/server/platform/pii";
+import { logger } from "@/server/platform/logger";
+import { CALL_LIMITS, turnLimits } from "../limits";
+import { ASSISTANT_UNAVAILABLE, LIMIT_REACHED } from "../templates";
+import { fromBank } from "./endings";
 import { LoanTerms, PRODUCT } from "@/server/modules/lending";
 import { situationLabels } from "../middleware/situation-labels";
 import { contextOf, type NodeConfig } from "../context";
@@ -46,20 +62,74 @@ export const requestAssessment = tool(
 
 const INVALID_TERMS_HINT = `The amount must be a whole number of rupees from LKR ${PRODUCT.minAmountLkr.toLocaleString("en-US")} to LKR ${PRODUCT.maxAmountLkr.toLocaleString("en-US")}, and the term ${PRODUCT.minTermMonths} to ${PRODUCT.maxTermMonths} whole months.`;
 
+export type ModelRetryOptions = { initialDelayMs: number };
+
+// FR-AGT-09, FR-AGT-11, FR-AGT-12, in the order they wrap the model:
+// NIC-shaped text is redacted from what goes in and what comes out (the
+// harness already strips it from chat; this is defence in depth), a
+// failing call is retried twice with backoff and jitter, and each turn is
+// capped. A limit or a final failure throws, and the node answers with a
+// template instead.
+function middlewareFor(limits: ReturnType<typeof turnLimits>, retry: ModelRetryOptions) {
+  return [
+    situationLabels(INVALID_TERMS_HINT),
+    piiMiddleware("nic", {
+      detector: findNics,
+      strategy: "redact",
+      applyToInput: true,
+      applyToOutput: true,
+    }),
+    modelRetryMiddleware({
+      maxRetries: 2,
+      backoffFactor: 2,
+      initialDelayMs: retry.initialDelayMs,
+      jitter: true,
+      onFailure: "error",
+    }),
+    modelCallLimitMiddleware({ runLimit: limits.modelCalls, exitBehavior: "error" }),
+    toolCallLimitMiddleware({ runLimit: limits.toolCalls, exitBehavior: "error" }),
+  ];
+}
+
+// The model-limit error class isn't exported, so it's recognised by name.
+// Middleware may wrap an error, so the cause chain is followed.
+function isLimitError(error: unknown): boolean {
+  for (let current = error; current instanceof Error; current = current.cause) {
+    if (current instanceof ToolCallLimitExceededError) return true;
+    if (current instanceof GraphRecursionError) return true;
+    if (current.name === "ModelCallLimitMiddlewareError") return true;
+  }
+  return false;
+}
+
 // A wrapper node calling agent.invoke is the documented way to place a
 // createAgent specialist in a parent graph. It passes messages only. The
 // model is the one this conversation started with (FR-SET-01).
-export function createLoanAgentNode(models: ChatModelProvider) {
+export function createLoanAgentNode(models: ChatModelProvider, retry: ModelRetryOptions) {
   return async (state: ConversationStateValue, config: NodeConfig) => {
-    const { models: selection } = contextOf(config);
-    const model = models.chatModel(modelRequestFor("loan", selection.loan));
-    const agent = createAgent({
-      model,
-      tools: [requestAssessment],
-      systemPrompt: LOAN_PROMPT,
-      middleware: [situationLabels(INVALID_TERMS_HINT)],
-    });
-    const result = await agent.invoke({ messages: state.messages });
-    return { messages: result.messages };
+    const { models: selection, correlationId } = contextOf(config);
+    const limits = turnLimits(state.messages);
+    if (limits.modelCalls <= 0 || limits.toolCalls <= 0) {
+      return { messages: [fromBank(LIMIT_REACHED)] };
+    }
+    try {
+      const agent = createAgent({
+        model: models.chatModel(modelRequestFor("loan", selection.loan)),
+        tools: [requestAssessment],
+        systemPrompt: LOAN_PROMPT,
+        middleware: middlewareFor(limits, retry),
+      });
+      const result = await agent.invoke(
+        { messages: state.messages },
+        { recursionLimit: CALL_LIMITS.recursion },
+      );
+      return { messages: result.messages };
+    } catch (error) {
+      if (isGraphBubbleUp(error)) throw error;
+      if (isLimitError(error)) return { messages: [fromBank(LIMIT_REACHED)] };
+      // P1-06/07: a missing or refused key, a provider outage, a timeout.
+      logger.error("loan agent failed", { correlationId, error });
+      return { messages: [fromBank(ASSISTANT_UNAVAILABLE)] };
+    }
   };
 }
