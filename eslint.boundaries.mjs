@@ -18,8 +18,14 @@ const zone = (target, from, message, except) => ({ target, from, message, except
 const layerZones = [
   zone(
     app,
-    [agent, modules, adapters, platform, mockGov, composition],
+    [agent, modules, adapters, platform, composition],
     "app/ reaches the server only through the harness.",
+  ),
+  // The mock's own route files are its HTTP edge, the one way in.
+  zone(
+    [`${app}/!(api)/**`, `${app}/*.{ts,tsx}`, `${app}/api/!(mock-gov)/**`],
+    mockGov,
+    "Only app/api/mock-gov reaches the mock; everything else calls it over HTTP.",
   ),
   zone(
     components,
