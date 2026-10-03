@@ -1,4 +1,4 @@
-import { Command, END, interrupt } from "@langchain/langgraph";
+import { Command, interrupt } from "@langchain/langgraph";
 import { z } from "zod";
 import type { ConversationStateValue } from "../state";
 import { CONFIRM_DECLINED, CONSENT_DECLINED } from "../templates";
@@ -54,7 +54,7 @@ export function consentNode(state: ConversationStateValue) {
     { kind: "consent", ...termsOf(state) },
     { responseSchema: ConsentReference },
   );
-  if ("declined" in answer) return endWith(CONSENT_DECLINED);
+  if ("declined" in answer) return endWith(state, "NEEDS_CONSENT", CONSENT_DECLINED);
   return new Command({ goto: "credit_check", update: { consentId: answer.consentId } });
 }
 
@@ -65,8 +65,6 @@ export function confirmNode(state: ConversationStateValue) {
     { kind: "confirm", ...termsOf(state) },
     { responseSchema: ConfirmReference },
   );
-  if ("declined" in answer) return endWith(CONFIRM_DECLINED);
+  if ("declined" in answer) return endWith(state, "OUTCOME_SHOWN", CONFIRM_DECLINED);
   return new Command({ goto: "submit" });
 }
-
-export const PAUSE_ENDS = { consent: ["credit_check", END], confirm: ["submit", END] } as const;
