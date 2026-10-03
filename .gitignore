@@ -52,3 +52,6 @@ next-env.d.ts
 *.db-journal
 *.db-wal
 *.db-shm
+
+# Local Claude Code settings
+.claude/
