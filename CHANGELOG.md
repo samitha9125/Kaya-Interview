@@ -27,8 +27,10 @@ rather than generated from commits. The format follows
 - "Talk to a person" asks the team for a call back: at once for a signed-in customer, or with a short name-and-number card for a guest. Asking twice in a conversation doesn't make a second request.
 - Messages typed without pressing a starter are sorted to the right journey, and the assistant hands a conversation over when the customer changes topic. Anything the assistant doesn't handle gets a short redirect.
 - A Settings page, linked from the chat: whether the OpenRouter key is configured, the auto-decision threshold, and each assistant role's model with its price and context, flagged if it's no longer offered. In demo mode it also changes models (for new conversations), resets today's government limit, clears the credit cache and sets how the mock government service behaves. Outside demo mode it's read-only.
+- `pnpm eval` runs small routing, refusal, red-team and tone suites on real models (the defaults, Claude Haiku 4.5 and GPT-5.6 Luna) through the real assistant.
 
 ### Changed
 
 - A loan amount over the customer's band maximum, with otherwise clear data, is a final "not eligible" instead of a referral to an officer. Demo customer C1009 shows it.
+- The loan and account-opening assistants allow room for the model's reasoning on top of a 400-token reply, so replies are no longer cut short.
 - `.env.example` lists only the five settings an operator sets: the OpenRouter key, the encryption key, the auto-decision threshold, the cache lifetime and demo mode. The admin password is gone, and `AUTO_DECISION_THRESHOLD` is in basis points (`9500` = 95%). The government credit service is always the built-in mock, and the assistant always uses OpenRouter.

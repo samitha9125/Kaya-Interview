@@ -96,7 +96,7 @@ The bank brings its own OpenRouter key and can change any model in Settings. Def
 
 The same loan traffic on Claude Haiku ($1 / $5) would cost ≈ $47 a month on its own. Real token counts per turn are measured by the evals.
 
-**Provider settings:** every request sends `provider: { zdr: true, data_collection: "deny" }` (only providers that keep no data) and ignores China-hosted first-party endpoints (`z-ai`, `siliconflow`) for the GLM model. Reasoning is set explicitly because GLM defaults to its maximum. OpenRouter publishes no latency or tool-error data, so our evals measure both on at least two models.
+**Provider settings:** every request sends `provider: { zdr: true, data_collection: "deny" }` (only providers that keep no data) and ignores China-hosted first-party endpoints (`z-ai`, `siliconflow`) for the GLM model. Reasoning is set explicitly because GLM defaults to its maximum. **Reasoning tokens count toward the output limit** (measured in the T13 smoke check: GLM at `low` spent 197 of 400 on reasoning, GPT-5.6 Luna 46), so the loan and KYC requests allow 800 output tokens: the 400 visible tokens of FR-AGT-11 plus 400 for reasoning. Triage has no reasoning setting and keeps 400. OpenRouter publishes no latency or tool-error data, so our evals measure both on at least two models.
 
 ### TD7. Credit-score cache: 30 days
 

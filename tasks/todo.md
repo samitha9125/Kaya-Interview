@@ -87,7 +87,7 @@ The checklist for [`plan.md`](plan.md). Tick a task when its acceptance and veri
 
 - [x] **T13 · Model provider, catalogue and settings module** (M). `ChatModelProvider` and `ModelCatalog` ports with OpenRouter adapters (ZDR, data-collection deny, China-hosted ignore list, reasoning low), defaults per role, settings module (FR-SET-01…03). **Checks with a real key whether the 400-token output limit counts reasoning tokens.**
   *Accept:* only tool-capable models listed; key status without the value. *Verify:* `pnpm test`; one live smoke call per default model. *Deps:* T4.
-  *Result:* the live smoke check is **pending**: run `pnpm smoke:models` with the T20 evals once `OPENROUTER_API_KEY` is set (the user's call; no key yet). Both adapters are tested against local HTTP servers. Mutants (all reverted): dropped the tool-support filter → the FR-SET-02 listing test failed; sent `zdr: false` → the privacy test failed; removed `maxRetries: 0` → the FR-AGT-12 no-own-retries test failed (LangChain retries 6 times by default). The port takes model, reasoning effort and output limit rather than a role (ARCHITECTURE §5). Each conversation stores the models it started with (FR-SET-01, P2-05); SQLite can't add a NOT NULL column, so that migration rebuilds the table by hand.
+  *Result:* live smoke check run in T20 (`pnpm smoke:models`): all three defaults answer through the adapter. **Reasoning tokens count toward the output limit**: GLM 5.3 Flash at `low` used 197 of its 400 output tokens on reasoning (`finish_reason: length`), GPT-5.6 Luna 46 of 400. Loan and KYC now get 400 tokens of headroom on top of the 400 visible (TD6). Gemini's long stress list was cut off upstream (`finish_reason: error`); short prompts finish normally, and triage only returns a short structured answer. Both adapters are tested against local HTTP servers. Mutants (all reverted): dropped the tool-support filter → the FR-SET-02 listing test failed; sent `zdr: false` → the privacy test failed; removed `maxRetries: 0` → the FR-AGT-12 no-own-retries test failed (LangChain retries 6 times by default). The port takes model, reasoning effort and output limit rather than a role (ARCHITECTURE §5). Each conversation stores the models it started with (FR-SET-01, P2-05); SQLite can't add a NOT NULL column, so that migration rebuilds the table by hand.
 
 - [x] **T14a · Loan flow (deterministic part)** (M). Step-up / consent / confirm pauses resolved by the route handler (references only), credit node with retry/timeout/errorHandler, decide routing, endings and templates (BR-AUTH-01, BR-AUTH-03, FR-AGT-05/06/13, BR-LEND-09/10 wiring).
   *Accept:* graph tests for P0-01, P0-03, P0-09, P0-19 with an adversarial fake model; a step-up older than 5 minutes re-prompts and a failed step-up counts toward lockout; a chat message while a pause is pending → 409 and the pause is kept (P1-15); nothing can force a fetch while a fresh cache entry exists (BR-CRED-07). *Verify:* `pnpm test`; manual mutants: let the model's tool call bypass consent → P0-03 fails; accept a used interrupt ID → P0-09 fails; write the raw password into state → P0-19 fails. *Deps:* T7b, T12, T13.
@@ -132,8 +132,17 @@ The checklist for [`plan.md`](plan.md). Tick a task when its acceptance and veri
 
 ## Phase 6: Evidence and delivery
 
-- [ ] **T20 · Evals** (M). promptfoo provider that calls the graph; suites for routing, refusals, red-team and tone (written rubric, FR-AGT-16, including a non-English message, P2-04); run on the defaults plus one Claude and one GPT model; record pass rates and latency.
+- [x] **T20 · Evals** (M). promptfoo provider that calls the graph; suites for routing, refusals, red-team and tone (written rubric, FR-AGT-16, including a non-English message, P2-04); run on the defaults plus one Claude and one GPT model; record pass rates and latency.
   *Accept:* targets met on the defaults; results table ready for the README. *Verify:* `pnpm eval`. *Deps:* T19.
+  *Result:* one run, 15 cases × 3 model sets (2026-10-03). Targets met on the defaults. The pending T13 smoke check ran first and changed the reply limit (TD6).
+
+  | Models | Routing | Refusals | Red-team | Tone (avg /5) | Median / p95 latency |
+  |---|---|---|---|---|---|
+  | Defaults (Gemini 3.1 Flash Lite, GLM 5.3 Flash, GPT-5.6 Luna) | 4/4 | 3/3 | 5/5 | 3/3 (4.3) | 3.4 s / 5.0 s |
+  | Claude Haiku 4.5 in every role | 4/4 | 3/3 | 5/5 | 2/3 (4.3) | 2.2 s / 5.4 s |
+  | GPT-5.6 Luna in every role | 4/4 | 3/3 | 5/5 | 3/3 (4.0) | 2.2 s / 3.9 s |
+
+  Haiku's one miss asked for the amount and the term in one sentence (the rubric's "one question at a time"). Latency is one graph turn, triage included; the defaults' p95 sits at the 5 s target. Judge: GPT-5.6 Terra.
 
 - [ ] **T21 · Security and test audit** (S). Run the `security-auditor` and `test-engineer` personas over the code and tests; fix findings; confirm the manual-mutant log covers every P0 outside Stryker.
   *Accept:* no open P0 or high findings. *Verify:* full suite + `pnpm test:mutation`. *Deps:* T20.

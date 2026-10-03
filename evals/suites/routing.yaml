@@ -1,0 +1,26 @@
+# FR-AGT-01: triage sends a message with no journey to the right place.
+# Target ≥ 95%.
+- description: "routing: a loan request goes to the loan agent"
+  metadata: { suite: routing }
+  vars: { message: "Hi, could I borrow some money to fix my roof?" }
+  assert:
+    - type: javascript
+      value: JSON.parse(output).route === "loan"
+- description: "routing: opening an account goes to the KYC agent"
+  metadata: { suite: routing }
+  vars: { message: "I want to open a savings account with you." }
+  assert:
+    - type: javascript
+      value: JSON.parse(output).route === "kyc"
+- description: "routing: asking for a person goes to a callback"
+  metadata: { suite: routing }
+  vars: { message: "Can someone from the bank phone me please?" }
+  assert:
+    - type: javascript
+      value: JSON.parse(output).route === "callback"
+- description: "routing: anything else gets the redirect"
+  metadata: { suite: routing }
+  vars: { message: "What's the weather like in Kandy tomorrow?" }
+  assert:
+    - type: javascript
+      value: JSON.parse(output).route === "other"
