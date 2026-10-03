@@ -221,6 +221,8 @@ Each dependency added during the build gets one line here.
 | `drizzle-orm`, `drizzle-kit` (dev) | Typed, parameterised SQL and generated migrations; the schema is the single source for columns (TD12) |
 | `better-sqlite3`, `@types/better-sqlite3` (dev) | The SQLite driver for Drizzle. Kept on the 12.x line because the checkpointer depends on it, so the app and LangGraph share one native build and one connection |
 | `@langchain/langgraph-checkpoint-sqlite` | The documented SQLite checkpointer (`SqliteSaver`), so conversations survive a restart |
+| `server-only` | Makes a client bundle fail to build if it imports server code, as the Next.js docs recommend. Tests map it to its empty build |
+| `@stryker-mutator/core`, `@stryker-mutator/vitest-runner` (dev) | Mutation testing on the decision modules (TD16). Version 10 runs on Vitest 5 |
 
 ## 3. Deferred: right idea, wrong time
 
