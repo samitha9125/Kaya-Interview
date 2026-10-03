@@ -148,6 +148,8 @@ The same loan traffic on Claude Haiku ($1 / $5) would cost ≈ $47 a month on it
 | Session binding | **No binding** · IP or device binding | No binding | Binding breaks mobile users on changing networks; short timeouts, rotation and step-up cover a stolen cookie instead |
 | Re-authentication | None · OTP/TOTP · **password re-entry** | Password step-up now | Protects hijacked or unattended sessions. Only a second factor stops a stolen password, so it's the production control (D1) |
 | Password hashing | bcrypt or argon2 (native packages) · **Node's built-in `scrypt`** | `scrypt` | No native dependency; a memory-hard hash |
+| A refused sign-in | Say "unknown customer", "wrong password" or "locked" · **one answer for all three** | One answer | Sign-in never confirms that a customer number exists or is locked, so guessing learns nothing. The message tells a real customer that sign-in pauses after 5 tries, and the audit trail keeps the real reason. An unknown number is checked against a dummy hash at full cost, so timing doesn't tell them apart either |
+| Login rate-limit counts | Database table · **in memory** | In memory | One instance (ARCHITECTURE §12); a restart only gives a caller a fresh 15-minute window, and the per-account lockout, which is in the database, still holds. A shared store comes with a second instance |
 | BYOK key storage | Typed into a UI form and stored encrypted · **server environment only** | Env | No key ever crosses the network from a browser, and there's no key-storage code to get wrong. Changing the key means a restart. Production uses a secret manager |
 
 ### TD11. Pauses resume with references only
@@ -226,7 +228,8 @@ Each dependency added during the build gets one line here.
 | `better-sqlite3`, `@types/better-sqlite3` (dev) | The SQLite driver for Drizzle. Kept on the 12.x line because the checkpointer depends on it, so the app and LangGraph share one native build and one connection |
 | `@langchain/langgraph-checkpoint-sqlite` | The documented SQLite checkpointer (`SqliteSaver`), so conversations survive a restart |
 | `server-only` | Makes a client bundle fail to build if it imports server code, as the Next.js docs recommend. Tests map it to its empty build |
-| `@stryker-mutator/core`, `@stryker-mutator/vitest-runner` (dev) | Mutation testing on the decision modules (TD16). Version 10 runs on Vitest 5 |
+| `@stryker-mutator/core`, `@stryker-mutator/vitest-runner` (dev) | Mutation testing on the decision modules (TD16). Version 10 runs on Vitest 5, with a one-line `pnpm patch` (`patches/`): the runner names tests `suite test`, but Vitest 5 matches `suite > test`, so with per-test coverage no test ran and every mutant survived. Found in T5; the T3 trial's 17 kills were static mutants only. Drop the patch once the runner is fixed upstream |
+| `tsx` (dev) | Runs the TypeScript seed script (`pnpm db:setup`) with the project's path aliases. Already in the tree through Vitest; now a direct dependency because we call it |
 
 ### TD20. Runtime: Node 25
 

@@ -16,7 +16,8 @@ rather than generated from commits. The format follows
 - Test tooling: Vitest, Playwright e2e, promptfoo evals.
 - GitHub Actions CI on pushes to `develop` and `main`, and a manual eval workflow.
 - The server refuses to start, with a message naming each problem, when the encryption key, approval threshold, cache lifetime or demo flag is missing or invalid.
-- `pnpm db:setup` creates the local SQLite database; conversations and the audit trail survive a restart.
+- `pnpm db:setup` creates the local SQLite database and ten demo customers (`C1001`–`C1010`); conversations and the audit trail survive a restart.
+- Sign-in with a customer number and password. Five wrong passwords in a row pause sign-in for that account for 15 minutes, and one address can try at most 10 times in 15 minutes. A refused sign-in never says whether the customer number exists.
 
 ### Changed
 

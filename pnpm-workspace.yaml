@@ -12,3 +12,6 @@ ignoredBuiltDependencies:
   # promptfoo optional extras we don't use.
   - onnxruntime-node
   - protobufjs
+patchedDependencies:
+  # Vitest 5 test names for Stryker's per-test runs (DECISIONS TD19).
+  "@stryker-mutator/vitest-runner@10.0.0": patches/@stryker-mutator__vitest-runner@10.0.0.patch
