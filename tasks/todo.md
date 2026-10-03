@@ -41,8 +41,9 @@ The checklist for [`plan.md`](plan.md). Tick a task when its acceptance and veri
   *Accept:* lockout boundary table 4/5/6 (P0-13); identical failure message; Stryker ≥ 80% on lockout. *Verify:* `pnpm test && pnpm test:mutation`. *Deps:* T2, T3.
   *Result:* Stryker 96.97% on `lockout.ts` (the one survivor is equivalent). Unknown number, wrong password and locked account return the same result; the audit trail keeps the reason. Mutant: let a correct password skip the lock check → five P0-13/BR-AUTH-02 login tests failed; reverted. Finding: with per-test coverage, Stryker 10's Vitest runner selected no tests on Vitest 5 (`suite test` vs `suite > test`), so every per-test mutant survived and the T3 trial's kills were static mutants only. Fixed with a one-line `pnpm patch` (TD19). The seed (`pnpm db:setup`) runs through `tsx`, a new dev dependency (TD19).
 
-- [ ] **T6 · Auth: sessions and ownership** (M). Hashed server-side sessions, `__Host-session` cookie, rotation, idle/absolute timeouts, revocation, guest sessions, conversation ownership (FR-AUTH-02…06).
+- [x] **T6 · Auth: sessions and ownership** (M). Hashed server-side sessions, `__Host-session` cookie, rotation, idle/absolute timeouts, revocation, guest sessions, conversation ownership (FR-AUTH-02…06).
   *Accept:* a DB row alone isn't a session; rotation invalidates the old token. *Verify:* `pnpm test`; manual mutant: skip the ownership check → P0-04 test fails. *Deps:* T5.
+  *Result:* mutant: dropped the owner condition from the conversation lookup → the four P0-04 tests failed; reverted. Step-up (password check, token rotation, 5-minute freshness) landed here with the other session rules, so T14a only wires it into the graph. The `__Host-session` cookie itself is set by the routes (T7a/T7b), where its flags are asserted.
 
 - [ ] **T7a · Harness request pipeline** (M). Origin check, session, zod, idempotency, rate limit, turn lock, NIC stripping, failure → template + reference, security headers (FR-WEB-01/02/03/05/06).
   *Accept:* P1-15; P0-02 (stripping); foreign origin → 403. *Verify:* `pnpm test`. *Deps:* T6.
