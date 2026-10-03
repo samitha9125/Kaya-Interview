@@ -10,7 +10,7 @@ Each guarantee is enforced in code and proven by a deterministic test that names
 |---|---|---|
 | Identity comes only from the signed-in session | Tools take no identity arguments, and NIC-shaped text is stripped before the model sees a message | [`P0-02`](src/server/harness/chat-input.test.ts), [`P0-03`](src/server/agent/loan-flow.gates.test.ts) |
 | No credit check without a fresh password and recorded consent | The gates are graph nodes, not prompt instructions; the model can't skip them | [`P0-01`, `P0-03`](src/server/agent/loan-flow.gates.test.ts) |
-| Never a sixth government call in a day | A call slot is taken atomically before every attempt, retries included | [`P1-04`](src/server/modules/gov-credit/budget.test.ts) |
+| Never a sixth government call in a day | A call slot is taken atomically before every attempt, retries included | [`BR-CRED-03`](src/server/modules/gov-credit/policy.test.ts), [`P1-04`](src/server/modules/gov-credit/budget.test.ts) |
 | Rules decide; the model never sees the score | A deterministic rules engine sets the outcome; the model gets a situation label | [`P0-07`, `P0-08`](src/server/modules/lending/decide.test.ts), [`BR-LEND-11`](src/server/agent/loan-flow.score.test.ts) |
 | One customer can't reach another's conversation | Every conversation route checks the owner and answers "not found" otherwise | [`P0-04`](src/server/agent/conversations/ownership.test.ts) |
 | A reply is checked before anyone sees it | Replies are buffered, then validated against the decision in state | [`P0-05`, `P0-06`](src/server/agent/validate-reply.test.ts) |
@@ -24,7 +24,7 @@ The decisions that shape the system. Each links to its full reasoning in [`DECIS
 | Decision | Why |
 |---|---|
 | Rules decide every loan, never the LLM ([B2](docs/DECISIONS.md#1-business-decisions)) | The model is never the accountable party for a lending decision |
-| Below 95% confidence, a loan officer decides ([B13](docs/DECISIONS.md#1-business-decisions), [TD9](docs/DECISIONS.md#td9-decision-confidence)) | The threshold is the bank's risk appetite; confidence comes from rule margins and data age, not the model's opinion |
+| Below 95% confidence (Configurable in .env.local), a loan officer decides ([B13](docs/DECISIONS.md#1-business-decisions), [TD9](docs/DECISIONS.md#td9-decision-confidence)) | The threshold is the bank's risk appetite; confidence comes from rule margins and data age, not the model's opinion |
 | The score is never shown, and the LLM never sees it ([B9](docs/DECISIONS.md#1-business-decisions)) | The bank may use bureau data, not republish it; what the model never has, it can't leak |
 | A router agent: cheap triage, then one specialist per journey ([TD2](docs/DECISIONS.md#td2-agent-pattern-router)) | Each specialist sees only its own journey and tools |
 | Passwords, consent and forms go to the server; the graph only gets a reference ([TD11](docs/DECISIONS.md#td11-pauses-resume-with-references-only)) | Nothing secret can end up in the model's context or in saved state |
@@ -172,7 +172,7 @@ The panel never shows the score itself. The same trail is available in the termi
 | Claude Haiku 4.5 in every role | 4/4 | 3/3 | 5/5 | 2/3 (4.3) | 2.2 s / 5.4 s |
 | GPT-5.6 Luna in every role | 4/4 | 3/3 | 5/5 | 3/3 (4.0) | 2.2 s / 3.9 s |
 
-Since that run the suites have grown (routing 20 cases, red-team 10, and a new follow-ups suite), and a re-run is due. Latency is one full turn, triage included.
+This run was at T20, before the suites grew to 20 routing cases, 10 red-team cases and the follow-ups suite. Latency is one full turn, triage included.
 
 ## How it was built
 

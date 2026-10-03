@@ -33,7 +33,7 @@ Full tasks, acceptance criteria and checkpoints are in [`todo.md`](todo.md).
 | 4 Lending | T11–T12 | Decisions, assessments and applications |
 | 5 Agent and journeys | T13–T19 (T14a–c) | **D:** J1 end to end · **E:** all journeys; every P0 has a test |
 | 6 Evidence | T20–T21 | **F:** evals and a focused test suite |
-| After the plan | Review and hardening, then T22 docs | See below; the release (T23) waits for the final merge |
+| After the plan | Review and hardening, then T22 docs | See below |
 
 ## After T21: review and hardening
 

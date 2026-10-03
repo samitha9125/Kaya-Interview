@@ -203,8 +203,5 @@ Dropping only `!credit.hasHistory` from the no-history rule is an equivalent mut
 - [x] **T22 · Documentation** (M). Done after the review pass (see [`plan.md`](plan.md#after-t21-review-and-hardening)); `PROCESS.md` became a section of the README. README (setup, demo credentials, bring your own key, demo script for J1–J4, audit query, eval results), PNG diagrams (plus the agent graph exported from code), `PROCESS.md`, CHANGELOG, final pass over ARCHITECTURE and SPEC.
   *Accept:* a fresh clone works by following the README alone. *Verify:* clone into a temp folder → follow the README → demo script passes. *Deps:* T21.
 
-- [ ] **T23 · Release** (XS). Waits for the final review. Merge `develop` → `main` (merge commit), tag `v1.0.0`, push.
-  *Accept:* CI green on `main`. *Deps:* T22.
-
 ### Checkpoint F: complete. Every SPEC §12 success criterion is ticked.
 
