@@ -112,8 +112,9 @@ The checklist for [`plan.md`](plan.md). Tick a task when its acceptance and veri
   2. **The decision-claim check was too loose** (T14c). Once any decision existed, all decision wording passed, so "you're approved" could follow a "not eligible". Claims are now held to the decision actually in state (P0-18).
   3. **LangChain retries six times by default** (T13). Left on, a model outage would mean six silent retries per call on top of ours. The OpenRouter adapter sets `maxRetries: 0`; retries belong to the agent's middleware (2, with backoff and jitter; FR-AGT-12).
 
-- [ ] **T16 · Onboarding module** (S). KYC field and NIC validation, enumeration-safe response, encrypted draft → confirm → unverified pending application (FR-ONB-01/02, BR-ONB-01/02).
+- [x] **T16 · Onboarding module** (S). KYC field and NIC validation, enumeration-safe response, encrypted draft → confirm → unverified pending application (FR-ONB-01/02, BR-ONB-01/02).
   *Accept:* P0-14; NIC tables for both formats. *Verify:* `pnpm test`. *Deps:* T2, T3.
+  *Result:* 45 onboarding tests on real SQLite. Mutants (all reverted): gave a matching NIC its own answer → `P0-14: the answer is identical …` failed; dropped the "already pending" check on confirm → the FR-ONB-02 replay test failed. The form is one encrypted column; the graph will only see the draft ID. Auth answers "is this NIC a customer's?" (it owns the table) by decrypting and comparing, which needs no new column at ~500 customers; onboarding gets it as an injected function, keeping its only dependency platform (ARCHITECTURE §6). Wired into the composition root with its route in T17.
 
 - [ ] **T17 · KYC journey** (M). KYC agent, `start_account_opening`, form card posting to the server, draft reference resume, confirm (FR-AGT-03, BR-ONB-03).
   *Accept:* P0-19 for form data; J2 E2E. *Verify:* `pnpm test && pnpm test:e2e`; manual mutant: resume with the raw form instead of the draft ID → P0-19 fails. *Deps:* T15, T16.
