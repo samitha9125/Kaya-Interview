@@ -275,6 +275,12 @@ Each dependency added during the build gets one line here.
 | Parallel first checks for one customer | Merge in-flight requests · **let them both call** | Both call (D3) | Two tabs at once is rare at this scale; the worst case is one extra call, and the budget still caps the total |
 | No NIC on the record | Throw · **`unavailable`, with no call** | `unavailable` | Shouldn't happen for a seeded customer, and the customer still gets the honest fallback |
 
+### TD25. Chat transport and browser tests
+
+| Topic | Options | Choice | Trade-off |
+|---|---|---|---|
+| A model for E2E without a key | A real key in CI · recorded responses · **a scripted provider that plays the loan agent by rule** | Scripted (`CHAT_MODEL_PROVIDER=scripted`) | Browser tests run the real graph, gates and templates on every machine and cost nothing; the model's own behaviour is the evals' job. It is a `ChatModelProvider` adapter built on LangChain's `fakeModel`, so nothing else changes. The app refuses to start with it unless `DEMO_MODE=true`, so it can't replace a real model by accident |
+
 ## 3. Deferred: right idea, wrong time
 
 | ID | Item | Why not now | When / how to add |
