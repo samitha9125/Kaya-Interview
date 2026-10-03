@@ -10,6 +10,7 @@ import {
 import type { ConversationGraph } from "@/server/agent/graph";
 import { findPendingPause, prepareResume } from "@/server/agent/resume";
 import type { Session } from "@/server/modules/auth";
+import type { CallbackDeps } from "@/server/agent/callbacks/requests";
 import type { OnboardingDeps } from "@/server/modules/onboarding";
 import { currentModels } from "@/server/modules/settings";
 import type { RateLimiter } from "@/server/platform/rate-limit";
@@ -29,6 +30,7 @@ export type ChatRouteDeps = HarnessDeps &
     chatLimiter: RateLimiter;
     graph: ConversationGraph;
     onboarding: OnboardingDeps;
+    callbacks: CallbackDeps;
   };
 
 const ResumeBody = z.strictObject({

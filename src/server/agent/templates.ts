@@ -38,6 +38,22 @@ export const CANT_SHARE =
 export const CANT_COMPLETE =
   "Something went wrong on our side and I couldn't finish this. Please try again, or I can arrange a call from our team.";
 
+// FR-AGT-01: triage found nothing the assistant handles.
+export const OTHER_TOPIC =
+  "I can help you check a loan or open an account, or I can arrange a call from our team. What would you like to do?";
+
+// FR-AGT-14, B12: a callback request, never a live handover.
+export const CALLBACK_REQUESTED =
+  "Thanks, I've asked our team to call you on the number we have for you. They'll be in touch within 1 business day.";
+
+export const CALLBACK_REQUESTED_GUEST =
+  "Thanks, I've asked our team to call you on the number you gave. They'll be in touch within 1 business day.";
+
+export const CALLBACK_ALREADY =
+  "Our team already has your request for a call, and they'll be in touch within 1 business day.";
+
+export const CALLBACK_CANCELLED = "No problem. If you'd like a call later, just ask.";
+
 // B3, A6: the assistant never opens an account; the branch completes it.
 export const KYC_SUBMITTED =
   "Thanks, your account application is in. To finish opening your account, please visit any of our branches with your original NIC.";

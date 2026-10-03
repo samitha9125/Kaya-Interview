@@ -18,6 +18,7 @@ type ChatShellProps = { greetingName: string | null; restored: RestoredConversat
 const STARTERS: { label: string; message: string; starter: Starter }[] = [
   { label: "Check a loan", message: "I'd like to check a loan.", starter: "loan" },
   { label: "Open an account", message: "I'd like to open an account.", starter: "kyc" },
+  { label: "Talk to a person", message: "I'd like to talk to a person.", starter: "human" },
 ];
 
 export function ChatShell({ greetingName, restored }: ChatShellProps) {

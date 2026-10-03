@@ -15,7 +15,8 @@ export type Pause =
   | { interruptId: string; kind: "step_up" }
   | { interruptId: string; kind: "consent" | "confirm"; amountLkr: number; termMonths: number }
   | { interruptId: string; kind: "kyc_form" }
-  | { interruptId: string; kind: "kyc_confirm"; draftId: string; details?: KycDetails | null };
+  | { interruptId: string; kind: "kyc_confirm"; draftId: string; details?: KycDetails | null }
+  | { interruptId: string; kind: "callback_form" };
 
 export type ChatMessage = { id: string; role: "customer" | "assistant"; text: string };
 

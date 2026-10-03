@@ -11,7 +11,7 @@ export const ChatMessageBody = z.strictObject({
     .min(1, { error: "Please type a message." })
     .max(MAX_MESSAGE_LENGTH, { error: "Please keep your message under 1,000 characters." }),
   // Set by a starter button, which skips triage (FR-AGT-01).
-  starter: z.enum(["loan", "kyc"]).optional(),
+  starter: z.enum(["loan", "kyc", "human"]).optional(),
   idempotencyKey: z.uuid(),
 });
 

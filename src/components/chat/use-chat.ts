@@ -8,9 +8,10 @@ export type Answer =
   | { kind: "consent"; agree: boolean }
   | { kind: "confirm"; confirm: boolean }
   | { kind: "kyc_form"; form: Record<string, string> | null }
-  | { kind: "kyc_confirm"; confirm: boolean };
+  | { kind: "kyc_confirm"; confirm: boolean }
+  | { kind: "callback_form"; contact: Record<string, string> | null };
 
-export type Starter = "loan" | "kyc";
+export type Starter = "loan" | "kyc" | "human";
 
 // The chat's state, driven by a turn's events. Input stays locked while a
 // turn runs and while a card waits for its answer (FR-WEB-03).

@@ -1,6 +1,7 @@
 import { Command, MemorySaver, type BaseCheckpointSaver } from "@langchain/langgraph";
 import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import { HumanMessage } from "langchain";
+import type { CallbackDeps } from "@/server/agent/callbacks/requests";
 import type { ConversationContextValue } from "@/server/agent/context";
 import { buildConversationGraph, runConfig, type ConversationGraph } from "@/server/agent/graph";
 import type { ChatModelProvider } from "@/server/agent/ports";
@@ -15,6 +16,7 @@ import { CONTEXT, lendingTestSetup, TERMS } from "@/test/lending-setup";
 export type TestGraphOptions = {
   lending?: LendingDeps;
   onboarding?: OnboardingDeps;
+  callbacks?: CallbackDeps;
   isStepUpFresh?: (sessionId: string) => boolean;
   checkpointer?: BaseCheckpointSaver;
   models?: ChatModelProvider;
@@ -29,11 +31,17 @@ export function buildTestGraph(model: BaseChatModel, options: TestGraphOptions =
     models: options.models ?? { chatModel: () => model },
     lending,
     onboarding: options.onboarding ?? onboardingTestDeps(lending),
+    callbacks: options.callbacks ?? callbackTestDeps(lending),
     isStepUpFresh: options.isStepUpFresh ?? (() => true),
     checkpointer: options.checkpointer ?? new MemorySaver(),
     // Retries without real waiting (TESTING_STANDARDS §5).
     modelRetry: { initialDelayMs: 0 },
   });
+}
+
+// Callbacks on the same database as lending.
+export function callbackTestDeps({ db, audit, clock, ids }: LendingDeps): CallbackDeps {
+  return { db, audit, clock, ids, encryptionKey: TEST_ENCRYPTION_KEY };
 }
 
 // Real onboarding on the same database as lending; no applicant is an
@@ -59,20 +67,21 @@ export function testContext(
   };
 }
 
+// A message on the loan journey, as if from the "Check a loan" starter.
 export function sendMessage(
   graph: ConversationGraph,
   threadId: string,
   text: string,
   context = testContext(threadId),
 ) {
-  return graph.invoke({ messages: [new HumanMessage(text)] }, runConfig(threadId, context));
+  return startJourney(graph, threadId, "loan", text, context);
 }
 
 // A message sent from a starter button, which picks the specialist.
 export function startJourney(
   graph: ConversationGraph,
   threadId: string,
-  journey: "loan" | "kyc",
+  journey: "loan" | "kyc" | "human",
   text: string,
   context = testContext(threadId),
 ) {

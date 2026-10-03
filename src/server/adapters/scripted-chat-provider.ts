@@ -5,8 +5,10 @@ import type { ChatModelProvider } from "@/server/agent/ports";
 // stand-in for the specialists' model. It plays them by rule. As the loan
 // agent: with an amount and a term in the customer's last message it asks
 // for an assessment; otherwise it asks for them. As the KYC agent (its
-// prompt names start_account_opening): it opens the form. Everything
-// after that is code, so a journey behaves as it would with a real model.
+// prompt names start_account_opening): it opens the form. As triage, it
+// answers "other", so tests choose journeys with the starter buttons.
+// Everything after that is code, so a journey behaves as it would with a
+// real model.
 export const ASK_FOR_TERMS =
   "How much would you like to borrow, and over how many months? For example: 500,000 over 36 months.";
 export const TERMS_REFUSED =
@@ -41,7 +43,7 @@ export class ScriptedChatProvider implements ChatModelProvider {
   private calls = 0;
 
   chatModel() {
-    const model = fakeModel();
+    const model = fakeModel().structuredResponse({ route: "other" });
     const callId = () => `scripted-call-${++this.calls}`;
     for (let reply = 0; reply < REPLIES_PER_MODEL; reply++) {
       model.respond((messages) => replyTo(messages, callId));

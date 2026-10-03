@@ -14,12 +14,12 @@ import { Label } from "@/components/ui/label";
 import type { KycDetails } from "./turn-client";
 import type { Answer } from "./use-chat";
 
-type CardProps = { isBusy: boolean; onAnswer: (answer: Answer) => Promise<void> };
+export type CardProps = { isBusy: boolean; onAnswer: (answer: Answer) => Promise<void> };
 
 type FieldProps = ComponentProps<typeof Input> & { name: string; label: string; error?: string };
 
 // Each field's message sits under it and is announced with it (FR-WEB-07).
-function Field({ name, label, error, ...input }: FieldProps) {
+export function Field({ name, label, error, ...input }: FieldProps) {
   const id = `kyc-${name}`;
   return (
     <div className="flex flex-col gap-2">

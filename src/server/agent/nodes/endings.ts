@@ -1,5 +1,5 @@
 import { Command, END } from "@langchain/langgraph";
-import { AIMessage, ToolMessage } from "langchain";
+import { AIMessage, HumanMessage, ToolMessage } from "langchain";
 import type { SituationLabel } from "../labels";
 import type { ConversationStateValue } from "../state";
 
@@ -13,12 +13,17 @@ export function fromBank(text: string, id?: string): AIMessage {
   return new AIMessage({ id, content: text, name: BANK_AUTHOR });
 }
 
-// FR-AGT-08: the LLM learns what happened from a label on its own
-// request_assessment call, swapped in place by message ID; the customer
-// sees the code-written template (FR-AGT-07).
+// FR-AGT-08: the LLM learns what happened from a label on its own tool
+// call, swapped in place by message ID; the customer sees the code-written
+// template (FR-AGT-07). Only a call since the customer's latest message
+// is this journey's; an ending reached without one leaves earlier labels
+// as they were.
 export function labelled(state: ConversationStateValue, label: SituationLabel): ToolMessage[] {
-  const call = [...state.messages].reverse().find(ToolMessage.isInstance);
-  if (!call) return [];
+  const sinceCustomer = state.messages.slice(
+    state.messages.findLastIndex((message) => HumanMessage.isInstance(message)) + 1,
+  );
+  const call = sinceCustomer.findLast((message) => ToolMessage.isInstance(message));
+  if (!call || !ToolMessage.isInstance(call)) return [];
   return [new ToolMessage({ id: call.id, tool_call_id: call.tool_call_id, content: label })];
 }
 

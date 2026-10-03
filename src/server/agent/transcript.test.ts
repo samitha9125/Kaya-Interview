@@ -23,7 +23,7 @@ describe("agent/transcript: what the customer may see", () => {
   it("FR-AGT-10: a model reply cut off before validation is never shown", async () => {
     const graph = buildTestGraph(fakeModel().respond(new AIMessage("You're approved!")));
     await graph.invoke(
-      { messages: [new HumanMessage("Am I approved?")] },
+      { messages: [new HumanMessage("Am I approved?")], journey: "loan" as const },
       { ...runConfig("t1", testContext("t1")), interruptBefore: ["validate_reply"] },
     );
 

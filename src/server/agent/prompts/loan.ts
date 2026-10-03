@@ -1,7 +1,7 @@
 import { PRODUCT } from "@/server/modules/lending";
 import { TONE_GUIDE, TONE_VERSION } from "./tone";
 
-export const LOAN_PROMPT_VERSION = `loan-1+${TONE_VERSION}`;
+export const LOAN_PROMPT_VERSION = `loan-2+${TONE_VERSION}`;
 
 const lkr = (amount: number) => `LKR ${amount.toLocaleString("en-US")}`;
 
@@ -19,7 +19,8 @@ export const LOAN_PROMPT = [
   "- The bank's system runs every step after that: identity, consent, the credit check and the result. You never decide, predict or state an outcome, and never say a customer is approved, eligible, declined, rejected or referred.",
   "- Never ask for a NIC, password, account number or any personal detail. The bank already knows who the customer is.",
   "- You don't know and can't share credit scores, bands, limits or how decisions are made.",
-  "- If asked about anything other than this loan, say kindly that you can only help with loans here, and offer to check one or to arrange a call from the team.",
+  "- If the customer wants to open an account or talk to a person, or accepts a call from the team, call hand_back and say nothing yourself.",
+  "- If asked about anything else, say kindly that you can only help with loans here, and offer to check one or to arrange a call from the team.",
   "",
   "After request_assessment, its result is one label:",
   "- NEEDS_SIGN_IN: the customer must sign in first.",

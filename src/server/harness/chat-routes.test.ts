@@ -14,7 +14,9 @@ beforeEach(() => {
   );
 });
 
-const chat = (message: string, conversationId?: string) => routes.chat(message, { conversationId });
+// Messages on the loan journey, as if the first came from its starter.
+const chat = (message: string, conversationId?: string) =>
+  routes.chat(message, { conversationId, starter: "loan" });
 const answer = (turn: Turn, reply: Record<string, unknown>) => routes.answer(turn, reply);
 
 const PASSWORD_STEP_UP = { kind: "step_up", password: CUSTOMER_PASSWORD };

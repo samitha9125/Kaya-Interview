@@ -1,8 +1,13 @@
 import { z } from "zod";
+import {
+  parseCallbackContact,
+  requestCallback,
+  type CallbackDeps,
+} from "@/server/agent/callbacks/requests";
 import type { PendingPause } from "@/server/agent/resume";
 import { stepUp, type Session, type SessionDeps } from "@/server/modules/auth";
 import { recordConsent } from "@/server/modules/lending";
-import { saveKycDraft, type KycFormErrors, type OnboardingDeps } from "@/server/modules/onboarding";
+import { saveKycDraft, type OnboardingDeps } from "@/server/modules/onboarding";
 
 // What the customer did on a card. The server turns it into a reference;
 // the password, the choice and the form never reach the graph (TD11).
@@ -16,6 +21,10 @@ export const Answer = z.discriminatedUnion("kind", [
     form: z.record(z.string(), z.unknown()).nullable(),
   }),
   z.strictObject({ kind: z.literal("kyc_confirm"), confirm: z.boolean() }),
+  z.strictObject({
+    kind: z.literal("callback_form"),
+    contact: z.record(z.string(), z.unknown()).nullable(),
+  }),
 ]);
 export type Answer = z.infer<typeof Answer>;
 
@@ -28,12 +37,12 @@ export type AnswerRequest = {
   correlationId: string;
 };
 
-export type AnswerDeps = SessionDeps & { onboarding: OnboardingDeps };
+export type AnswerDeps = SessionDeps & { onboarding: OnboardingDeps; callbacks: CallbackDeps };
 
 export type Reference =
   | { ok: true; value: unknown; token?: string }
   | { ok: false; failure: "step_up_failed" | "not_signed_in" }
-  | { ok: false; failure: "invalid_form"; fields: KycFormErrors };
+  | { ok: false; failure: "invalid_form"; fields: Partial<Record<string, string>> };
 
 const confirmation = (accepted: boolean) =>
   ({ ok: true, value: accepted ? { confirmed: true } : { declined: true } }) as const;
@@ -50,6 +59,8 @@ export async function referenceFor(request: AnswerRequest, deps: AnswerDeps): Pr
       return confirmation(answer.confirm);
     case "kyc_form":
       return kycFormReference(request, answer.form, deps);
+    case "callback_form":
+      return callbackReference(request, answer.contact, deps);
   }
 }
 
@@ -97,4 +108,30 @@ function kycFormReference(
   const saved = saveKycDraft(form, { conversationId, correlationId, actor }, deps.onboarding);
   if (!saved.ok) return { ok: false, failure: "invalid_form", fields: saved.errors };
   return { ok: true, value: { draftId: saved.draftId } };
+}
+
+// FR-AGT-14: a guest's name and number are checked and stored encrypted;
+// the graph gets the request's ID. The reason is the pause's, read from
+// the checkpoint.
+function callbackReference(
+  { session, pending, correlationId, conversationId }: AnswerRequest,
+  input: Record<string, unknown> | null,
+  deps: AnswerDeps,
+): Reference {
+  if (!input) return { ok: true, value: { declined: true } };
+  if (pending.pause.kind !== "callback_form") {
+    throw new Error("a callback answer reached a different card");
+  }
+  const parsed = parseCallbackContact(input);
+  if (!parsed.ok) return { ok: false, failure: "invalid_form", fields: parsed.errors };
+  const callbackId = requestCallback(
+    {
+      conversationId,
+      correlationId,
+      reason: pending.pause.reason,
+      caller: { guestSessionId: session.id, contact: parsed.contact },
+    },
+    deps.callbacks,
+  );
+  return { ok: true, value: { callbackId } };
 }

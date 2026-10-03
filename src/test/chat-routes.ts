@@ -13,7 +13,7 @@ import { CUSTOMER_NIC } from "@/test/credit-setup";
 import { createTestDatabase } from "@/test/database";
 import { aScore, scriptedBureau } from "@/test/fake-bureau";
 import { movableClock, sequentialIds, TEST_ENCRYPTION_KEY } from "@/test/fakes";
-import { buildTestGraph, onboardingTestDeps } from "@/test/graph";
+import { buildTestGraph, callbackTestDeps, onboardingTestDeps } from "@/test/graph";
 import { GOOD_RECORD } from "@/test/lending-setup";
 import { readEvents } from "@/test/sse";
 
@@ -62,14 +62,16 @@ export function chatRouteSetup(model: BaseChatModel) {
     },
   };
   const onboarding = onboardingTestDeps(lending);
+  const callbacks = callbackTestDeps(lending);
   const graph = buildTestGraph(model, {
     lending,
     onboarding,
+    callbacks,
     isStepUpFresh: (sessionId) => isStepUpFreshFor(sessionId, { db, clock }),
     checkpointer: createCheckpointer(sqlite),
   });
   const deps: ChatRouteDeps = {
-    ...{ db, clock, ids, audit, graph, onboarding },
+    ...{ db, clock, ids, audit, graph, onboarding, callbacks },
     idempotency: createIdempotency({ db, clock }),
     logger: createLogger({ write: () => {} }),
     turnLock: createTurnLock(),

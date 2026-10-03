@@ -1,5 +1,6 @@
 import { AIMessage, HumanMessage, SystemMessage, ToolMessage } from "langchain";
 import { describe, expect, it } from "vitest";
+import { z } from "zod";
 import { ASK_FOR_TERMS, ScriptedChatProvider, TERMS_REFUSED } from "./scripted-chat-provider";
 
 async function replyTo(...messages: (SystemMessage | HumanMessage | AIMessage | ToolMessage)[]) {
@@ -49,5 +50,15 @@ describe("adapters/scripted-chat-provider: a rule-played loan agent for tests (T
     );
 
     expect(reply.tool_calls).toMatchObject([{ name: "start_account_opening", args: {} }]);
+  });
+
+  it("TD25: playing triage, it routes everything to the redirect", async () => {
+    const model = new ScriptedChatProvider().chatModel();
+
+    const route = await model
+      .withStructuredOutput(z.object({ route: z.string() }))
+      .invoke([new HumanMessage("Hello")]);
+
+    expect(route).toEqual({ route: "other" });
   });
 });
