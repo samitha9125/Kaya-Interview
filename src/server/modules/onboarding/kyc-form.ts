@@ -22,6 +22,14 @@ const NAME = /^[\p{L} .'-]+$/u;
 // A Sri Lankan mobile number: 07X XXX XXXX, or +94 7X XXX XXXX.
 const MOBILE = /^(?:\+94|0)(7\d{8})$/;
 
+// FR-ONB-01, kept in one canonical form: 07XXXXXXXX. Also used by the
+// callback form.
+export const MobileNumber = z
+  .string({ error: MESSAGES.mobileNumber })
+  .transform((value) => value.replace(/[\s-]/g, ""))
+  .pipe(z.string().regex(MOBILE, { error: MESSAGES.mobileNumber }))
+  .transform((value) => `0${MOBILE.exec(value)?.[1] ?? ""}`);
+
 const isRealDate = (value: string) =>
   ISO_DATE.test(value) &&
   !Number.isNaN(Date.parse(value)) &&
@@ -47,11 +55,7 @@ function formSchema(now: Date) {
           .refine(isRealDate, { error: MESSAGES.dateOfBirth })
           .refine((value) => value <= sriLankaDay(now), { error: MESSAGES.futureBirth }),
         address: text(MESSAGES.address, KYC_LIMITS.address),
-        mobileNumber: z
-          .string({ error: MESSAGES.mobileNumber })
-          .transform((value) => value.replace(/[\s-]/g, ""))
-          .pipe(z.string().regex(MOBILE, { error: MESSAGES.mobileNumber }))
-          .transform((value) => `0${MOBILE.exec(value)?.[1] ?? ""}`),
+        mobileNumber: MobileNumber,
         accountType: z.enum(["savings", "current"], { error: MESSAGES.accountType }),
       },
       { error: MESSAGES.form },
