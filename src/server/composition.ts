@@ -1,8 +1,11 @@
 import "server-only";
 import { setTimeout as sleep } from "node:timers/promises";
 import { HttpGovBureau } from "@/server/adapters/http-gov-bureau";
+import { OpenRouterCatalog } from "@/server/adapters/openrouter-catalog";
+import { OpenRouterProvider } from "@/server/adapters/openrouter-provider";
 import { findCustomerNic, LOGIN_RATE_LIMIT } from "@/server/modules/auth";
 import type { GovCreditDeps } from "@/server/modules/gov-credit";
+import type { SettingsDeps } from "@/server/modules/settings";
 import { createAuditLog } from "@/server/platform/audit";
 import { systemClock } from "@/server/platform/clock";
 import { getConfig, type AppConfig } from "@/server/platform/config";
@@ -35,6 +38,7 @@ function createApp(config: AppConfig) {
     sleep: (ms) => sleep(ms),
     random: Math.random,
   };
+  const settings: SettingsDeps = { db, audit, clock, catalog: new OpenRouterCatalog() };
   return {
     config,
     db,
@@ -43,6 +47,8 @@ function createApp(config: AppConfig) {
     logger,
     audit,
     credit,
+    settings,
+    models: new OpenRouterProvider({ apiKey: config.OPENROUTER_API_KEY }),
     idempotency: createIdempotency({ db, clock }),
     loginLimiter: createRateLimiter({ ...LOGIN_RATE_LIMIT, clock }),
     chatLimiter: createRateLimiter({ ...CHAT_RATE_LIMIT, clock }),
