@@ -31,8 +31,8 @@ Every change, including bug fixes, must stay within these. If a change needs to 
 
 ## Git
 
-- Branches: `main` holds reviewed milestones only; `develop` is the integration branch. Work happens on short-lived branches cut from `develop` (`feat/…`, `fix/…`, `chore/…`, `docs/…`), one plan task per PR into `develop`, squash merge. `develop` merges into `main` (merge commit, not squash) at the end, tagged as a release.
-- Conventional Commits, enforced by commitlint locally and on PR titles in CI. Suggested scopes: `triage`, `loan`, `kyc`, `credit`, `auth`, `admin`, `audit`, `ui`, `evals`, `deps`, `security`.
+- Branches: `main` holds reviewed milestones only; `develop` is the integration branch. Work happens on short-lived branches cut from `develop` (`feat/…`, `fix/…`, `chore/…`, `docs/…`), one plan task per branch. No PRs: a finished task is merged into `develop` with `git merge --no-ff`, so each task stays one visible unit in the history, and the branch is deleted. `develop` merges into `main` (merge commit) at the end, tagged as a release.
+- Conventional Commits, enforced by commitlint in the `commit-msg` hook. Suggested scopes: `triage`, `loan`, `kyc`, `credit`, `auth`, `admin`, `audit`, `ui`, `evals`, `deps`, `security`.
 - Atomic commits whose body explains *why*. Never mix formatting with behaviour changes.
 - Update `CHANGELOG.md` under **Unreleased** for user-visible changes. Releases are git tags.
 - Hooks: pre-commit (lint-staged + secret scan), commit-msg (commitlint), pre-push (typecheck + tests). Don't bypass them with `--no-verify`.

@@ -64,6 +64,6 @@ Once T3 is done, **the agent skeleton (T4, T13), identity (T5–T7b), credit (T8
 2. the PNG export (keep the Mermaid diagrams);
 3. UI styling beyond shadcn defaults.
 
-## Open questions
+## Resolved questions
 
-1. Is **"no PRs" permanent?** If so, T0 also updates the README, the PR template, `CLAUDE.md` and the CI PR-title job to match the branch → `--no-ff` merge flow.
+1. **"No PRs" is permanent** (Checkpoint A, TD21). The PR template and the CI PR-title job are gone; CI runs on pushes to `develop` and `main`. The flow is task branch → `--no-ff` merge into `develop` → `develop` merged into `main` at the end.

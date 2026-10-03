@@ -231,6 +231,12 @@ Each dependency added during the build gets one line here.
 |---|---|---|
 | Node 24 LTS · **Node 25** | Node 25 (`.nvmrc`, `engines`, `@types/node` 25) | The user's call at Checkpoint A: it's the Node the project is developed on. The T2 spike was re-run on it: better-sqlite3 rebuilds, and the checkpointer and the full suite pass. Cost: 25 is a current release, not LTS, so its support window is shorter; moving back to 24 LTS is a one-line `.nvmrc` change plus a native rebuild |
 
+### TD21. No pull requests
+
+| Options | Choice | Trade-off |
+|---|---|---|
+| A PR per task, squash-merged · **a branch per task, merged into `develop` with `--no-ff`** | Branch + `--no-ff` merge, permanently (the user's call at Checkpoint A) | One developer and no second reviewer, so a PR would be ceremony. `--no-ff` keeps each task one visible unit in the history while keeping its atomic commits, which a squash would flatten. commitlint checks every commit in the `commit-msg` hook, so the CI PR-title job and the PR template went. Cost: no PR page to review a task on; the merge commit and `tasks/todo.md` stand in for it |
+
 ## 3. Deferred: right idea, wrong time
 
 | ID | Item | Why not now | When / how to add |
