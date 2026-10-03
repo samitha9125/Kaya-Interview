@@ -43,6 +43,13 @@
       "when": 1791027369638,
       "tag": "0005_mock_gov_tables",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "6",
+      "when": 1791027757532,
+      "tag": "0006_gov_credit_tables",
+      "breakpoints": true
     }
   ]
 }
