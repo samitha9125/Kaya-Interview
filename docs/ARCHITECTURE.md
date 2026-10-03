@@ -28,16 +28,32 @@ The structure of the bank assistant and the rules that keep it that way. **What*
 ## 3. System view
 
 ```mermaid
-flowchart TB
-  web["Web: Chat · Settings (Next.js, shadcn/ui)"] --> harness
-  harness["Harness: route handlers + request pipeline"] --> agent & modules
-  agent["Agent: LangGraph router graph"] --> modules
-  modules["Domain modules: auth · settings · gov-credit · lending · onboarding"] --> platform
-  platform["Platform: db · crypto · audit · config · logger"]
-  modules -. ports .- adapters
-  agent -. port .- adapters
-  adapters["Adapters: HttpGovBureau · OpenRouterProvider · OpenRouterCatalog"] -. HTTPS .-> ext["Government API (mocked) · OpenRouter"]
+flowchart LR
+  browser["Browser<br/>chat · settings"]
+  subgraph app["Next.js app · one Node process"]
+    direction TB
+    harness["Harness<br/>route handlers · request checks"]
+    agent["Agent<br/>LangGraph graph · prompts · tools"]
+    modules["Domain modules<br/>auth · settings · gov-credit<br/>lending · onboarding"]
+    platform["Platform<br/>db · crypto · audit · config · logger"]
+    adapters["Adapters"]
+    harness --> agent
+    harness --> modules
+    agent --> modules
+    modules --> platform
+    agent -.->|port| adapters
+    modules -.->|port| adapters
+  end
+  db[("SQLite<br/>one file")]
+  llm["OpenRouter<br/>the bank's own key"]
+  gov["Government credit API<br/>mocked · served at /api/mock-gov"]
+  browser -->|HTTPS| harness
+  platform --> db
+  adapters -->|HTTPS| llm
+  adapters -->|"HTTP + API key"| gov
 ```
+
+Solid arrows are direct calls. Dotted arrows go through a port (§5), so the domain code never knows which provider or endpoint sits behind it. The mocked government API runs in the same server but is reached over HTTP, exactly like the real one would be.
 
 ## 4. Dependency rules
 
@@ -95,23 +111,88 @@ src/
 
 ## 7. Agent graph
 
+Three LLM nodes (triage, loan, KYC), each with its own model. Everything else is code. The shapes mean the same thing in all three diagrams:
+
+| Shape | Meaning |
+|---|---|
+| Amber, rounded | An LLM node |
+| Plain rectangle | A code node |
+| Blue, double-edged | A pause (`interrupt()`): the customer answers in a secure card, never in chat |
+| Green pill | What the customer ends up seeing, always from a template |
+
+**7.1 Routing a turn.** Routing is sticky: triage runs only when no journey is active, and the starter buttons skip it. A specialist hands the turn back to triage when the customer changes topic.
+
 ```mermaid
 flowchart LR
-  T([turn]) --> R{active journey<br/>or starter button?}
-  R -- no --> TR[Triage LLM]
-  R -- loan --> L
-  R -- kyc --> K
-  TR --> L & K & H[Callback] & O[Redirect]
-  L[Loan agent LLM] -- assessment requested --> SU[[Step-up]] --> C[[Consent]] --> CC[Credit check] --> D[Rules + confidence]
-  D -- eligible, confident --> E[Eligible] --> CF[[Confirm]] --> S[Submit]
-  D -- not eligible, confident --> NE[Not eligible · ends]
-  D -- below threshold or hard rule --> REF[Referral created]
-  K[KYC agent LLM] -- form requested --> F[[KYC form]] --> KC[[Confirm]] --> KS[Pending application]
+  msg([Customer message]) --> active{Journey active<br/>or starter button?}
+  active -->|no| triage(Triage)
+  active -->|loan| loan(Loan agent)
+  active -->|account| kyc(KYC agent)
+  active -->|talk to a person| callback[Callback]
+  triage --> loan
+  triage --> kyc
+  triage --> callback
+  triage --> redirect([Short reply: not something we handle here])
+  loan -->|text reply| validate[Validate reply]
+  kyc -->|text reply| validate
+  validate --> shown([Reply shown])
+  classDef llm fill:#fef3c7,stroke:#d97706,color:#1c1917
+  classDef pause fill:#dbeafe,stroke:#2563eb,color:#1c1917
+  classDef ending fill:#dcfce7,stroke:#16a34a,color:#1c1917
+  class triage,loan,kyc llm
+  class redirect,shown ending
 ```
 
-- **LLM nodes:** triage, loan and KYC (three roles, model chosen per role). Everything else is code.
-- **`[[ ]]` = `interrupt()`.** The UI shows a secure input. The answer goes to the server, which verifies or stores it and resumes the graph with a **reference only**: never through the LLM, never into saved state. A node that pauses does nothing before its `interrupt()`.
-- **Routing is sticky:** triage runs only when no journey is active or the topic changes; starter buttons skip it.
+**7.2 Loan journey.** The loan agent can only ask for a check; every gate after that is code.
+
+```mermaid
+flowchart LR
+  ask(Loan agent asks<br/>for a check) --> gate{Signed in?<br/>Application open?}
+  gate -->|not signed in| e1([Please sign in])
+  gate -->|already open| e2([Status of that application])
+  gate -->|ok| stepup[[Password again<br/>if older than 5 min]]
+  stepup --> consent[[Consent to<br/>the credit check]]
+  consent --> check[Credit check<br/>score · rules · confidence]
+  consent -->|declined| e7([No check made])
+  check -->|"eligible, confidence ≥ threshold"| confirm[[Confirm the<br/>application]]
+  check -->|not eligible| e4([Not eligible, with the reason])
+  check -->|"below threshold or a hard rule"| e5([Referred to a loan officer])
+  check -->|no score available| e6([Check unavailable, next step])
+  confirm --> submit[Submit<br/>password again if needed]
+  confirm -->|declined| e8([Not sent])
+  submit --> e3([Application submitted])
+  classDef llm fill:#fef3c7,stroke:#d97706,color:#1c1917
+  classDef pause fill:#dbeafe,stroke:#2563eb,color:#1c1917
+  classDef ending fill:#dcfce7,stroke:#16a34a,color:#1c1917
+  class ask llm
+  class stepup,consent,confirm pause
+  class e1,e2,e3,e4,e5,e6,e7,e8 ending
+```
+
+The password is checked again right before the score is used and right before submission, because it can go stale while a card is open. How the score itself is obtained is in §11.
+
+**7.3 Account opening and callbacks.**
+
+```mermaid
+flowchart LR
+  kyc(KYC agent asks<br/>for the form) --> form[[KYC form]]
+  form --> kconfirm[[Confirm the details]]
+  kconfirm --> ksave[Save a pending application]
+  ksave --> k1([Pending staff review])
+  form -->|cancelled| k2([Not sent])
+  kconfirm -->|declined| k2
+  callback[Callback] -->|signed in| c1([Request recorded])
+  callback -->|guest| cform[[Contact form]]
+  cform --> c1
+  classDef llm fill:#fef3c7,stroke:#d97706,color:#1c1917
+  classDef pause fill:#dbeafe,stroke:#2563eb,color:#1c1917
+  classDef ending fill:#dcfce7,stroke:#16a34a,color:#1c1917
+  class kyc llm
+  class form,kconfirm,cform pause
+  class k1,k2,c1 ending
+```
+
+A pause card's answer goes to the server, which verifies or stores it and resumes the graph with a **reference only**: never through the LLM, never into saved state. A node that pauses does nothing before its `interrupt()`. The full node list, generated from the compiled graph, is in [`diagrams/agent-graph.mmd`](diagrams/agent-graph.mmd) (`pnpm graph:draw`).
 
 | Mechanism | Used for |
 |---|---|
@@ -130,17 +211,23 @@ flowchart LR
 
 ```mermaid
 sequenceDiagram
+  autonumber
   participant B as Browser
   participant H as Harness
-  participant G as Graph
+  participant G as Agent graph
+  participant D as SQLite
+  Note over B,D: A chat turn
   B->>H: POST /api/chat (message, idempotency key)
-  H->>H: origin · session · rate limit · validation · thread owner · one turn per thread · strip NIC-shaped text
-  H->>G: stream(input, context = signed-in customer)
-  G-->>B: typing · progress · validated reply · interrupt(kind, interruptId)
-  B->>H: POST /api/chat/resume (interruptId, payload, idempotency key)
-  H->>H: interruptId pending for this session and thread? (single use)
-  H->>H: verify password / record consent / store form → reference
-  H->>G: resume with the reference only
+  H->>H: origin, session, rate limit, input, thread owner,<br/>one turn at a time, strip NIC-shaped text
+  H->>G: stream(message, context = signed-in customer)
+  G->>D: checkpoint after every step
+  G-->>B: typing and progress events
+  G-->>B: the validated reply, or a pause card (kind, interrupt ID)
+  Note over B,D: Answering a pause card
+  B->>H: POST /api/chat/resume (interrupt ID, answer, idempotency key)
+  H->>H: is this interrupt ID pending in this thread? (single use)
+  H->>D: verify the password, record consent or store the form
+  H->>G: resume with a reference only
 ```
 
 ## 9. Data
@@ -194,6 +281,30 @@ erDiagram
 **P0 guarantees come from code and deterministic tests, never from evals.**
 
 **External dependencies degrade in one pattern:** bounded retry with backoff → cool-down → last good data (if the business rules allow it) → an honest "not available" with a human next step. Raw errors are mapped at one place: the tool middleware for the LLM, the harness for the browser.
+
+The credit score is that pattern in full, because the government API is the scarcest resource in the system (5 calls a day):
+
+```mermaid
+flowchart TB
+  need([Score needed]) --> fresh{Cached score<br/>younger than 30 days?}
+  fresh -->|yes| reuse([Use it, no call made])
+  fresh -->|no| slot{"Call allowed?<br/>under 5 today, not blocked,<br/>not cooling down"}
+  slot -->|no| stale
+  slot -->|yes| govcall[Call the government API<br/>the slot is counted first]
+  govcall -->|score or no history| save([Save it and use it])
+  govcall -->|429| block[Blocked until Retry-After<br/>or midnight] --> stale
+  govcall -->|other 4xx| stale
+  govcall -->|timeout or 5xx| retry[One retry after about 1 s<br/>counts as a call too]
+  retry -->|ok| save
+  retry -->|fails| cool[Cool down 15 min] --> stale
+  stale{Cached score<br/>up to 90 days old?}
+  stale -->|yes| old([Use it as stale:<br/>always referred to an officer])
+  stale -->|no| none([No score: check unavailable,<br/>offer a call])
+  classDef ending fill:#dcfce7,stroke:#16a34a,color:#1c1917
+  class reuse,save,old,none ending
+```
+
+Every step lands in the audit trail (served from cache, call N of 5, call skipped and why), which is what the demo panel shows.
 
 ## 12. Observability and runtime
 
