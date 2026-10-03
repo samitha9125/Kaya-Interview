@@ -62,8 +62,9 @@ The checklist for [`plan.md`](plan.md). Tick a task when its acceptance and veri
   *Accept:* each mode's response asserted. *Verify:* `pnpm test`. *Deps:* T2, T3.
   *Result:* 22 tests, one per mode and rule. Mutant: counted the 5th call as over the limit → `FR-MOCK-02: call 5 … → 200` failed; reverted. Citizens are keyed by a NIC hash, so no NIC is plain text even in the mock's tables. The admin controls are `POST /api/mock-gov/admin/reset` and `/admin/failure-mode`; only `app/api/mock-gov` may import the mock (lint-enforced, ARCHITECTURE §4).
 
-- [ ] **T9 · `CreditBureau` port and HTTP adapter** (S). 5 s timeout, 404 → no history, other 4xx → failure, zod-validated responses (BR-CRED-06, FR-CRED-02).
+- [x] **T9 · `CreditBureau` port and HTTP adapter** (S). 5 s timeout, 404 → no history, other 4xx → failure, zod-validated responses (BR-CRED-06, FR-CRED-02).
   *Accept:* P0-11; tested against a local fake HTTP server. *Verify:* `pnpm test`. *Deps:* T8.
+  *Result:* 28 tests through a real local HTTP server. Mutant: loosened the response schema to any number → four P0-11 tests failed; reverted. The adapter is wired into the composition root with the credit policy in T10.
 
 - [ ] **T10 · Credit policy** (M). 30-day cache, 90-day stale window, atomic daily budget, 429 block, retry with jitter, 15-minute cool-down, typed results, change tracking (BR-CRED-01…05, 07; FR-CRED-01, 03, 04).
   *Accept:* boundary tables; concurrent last-slot test (P1-04); Stryker ≥ 80% on BR-CRED-01…04 and FR-CRED-01. *Verify:* `pnpm test && pnpm test:mutation`. *Deps:* T9.
