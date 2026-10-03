@@ -1,5 +1,5 @@
-# FR-AGT-01: triage sends a message with no journey to the right place.
-# Target ≥ 95%.
+# FR-AGT-01: triage sends a message with no active journey to the right
+# place, including after a finished loan ending. Target ≥ 95%.
 - description: "routing: a loan request goes to the loan agent"
   metadata: { suite: routing }
   vars: { message: "Hi, could I borrow some money to fix my roof?" }
@@ -24,3 +24,106 @@
   assert:
     - type: javascript
       value: JSON.parse(output).route === "other"
+# Ambiguous wording: no product named, or named indirectly.
+- description: "routing: borrowing for a car goes to the loan agent"
+  metadata: { suite: routing }
+  vars: { message: "How much could I get to buy a used car?" }
+  assert:
+    - type: javascript
+      value: JSON.parse(output).route === "loan"
+- description: "routing: a question about the loan rate goes to the loan agent"
+  metadata: { suite: routing }
+  vars: { message: "Is 14% the interest on your personal loans?" }
+  assert:
+    - type: javascript
+      value: JSON.parse(output).route === "loan"
+- description: "routing: needing cash for an event goes to the loan agent"
+  metadata: { suite: routing }
+  vars: { message: "I need some cash for my wedding next year." }
+  assert:
+    - type: javascript
+      value: JSON.parse(output).route === "loan"
+- description: "routing: what to bring to become a customer goes to the KYC agent"
+  metadata: { suite: routing }
+  vars: { message: "What do I need to bring to become a customer?" }
+  assert:
+    - type: javascript
+      value: JSON.parse(output).route === "kyc"
+- description: "routing: documents for a new account go to the KYC agent"
+  metadata: { suite: routing }
+  vars: { message: "Which documents do I need for a new account?" }
+  assert:
+    - type: javascript
+      value: JSON.parse(output).route === "kyc"
+# Out of scope: the redirect, never a journey.
+- description: "routing: a tax question gets the redirect"
+  metadata: { suite: routing }
+  vars: { message: "Can you help me with my tax return?" }
+  assert:
+    - type: javascript
+      value: JSON.parse(output).route === "other"
+- description: "routing: an exchange-rate question gets the redirect"
+  metadata: { suite: routing }
+  vars: { message: "What's the exchange rate for US dollars today?" }
+  assert:
+    - type: javascript
+      value: JSON.parse(output).route === "other"
+- description: "routing: a greeting with no request gets the redirect"
+  metadata: { suite: routing }
+  vars: { message: "Hello!" }
+  assert:
+    - type: javascript
+      value: JSON.parse(output).route === "other"
+# Asking for a person wins over the topic it's about.
+- description: "routing: asking for a real person goes to a callback"
+  metadata: { suite: routing }
+  vars: { message: "I'd rather speak to a real person." }
+  assert:
+    - type: javascript
+      value: JSON.parse(output).route === "callback"
+- description: "routing: a call about a loan is still a callback"
+  metadata: { suite: routing }
+  vars: { message: "Please ask a loan officer to call me back tomorrow." }
+  assert:
+    - type: javascript
+      value: JSON.parse(output).route === "callback"
+- description: "routing: a call about an account is still a callback"
+  metadata: { suite: routing }
+  vars: { message: "Can someone ring me about opening an account?" }
+  assert:
+    - type: javascript
+      value: JSON.parse(output).route === "callback"
+# A topic switch after a loan ending: triage reads the conversation
+# (follow-up history from after-outcome.ts, no active journey).
+- description: "routing: after an eligible result, opening an account goes to the KYC agent"
+  metadata: { suite: routing }
+  vars: { after: ELIGIBLE, message: "Great. I'd also like to open a savings account." }
+  assert:
+    - type: javascript
+      value: JSON.parse(output).route === "kyc"
+- description: "routing: after a not-eligible result, asking for a call goes to a callback"
+  metadata: { suite: routing }
+  vars:
+    { after: NOT_ELIGIBLE, message: "OK. Can someone from the bank call me to talk it through?" }
+  assert:
+    - type: javascript
+      value: JSON.parse(output).route === "callback"
+- description: "routing: after a referral, an off-topic question gets the redirect"
+  metadata: { suite: routing }
+  vars: { after: REFERRED, message: "Thanks. What's the weather like in Galle?" }
+  assert:
+    - type: javascript
+      value: JSON.parse(output).route === "other"
+- description: "routing: after a check couldn't run, asking for a person goes to a callback"
+  metadata: { suite: routing }
+  vars: { after: CHECK_UNAVAILABLE, message: "Can a person call me instead?" }
+  assert:
+    - type: javascript
+      value: JSON.parse(output).route === "callback"
+# Mixed intent: either journey is acceptable; never the redirect.
+- description: "routing: an account and a loan together go to one of the two journeys"
+  metadata: { suite: routing }
+  vars: { message: "I want to open an account and also borrow 300,000." }
+  assert:
+    - type: javascript
+      value: "['loan', 'kyc'].includes(JSON.parse(output).route)"
