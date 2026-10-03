@@ -67,6 +67,16 @@ const internalMessage = (reference: string) =>
 
 export type FailureBody = { error: { code: FailureKind; message: string; reference: string } };
 
+export function failureBody(
+  kind: FailureKind,
+  correlationId: string,
+  humanMessage?: string,
+): FailureBody {
+  const reference = referenceFor(correlationId);
+  const fallback = kind === "internal" ? internalMessage(reference) : FAILURES[kind].message;
+  return { error: { code: kind, message: humanMessage ?? fallback, reference } };
+}
+
 // A route may give a more specific human message (a zod message such as
 // the 1,000-character limit) but never raw error text.
 export function failureResponse(
@@ -74,9 +84,7 @@ export function failureResponse(
   correlationId: string,
   humanMessage?: string,
 ): Response {
-  const { status, message } = FAILURES[kind];
-  const reference = referenceFor(correlationId);
-  const fallback = kind === "internal" ? internalMessage(reference) : message;
-  const body: FailureBody = { error: { code: kind, message: humanMessage ?? fallback, reference } };
-  return Response.json(body, { status });
+  return Response.json(failureBody(kind, correlationId, humanMessage), {
+    status: FAILURES[kind].status,
+  });
 }
