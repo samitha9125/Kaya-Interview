@@ -7,6 +7,7 @@ import {
   postFailureMode,
   postModelChoice,
   postResetLimit,
+  postResetMyData,
 } from "./settings-routes";
 import { readSettingsView } from "./settings-view";
 
@@ -20,5 +21,6 @@ export const resumeRoute = (request: Request) => postResume(request, app());
 export const modelChoiceRoute = (request: Request) => postModelChoice(request, app());
 export const resetLimitRoute = (request: Request) => postResetLimit(request, app());
 export const clearCacheRoute = (request: Request) => postClearCache(request, app());
+export const resetMyDataRoute = (request: Request) => postResetMyData(request, app());
 export const failureModeRoute = (request: Request) => postFailureMode(request, app());
 export const settingsView = () => readSettingsView(app());

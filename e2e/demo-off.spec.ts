@@ -6,6 +6,7 @@ const DEMO_ROUTES = [
   "/api/demo/reset-limit",
   "/api/demo/clear-cache",
   "/api/demo/failure-mode",
+  "/api/demo/reset-my-data",
   "/api/mock-gov/admin/reset",
   "/api/mock-gov/admin/failure-mode",
 ];

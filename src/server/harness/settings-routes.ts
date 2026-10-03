@@ -1,5 +1,8 @@
 import { z } from "zod";
+import { deleteCustomerConversations } from "@/server/agent/conversations/demo-reset";
 import { clearScoreCache, resetBudget, type GovCreditDeps } from "@/server/modules/gov-credit";
+import { resetCustomerLoans } from "@/server/modules/lending";
+import { deleteKycApplications } from "@/server/modules/onboarding";
 import {
   AGENT_ROLES,
   chooseModel,
@@ -7,6 +10,7 @@ import {
   type MockBureauAdmin,
   type SettingsDeps,
 } from "@/server/modules/settings";
+import { runInTransaction } from "@/server/platform/db";
 import { failureResponse } from "./failures";
 import { handleRoute, type HarnessDeps } from "./pipeline";
 
@@ -15,6 +19,7 @@ export type SettingsRouteDeps = HarnessDeps & {
   settings: SettingsDeps;
   credit: GovCreditDeps;
   mockBureauAdmin: MockBureauAdmin;
+  checkpointer: { deleteThread: (threadId: string) => Promise<void> };
 };
 
 const IdempotencyKey = z.uuid();
@@ -99,6 +104,34 @@ export function postFailureMode(request: Request, deps: SettingsRouteDeps) {
         actor: ACTOR,
         payload: { mode: body.mode },
       });
+      return done();
+    }),
+  );
+}
+
+// Demo only: the signed-in customer's journeys start over, so an ending
+// that blocks a retry ("you already have an application") can be shown
+// again. Each module clears its own tables; the audit trail and the
+// credit cache stay.
+export function postResetMyData(request: Request, deps: SettingsRouteDeps) {
+  const options = { scope: "demo.customer_reset", body: ControlBody, session: "required" as const };
+  return demoOnly(deps, () =>
+    handleRoute(request, options, deps, async ({ session, correlationId }) => {
+      const customerId = session?.customerId;
+      if (!customerId) return failureResponse("not_signed_in", correlationId);
+      const conversationIds = runInTransaction(deps.db, (tx) => {
+        resetCustomerLoans(tx, customerId);
+        const ids = deleteCustomerConversations(tx, customerId);
+        deleteKycApplications(tx, ids);
+        deps.audit.record(tx, {
+          type: "demo.customer_reset",
+          correlationId,
+          actor: customerId,
+          payload: { conversations: ids.length },
+        });
+        return ids;
+      });
+      await Promise.all(conversationIds.map((id) => deps.checkpointer.deleteThread(id)));
       return done();
     }),
   );

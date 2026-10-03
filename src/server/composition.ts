@@ -85,13 +85,14 @@ function createApp(config: AppConfig) {
   if (isScripted) {
     logger.warn("the scripted chat model is in use; replies are rule-played (TD25)");
   }
+  const checkpointer = createCheckpointer(sqlite);
   const graph = buildConversationGraph({
     models,
     lending,
     onboarding,
     callbacks,
     isStepUpFresh: (sessionId) => isStepUpFreshFor(sessionId, { db, clock }),
-    checkpointer: createCheckpointer(sqlite),
+    checkpointer,
   });
   return {
     config,
@@ -107,6 +108,7 @@ function createApp(config: AppConfig) {
     callbacks,
     models,
     graph,
+    checkpointer,
     mockBureauAdmin: new HttpMockBureauAdmin(govApiBaseUrl),
     idempotency: createIdempotency({ db, clock }),
     loginLimiter: createRateLimiter({ ...LOGIN_RATE_LIMIT, clock }),

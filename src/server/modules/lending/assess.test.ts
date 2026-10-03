@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { aScore, scriptedBureau } from "@/test/fake-bureau";
 import { CONTEXT, lendingTestSetup, TERMS } from "@/test/lending-setup";
 import { expectOk } from "@/test/results";
-import { assessLoan, recordConsent } from "./index";
+import { assessLoan, recordConsent, resetCustomerLoans } from "./index";
 
 describe("lending/assessLoan: consent comes first (BR-LEND-07)", () => {
   it("BR-LEND-07: an unknown consent ID → no_consent, and the bureau is not called", async () => {
@@ -54,5 +54,28 @@ describe("lending/assessLoan: the audit explains the decision", () => {
       confidenceReasons: [{ code: "score_near_band_edge", penaltyBp: 1_000 }],
     });
     expect(payload).not.toContain("760");
+  });
+});
+
+describe("lending/resetCustomerLoans: the demo reset (Settings)", () => {
+  it("P0-04: resetting one customer's demo data leaves every other customer's untouched", async () => {
+    // 760 sits near a band edge, so each assessment is a referral with an
+    // application: every lending table gets a row for both customers.
+    const setup = lendingTestSetup(scriptedBureau([aScore(760), aScore(760)]).bureau);
+    const assessFor = async (customerId: string) => {
+      const context = { ...CONTEXT, customerId };
+      const consent = expectOk(recordConsent({ ...context, ...TERMS }, setup.deps));
+      await assessLoan({ ...context, consentId: consent.consentId }, setup.deps);
+    };
+    await assessFor("customer-a");
+    await assessFor("customer-b");
+
+    resetCustomerLoans(setup.deps.db, "customer-a");
+
+    const owners = (table: string) =>
+      setup.handle.sqlite.prepare(`SELECT customer_id FROM ${table}`).pluck().all();
+    expect(owners("consents")).toEqual(["customer-b"]);
+    expect(owners("loan_assessments")).toEqual(["customer-b"]);
+    expect(owners("loan_applications")).toEqual(["customer-b"]);
   });
 });

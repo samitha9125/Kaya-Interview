@@ -1,6 +1,7 @@
 import "server-only";
 export { findOpenApplication } from "./applications";
 export { assessLoan } from "./assess";
+export { resetCustomerLoans } from "./demo-reset";
 export { PRODUCT } from "./config";
 export { LoanTerms, recordConsent, type ConsentResult } from "./consent";
 export {
