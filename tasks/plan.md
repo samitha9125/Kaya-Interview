@@ -37,7 +37,7 @@ Full tasks, acceptance criteria and checkpoints are in [`todo.md`](todo.md).
 
 ## After T21: review and hardening
 
-Manual testing and three read-only reviews (against the standards, against the requirements, and a docs-versus-code audit) found gaps the plan hadn't foreseen. Each fix touched a few files and they came one after another, so they went straight onto `develop` as small commits rather than task branches. Vitest grew from 91 to 146 cases over this phase.
+Manual testing and three read-only reviews (against the standards, against the requirements, and a docs-versus-code audit) found gaps the plan hadn't foreseen. Each fix touched a few files and they came one after another, so they went straight onto `develop` as small commits rather than task branches. Vitest grew from 91 to 157 cases over this phase.
 
 | Area | What changed | Example commits |
 |---|---|---|
