@@ -12,6 +12,7 @@ import {
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { CallbackFormCard } from "./callback-card";
 import { KycConfirmCard, KycFormCard } from "./kyc-cards";
 import type { Pause } from "./turn-client";
 import type { Answer } from "./use-chat";
@@ -59,6 +60,9 @@ export function PauseCard({ pause, isBusy, error, fieldErrors, onAnswer }: Pause
       )}
       {pause.kind === "kyc_confirm" && (
         <KycConfirmCard isBusy={isBusy} onAnswer={onAnswer} details={pause.details} />
+      )}
+      {pause.kind === "callback_form" && (
+        <CallbackFormCard isBusy={isBusy} onAnswer={onAnswer} fieldErrors={fieldErrors} />
       )}
       {error && (
         <CardContent>
