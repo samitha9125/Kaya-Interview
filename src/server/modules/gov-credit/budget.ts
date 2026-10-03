@@ -42,6 +42,13 @@ export function coolDownUntil(db: AppDatabase, until: Date, now: Date): void {
   );
 }
 
+// For the Settings screen: attempts made in today's Sri Lanka window.
+export function attemptsToday(db: AppDatabase, now: Date): number {
+  const today = sriLankaDay(now);
+  const state = readState(db, today);
+  return state.day === today ? state.attempts : 0;
+}
+
 // FR-SET-04: the demo control clears today's count, the block and the
 // cool-down, so a fresh check is allowed again.
 export function resetBudget(db: AppDatabase, now: Date): void {

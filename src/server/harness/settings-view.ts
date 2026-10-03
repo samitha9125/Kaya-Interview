@@ -9,11 +9,13 @@ import {
   type MockFailureMode,
   type SettingsDeps,
 } from "@/server/modules/settings";
+import { attemptsToday, type GovCreditDeps } from "@/server/modules/gov-credit";
 import type { AppConfig } from "@/server/platform/config";
 
 export type SettingsViewDeps = {
   config: Pick<AppConfig, "DEMO_MODE" | "OPENROUTER_API_KEY" | "AUTO_DECISION_THRESHOLD">;
   settings: SettingsDeps;
+  credit: GovCreditDeps;
 };
 
 export type RoleChoice = { role: AgentRole; modelId: string; isFlagged: boolean };
@@ -26,6 +28,7 @@ export type SettingsView = {
   models: CatalogModel[] | null;
   roles: RoleChoice[];
   failureModes: readonly MockFailureMode[];
+  govChecks: { usedToday: number; perDay: number };
 };
 
 // What the Settings screen shows, and nothing more: the key's status, never
@@ -46,5 +49,9 @@ export async function readSettingsView(deps: SettingsViewDeps): Promise<Settings
       isFlagged: catalog.ok && !availability[role].isListed,
     })),
     failureModes: MOCK_FAILURE_MODES,
+    govChecks: {
+      usedToday: attemptsToday(deps.credit.db, deps.credit.clock.now()),
+      perDay: deps.credit.bureau.callsPerDay,
+    },
   };
 }

@@ -1,106 +1,201 @@
 "use client";
 
-import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { useState, type ReactNode } from "react";
 import { postJson } from "@/components/api";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
-import { Label } from "@/components/ui/label";
 
 // What each mode does to the mock government service (SPEC §6.9).
-const MODE_NAMES: Record<string, string> = {
-  normal: "Normal",
-  slow: "Slow (answers after our 5-second timeout)",
-  error: "Error (500)",
-  rate_limited: "Rate limited (429, retry in an hour)",
-  down: "Down (503)",
+const MODES: Record<string, { name: string; effect: string }> = {
+  normal: { name: "Normal", effect: "Answers every check." },
+  slow: { name: "Slow", effect: "Answers after our 5-second timeout, so checks fail." },
+  error: { name: "Error", effect: "Fails with a server error (500)." },
+  rate_limited: { name: "Rate limited", effect: "Refuses with 429 and asks us to wait an hour." },
+  down: { name: "Down", effect: "Doesn't answer at all (503)." },
 };
 
-export function DemoControls({ failureModes }: { failureModes: readonly string[] }) {
-  const [mode, setMode] = useState(failureModes[0] ?? "normal");
-  const [isBusy, setIsBusy] = useState(false);
-  const [status, setStatus] = useState<string | null>(null);
-  const [error, setError] = useState<string | null>(null);
+type Feedback = { row: string; text: string; isError: boolean };
 
-  async function run(url: string, body: Record<string, unknown>, done: string) {
-    setIsBusy(true);
-    setStatus(null);
-    setError(null);
+type DemoControlsProps = {
+  failureModes: readonly string[];
+  govChecks: { usedToday: number; perDay: number };
+  isCustomer: boolean;
+};
+
+export function DemoControls({ failureModes, govChecks, isCustomer }: DemoControlsProps) {
+  const router = useRouter();
+  const [mode, setMode] = useState(failureModes[0] ?? "normal");
+  const [busyRow, setBusyRow] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<Feedback | null>(null);
+  const [isConfirming, setIsConfirming] = useState(false);
+
+  async function run(row: string, url: string, body: Record<string, unknown>, done: string) {
+    setBusyRow(row);
+    setFeedback(null);
     const result = await postJson(url, body);
-    setIsBusy(false);
-    if (result.ok) setStatus(done);
-    else setError(result.message);
+    setBusyRow(null);
+    setFeedback({ row, text: result.ok ? done : result.message, isError: !result.ok });
+    if (result.ok) router.refresh();
   }
 
+  const note = (row: string) =>
+    feedback?.row === row && (
+      <p
+        role={feedback.isError ? "alert" : "status"}
+        className={`text-sm ${feedback.isError ? "text-destructive" : "text-success"}`}
+      >
+        {feedback.text}
+      </p>
+    );
+
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap gap-2">
+    <ul className="flex flex-col divide-y px-(--card-spacing)">
+      <ControlRow
+        title="Reset my demo data"
+        description={
+          isCustomer
+            ? "Clears your applications and conversations so you can try a journey again."
+            : "Sign in as a demo customer to use this."
+        }
+        note={note("data")}
+      >
+        <AlertDialog open={isConfirming} onOpenChange={setIsConfirming}>
+          <AlertDialogTrigger
+            render={
+              <Button variant="destructive" disabled={!isCustomer || busyRow !== null}>
+                Reset my data
+              </Button>
+            }
+          />
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Reset your demo data?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Clears your applications and conversations so you can try again. The audit log is
+                kept.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogAction
+                variant="destructive"
+                onClick={() => {
+                  setIsConfirming(false);
+                  void run("data", "/api/demo/reset-my-data", {}, "Your demo data is cleared.");
+                }}
+              >
+                Reset my data
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </ControlRow>
+      <ControlRow
+        title="Reset today's government limit"
+        description={`Allows ${govChecks.perDay} more credit checks today. ${govChecks.usedToday} of ${govChecks.perDay} used.`}
+        note={note("limit")}
+      >
         <Button
           variant="outline"
-          disabled={isBusy}
+          disabled={busyRow !== null}
           onClick={() =>
-            void run(
-              "/api/demo/reset-limit",
-              {},
-              "Today's government limit is reset. A fresh credit check is allowed.",
-            )
+            void run("limit", "/api/demo/reset-limit", {}, "Today's government limit is reset.")
           }
         >
-          Reset today&apos;s government limit
+          Reset limit
         </Button>
+      </ControlRow>
+      <ControlRow
+        title="Clear the credit cache"
+        description="The next check fetches a fresh score."
+        note={note("cache")}
+      >
         <Button
           variant="outline"
-          disabled={isBusy}
+          disabled={busyRow !== null}
           onClick={() =>
-            void run(
-              "/api/demo/clear-cache",
-              {},
-              "The credit cache is cleared. The next check asks the government service.",
-            )
+            void run("cache", "/api/demo/clear-cache", {}, "The credit cache is cleared.")
           }
         >
-          Clear the credit cache
+          Clear cache
         </Button>
-      </div>
-      <div className="flex flex-col gap-2">
-        <Label htmlFor="failure-mode">Government service behaviour</Label>
+      </ControlRow>
+      <ControlRow
+        title="Government service behaviour"
+        titleFor="failure-mode"
+        description={MODES[mode]?.effect ?? ""}
+        note={note("mode")}
+      >
         <div className="flex gap-2">
           <select
             id="failure-mode"
             value={mode}
             onChange={(event) => setMode(event.target.value)}
-            disabled={isBusy}
-            className="h-9 min-w-0 flex-1 rounded-md border bg-background px-2 text-sm"
+            disabled={busyRow !== null}
+            className="h-9 min-w-0 flex-1 rounded-md border border-input bg-background px-2 text-sm focus-visible:ring-3 focus-visible:ring-ring/50 focus-visible:outline-none sm:w-40"
           >
             {failureModes.map((value) => (
               <option key={value} value={value}>
-                {MODE_NAMES[value] ?? value}
+                {MODES[value]?.name ?? value}
               </option>
             ))}
           </select>
           <Button
             variant="outline"
-            disabled={isBusy}
+            disabled={busyRow !== null}
             onClick={() =>
               void run(
+                "mode",
                 "/api/demo/failure-mode",
                 { mode },
-                `The government service is now: ${MODE_NAMES[mode] ?? mode}.`,
+                `The government service is now: ${MODES[mode]?.name ?? mode}.`,
               )
             }
           >
             Apply
           </Button>
         </div>
+      </ControlRow>
+    </ul>
+  );
+}
+
+type ControlRowProps = {
+  title: string;
+  titleFor?: string;
+  description: string;
+  note: ReactNode;
+  children: ReactNode;
+};
+
+// One control: what it does on the left, the action on the right (stacked
+// on a phone).
+function ControlRow({ title, titleFor, description, note, children }: ControlRowProps) {
+  return (
+    <li className="flex flex-col gap-3 py-4 first:pt-0 last:pb-0 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-col gap-1">
+        {titleFor ? (
+          <label htmlFor={titleFor} className="text-sm font-medium">
+            {title}
+          </label>
+        ) : (
+          <p className="text-sm font-medium">{title}</p>
+        )}
+        <p className="text-sm text-muted-foreground">{description}</p>
+        {note}
       </div>
-      {status && (
-        <p role="status" className="text-sm text-muted-foreground">
-          {status}
-        </p>
-      )}
-      {error && (
-        <p role="alert" className="text-sm text-destructive">
-          {error}
-        </p>
-      )}
-    </div>
+      <div className="shrink-0">{children}</div>
+    </li>
   );
 }
