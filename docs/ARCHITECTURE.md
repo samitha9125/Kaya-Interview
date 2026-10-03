@@ -67,7 +67,7 @@ Enforced by ESLint (`eslint.boundaries.mjs`): `import/no-restricted-paths` for l
 | `server/modules/*` | their own ports, platform, other modules' `index.ts` (acyclic) | LangChain/LangGraph, agent, harness, adapters |
 | `server/adapters` | port types, platform, external SDKs | domain logic |
 | `server/platform` | nothing above it | everything above it |
-| `server/mock-gov` | platform | anything else. Only its own route files (`app/api/mock-gov`) import it; everything else reaches it over HTTP like a real external API |
+| `server/mock-gov` | platform | anything else. Only its own route files (`app/api/mock-gov`) and the demo seed script import it; the app reaches it over HTTP like a real external API |
 
 ## 5. Ports and adapters
 
@@ -95,7 +95,7 @@ For E2E only (`E2E_SCRIPTED_MODEL`), `ScriptedChatProvider` and `StaticModelCata
 | `gov-credit` | Credit-score policy: cache, daily budget, backoff, stale fallback | platform | `credit_score_cache`, `gov_api_budget` |
 | `lending` | Eligibility rules, confidence, assessments, applications, referrals | gov-credit, platform | `consents`, `loan_assessments`, `loan_applications` |
 | `onboarding` | KYC validation, pending account applications | platform | `kyc_applications` |
-| `agent` | Graph, prompts, tools, middleware | all modules | `conversations`, `callback_requests`, checkpoints |
+| `agent` | Graph, prompts, tools, middleware | all modules | `conversations`, `callback_requests`, `checkpoints`, `writes` |
 | `mock-gov` | The simulated government service | platform | `mock_gov_*` (separate on purpose) |
 
 Build order follows the dependency column: platform → auth → settings, gov-credit → lending, onboarding → agent → web.
@@ -197,15 +197,15 @@ A pause card's answer goes to the server, which verifies or stores it and resume
 | Mechanism | Used for |
 |---|---|
 | `contextSchema` + `ToolRuntime.context` | The harness supplies the customer's identity; tools take no identity arguments |
-| `interrupt(…, { responseSchema })` + `Command({ resume: { [id]: … } })` | Step-up, consent, KYC form, confirmation. Resume values are validated references, resumed by interrupt ID. An ID is single-use because it must still be pending in **that thread's** checkpoint; the turn lock (FR-WEB-03) stops two resumes racing |
+| `interrupt(…, { responseSchema })` + `Command({ resume: { [id]: … } })` | Six pause kinds: step-up, consent, confirm, KYC form, KYC confirm, callback contact form. Resume values are validated references, resumed by interrupt ID. An ID is single-use because it must still be pending in **that thread's** checkpoint, and only the conversation's owner can resume it; the turn lock (FR-WEB-03) stops two resumes racing |
 | `Command({ goto, graph: Command.PARENT })` | Specialist → deterministic steps, and hand-back to triage. Returned by a specialist's tool; the specialist runs in a wrapper node that calls `agent.invoke` (proven in T4) |
-| `Command({ goto })` from gate nodes | Gates: sign-in, step-up, consent, hard referral rules, confidence threshold |
+| `Command({ goto })` from gate nodes | Gates: sign-in, an open application, step-up, consent. The hard referral rules and the confidence threshold run inside `lending`; the credit-check node only routes on the outcome it gets back |
 | Conditional edges | Only at `START` (sticky routing) and after a specialist (a text reply goes to `validate_reply`) |
 | `createAgent` middleware | Call limits, model retry, personal-data redaction, tool failure → situation label |
 | Node `retryPolicy` / `timeout` / `errorHandler` | The credit-check node |
 | SQLite checkpointer, `durability: "sync"` | Conversations survive restarts; a replayed step is safe because its side effects are idempotent |
 | `stream()` with `custom` | Progress events written by code nodes through `config.writer`. LLM replies are buffered, validated, then read back from the checkpoint and sent whole (TD25) |
-| `validate_reply` node | After a specialist's text reply: decision wording with no decision in state is replaced by the template, keeping the message ID so the reducer swaps it in place |
+| `validate_reply` node | After a specialist's text reply: a claimed outcome must match the decision in state, or the reply is replaced by the template. A reply that mentions a score, a band or a line of its own instructions is replaced too. The message ID is kept, so the reducer swaps the text in place. This is a word-level check, so it is best-effort (SPEC P0-05) |
 
 ## 8. Request lifecycle
 
@@ -218,7 +218,7 @@ sequenceDiagram
   participant D as SQLite
   Note over B,D: A chat turn
   B->>H: POST /api/chat (message, idempotency key)
-  H->>H: origin, session, rate limit, input, thread owner,<br/>one turn at a time, strip NIC-shaped text
+  H->>H: origin, rate limit, session, input, idempotency key,<br/>thread owner, one turn at a time, strip NIC-shaped text
   H->>G: stream(message, context = signed-in customer)
   G->>D: checkpoint after every step
   G-->>B: typing and progress events
@@ -230,23 +230,64 @@ sequenceDiagram
   H->>G: resume with a reference only
 ```
 
-## 9. Data
+## 9. Database design
+
+One SQLite file in WAL mode, with foreign keys on and a 5-second busy timeout. Each module declares its tables in a Drizzle schema, which is the single source for columns; the SQL migrations live in `drizzle/`. LangGraph's checkpointer creates its own two tables.
 
 ```mermaid
 erDiagram
-  customers ||--o{ sessions : has
-  customers ||--o{ conversations : owns
-  customers ||--o{ consents : gives
-  customers ||--o| credit_score_cache : has
-  customers ||--o{ loan_assessments : requests
-  loan_assessments ||--o| loan_applications : "leads to"
-  conversations ||--o{ audit_events : records
+  customers ||--o{ sessions : "signs in with"
+  customers ||..o{ conversations : owns
+  sessions ||..o{ conversations : "owns, as a guest"
+  customers ||..o| credit_score_cache : "cached score"
+  customers ||..o{ consents : gives
+  conversations ||..o{ consents : "given in"
+  consents ||--o| loan_assessments : "one decision each"
+  loan_assessments ||--o| loan_applications : "at most one"
+  conversations ||..o{ kyc_applications : starts
+  conversations ||..o{ callback_requests : raises
+  conversations ||..o{ audit_events : records
+  conversations ||..|| checkpoints : "graph state"
+  gov_api_budget {
+    text day
+    int attempts
+  }
+  idempotency_keys {
+    text scope
+    text key
+  }
+  settings {
+    text key
+  }
 ```
 
-- **Ownership:** only the owning module writes its tables (§6). Others call its public functions.
-- **At rest:** NIC and KYC fields are encrypted (AES-256-GCM); session tokens are stored hashed; passwords use `scrypt`.
-- **Integrity:** every state-changing action has an idempotency key with a unique constraint; keys for steps inside the graph are derived from business identity, so replays find the earlier result. A decision and its audit record are written in one transaction. An application can only come from an assessment.
-- Column-level detail lives in the Drizzle schema, which is the single source.
+Solid lines are real foreign keys; there are three. Dotted lines are links the owning module enforces in code. Each table belongs to one module, and only that module writes it (§6).
+
+| Owner | Table | Holds | Key constraints |
+|---|---|---|---|
+| platform | `audit_events` | The audit trail | Triggers refuse `UPDATE` and `DELETE`; written only through `platform/audit` |
+| platform | `idempotency_keys` | Claimed HTTP idempotency keys | Primary key (scope, key); a reused key gets 409 |
+| auth | `customers` | The bank record and credentials | `customer_number` unique; NIC encrypted; income and repayments may be missing (a hard referral) |
+| auth | `sessions` | Server-side sessions, customer or guest | Token stored as a SHA-256 hash; foreign key to `customers` (empty for a guest) |
+| settings | `settings` | The model chosen for each role | One row per key; no row means the default |
+| gov-credit | `credit_score_cache` | The last government result per customer | One row per customer, keyed by customer ID, never the NIC |
+| gov-credit | `gov_api_budget` | The bank-wide daily call budget, block and cool-down | A single row, updated inside an `IMMEDIATE` transaction |
+| lending | `consents` | Consent for exact loan terms in one conversation | — |
+| lending | `loan_assessments` | One decision, with its confidence and the threshold used | `consent_id` unique, with a foreign key: one assessment per consent. No score or band stored |
+| lending | `loan_applications` | An approved or referred application | `assessment_id` unique, with a foreign key; a partial unique index allows one open application per customer |
+| onboarding | `kyc_applications` | A KYC draft, then a pending application | The form is stored encrypted; confirming is idempotent by status |
+| agent | `conversations` | Who owns each conversation, and its models | The ID is also the checkpointer's thread ID |
+| agent | `callback_requests` | "Talk to a person" requests | Unique (conversation, reason); a guest's contact details are encrypted |
+| agent | `checkpoints`, `writes` | Graph state and transcripts | Created by the LangGraph checkpointer; hold references only (§10) |
+| mock-gov | `mock_gov_citizens`, `mock_gov_ip_calls`, `mock_gov_settings` | The simulated government service | Kept apart from the bank's tables: in production this data lives at the government, not here |
+
+**Integrity rules**
+
+- **One decision, one record.** A decision and its audit event are written in one transaction, so neither exists without the other.
+- **Replays find their first result.** Inside the graph, keys come from business identity: a consent gets one assessment, an assessment one application, a conversation one callback per reason. Replaying a step finds the row it wrote the first time. At the HTTP edge, a reused idempotency key gets 409.
+- **No sixth call.** A government call slot is taken inside an `IMMEDIATE` transaction, so two requests can't both take the last one.
+- **At rest.** NICs, KYC forms and guest contact details are encrypted with AES-256-GCM. Session tokens are stored hashed, and passwords with `scrypt`. The cached score is a plain integer because the rules read it, but it never reaches the audit, the logs or the LLM.
+- **Enums in code.** Status values are checked in TypeScript, not with SQL `CHECK` constraints.
 
 ## 10. Security architecture
 
@@ -255,8 +296,8 @@ erDiagram
 | Browser ↔ app | HTTPS + HSTS in production; strict security headers; `SameSite=Strict` cookies + origin check |
 | Who the customer is | Server-side sessions (hashed tokens, rotation, revocable logout); step-up re-authentication before the credit check and loan submission; identity never from chat |
 | Saved graph state | References only: no passwords, form data, or NIC-shaped text (stripped before the graph) |
-| Repeated or replayed requests | Idempotency keys; single-use interrupt IDs bound to session and thread |
-| App ↔ external APIs | TLS to allowlisted hosts; every response validated before use |
+| Repeated or replayed requests | Idempotency keys (a reused key gets 409); single-use interrupt IDs that only the conversation's owner can resume |
+| App ↔ external APIs | HTTPS to OpenRouter. The government API (mocked in this app) is called with the bank's API key, and its answers are validated with zod before use |
 | The LLM | Least information (§11) and no authority: it can't approve, consent, resume a pause, or choose an identity |
 | Secrets | Env only; the app refuses to start on invalid security config |
 
@@ -267,7 +308,7 @@ erDiagram
 | Level | Meaning | Obligation |
 |---|---|---|
 | **P0** | Could leak data, give a wrong or unauthorised outcome, duplicate an action, or bypass verification | Must never happen where code can prevent it; a best-effort check of free text is labelled as such. An automated test blocks the merge; a manual mutant shows the test fails when the control breaks |
-| **P1** | A journey can't complete or visibly degrades | Must fail safe with an honest message and a next step. Automated test |
+| **P1** | A journey can't complete or visibly degrades | Must fail safe with an honest message and a next step. Automated test where the failure path is our code; the spec marks the few covered by review instead (TD28) |
 | **P2** | A fallback already exists | Tested where cheap |
 
 **Three audiences:**
@@ -277,8 +318,6 @@ erDiagram
 | Customer | A written template and a next step. Hard failures add a short reference code for support |
 | LLM | One **situation label** (e.g. `CHECK_UNAVAILABLE`, `REFERRED`, `INVALID_INPUT`), never error details, internal numbers, or personal data |
 | Logs and audit | Full detail, personal data redacted, under the same reference |
-
-**P0 guarantees come from code and deterministic tests, never from evals.**
 
 **External dependencies degrade in one pattern:** bounded retry with backoff → cool-down → last good data (if the business rules allow it) → an honest "not available" with a human next step. Raw errors are mapped at one place: the tool middleware for the LLM, the harness for the browser.
 
@@ -308,5 +347,17 @@ Every step lands in the audit trail (served from cache, call N of 5, call skippe
 
 ## 12. Observability and runtime
 
-- **Audit log:** append-only; each model reply (role, model, prompt version, tool names, tokens; no text), auth event, consent, tool call, decision and external call. Transcript text lives only in the checkpoint. `pnpm audit:trail <customer number | conversation ID | reference code>` prints one case as a plain-English timeline. In demo mode, the chat's **Behind the scenes** panel shows the same timeline for the signed-in visitor's own conversation, beside the government service's calls today, block or cool-down, and the customer's cached-score age (never the score). **Logs:** structured JSON. Both share a correlation ID, which is also the customer's reference code.
-- **Runtime:** one Node 25 instance, one SQLite file, TLS terminated at a reverse proxy. Growth path: Postgres plus a shared session store. Modules reach storage only through `platform/db`, so nothing else changes.
+- **Audit log:** append-only (§9). It records each model reply (role, model, prompt version, tool names, tokens; never the text), every auth event, consent, tool call, decision and government call. Transcript text lives only in the checkpoint.
+- **Reading it:** `pnpm audit:trail <customer number | conversation ID | reference code>` prints one case as a plain-English timeline. In demo mode the chat's *Behind the scenes* panel shows the same timeline (SPEC §5, DECISIONS B10).
+- **Logs:** structured JSON. Logs and audit share a correlation ID, which is also the reference code a customer can quote to support.
+- **Runtime:** one Node 25 instance and one SQLite file, with TLS terminated at a reverse proxy.
+
+**Scaling.** One instance is plenty for 50–60 daily users. This is what changes as load grows:
+
+| Part | Today | At a second instance, or 10× the users |
+|---|---|---|
+| Database | One SQLite file | Postgres. Drizzle makes it a dialect change, and modules reach storage only through `platform/db` (D5) |
+| Turn lock and rate limits | In process memory | A shared store (a Postgres row lock or Redis), so two instances can't run the same conversation |
+| Sessions, checkpoints, audit | Already in the database | Nothing |
+| Government credit calls | 5 a day for the whole bank: about 150 fresh checks per 30 days with the cache | The real ceiling. More instances don't raise it; the cache does, and past that only a bigger quota from the government will |
+| LLM cost | About $22 a month on the default models (TD6) | Grows in line with turns. The per-role model choice in Settings is the lever |
