@@ -1,6 +1,6 @@
 # CLAUDE.md
 
-Banking assistant: a LangGraph.js chatbot for a small local bank (loan eligibility/application and account opening). Built as a take-home for a Tech Lead (GenAI/LLM) role.
+Banking assistant: a LangGraph.js chatbot for a small local bank (loan eligibility/application and account opening).
 
 ## Start here
 
